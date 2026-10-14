@@ -1,0 +1,83 @@
+{
+  "name": "pauli-speaks",
+  "productName": "Pauli Speaks",
+  "version": "1.0.0",
+  "description": "Free push-to-talk voice typing for Windows. Hold a shortcut, speak, release - your words are typed into any app.",
+  "main": "src/main/main.js",
+  "author": "Patrik Pauli",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/izscaryu/pauli-speaks.git"
+  },
+  "homepage": "https://github.com/izscaryu/pauli-speaks",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"test/*.test.js\"",
+    "icon": "node scripts/make-icon.js",
+    "dist": "electron-builder --win nsis --publish never",
+    "dist:portable": "electron-builder --win portable --publish never",
+    "release": "node scripts/release.js"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.1",
+    "electron-updater": "6.8.9",
+    "koffi": "3.3.3",
+    "uiohook-napi": "1.5.5"
+  },
+  "devDependencies": {
+    "electron": "44.7.2",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.pauli.speaks",
+    "productName": "Pauli Speaks",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "izscaryu",
+        "repo": "pauli-speaks",
+        "releaseType": "release"
+      }
+    ],
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "!node_modules/onnxruntime-node/bin/napi-v*/linux/**",
+      "!node_modules/onnxruntime-node/bin/napi-v*/darwin/**",
+      "!node_modules/onnxruntime-node/bin/napi-v*/win32/arm64/**",
+      "!node_modules/uiohook-napi/prebuilds/{linux,darwin,win32-arm64}*/**",
+      "!node_modules/onnxruntime-web/**"
+    ],
+    "asarUnpack": [
+      "node_modules/koffi/**",
+      "node_modules/uiohook-napi/**",
+      "node_modules/onnxruntime-node/**",
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Pauli Speaks"
+    }
+  },
+  "allowScripts": {
+    "koffi@3.3.3": true,
+    "uiohook-napi@1.5.5": true,
+    "onnxruntime-node@1.30.0": true,
+    "electron-winstaller@5.4.0": true,
+    "protobufjs@7.6.6": true
+  }
+}

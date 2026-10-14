@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:" />
+  <title>Pauli Speaks Overlay</title>
+  <link rel="stylesheet" href="overlay.css" />
+</head>
+<body>
+  <div class="stage">
+    <div id="preview" class="preview" hidden></div>
+    <div id="tip" class="tip" hidden></div>
+    <div id="pill" class="pill idle" role="status" aria-live="polite">
+      <button id="cancel" class="icon-btn cancel" title="Cancel (Esc)" aria-label="Cancel">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+      </button>
+      <span class="rec" aria-hidden="true"></span>
+      <svg class="speaker" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" /></svg>
+      <div id="wave" class="wave" aria-hidden="true"></div>
+      <span id="timer" class="timer"></span>
+      <span id="badge" class="badge" hidden></span>
+      <div id="dots" class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <span id="label" class="label"></span>
+      <button id="stop" class="icon-btn stop" title="Finish and paste" aria-label="Finish">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="2" /></svg>
+      </button>
+    </div>
+  </div>
+  <script src="overlay.js"></script>
+</body>
+</html>

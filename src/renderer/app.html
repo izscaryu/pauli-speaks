@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <title>Pauli Speaks</title>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="../../assets/icon.png" alt="" width="30" height="30" />
+      <strong>Pauli Speaks</strong>
+    </div>
+    <nav aria-label="Sections">
+      <button class="nav active" data-page="home"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Transcripts</button>
+      <button class="nav" data-page="files"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M10 17v-5l4 2.5z"/></svg>Files</button>
+      <button class="nav" data-page="dictionary"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/></svg>Dictionary</button>
+      <button class="nav" data-page="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Settings</button>
+      <button class="nav" data-page="about"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>About</button>
+    </nav>
+    <div class="side-status">
+      <div class="side-row"><span class="label">Engine</span><span id="side-engine">–</span></div>
+      <div class="side-row"><span class="label">Translate</span><span id="side-translate">Off</span></div>
+      <div id="side-progress" class="meter" hidden><i></i></div>
+    </div>
+  </aside>
+
+  <main>
+    <!-- TRANSCRIPTS -->
+    <section class="page" id="page-home">
+      <header class="topbar">
+        <div>
+          <h1 id="greeting">Transcripts</h1>
+          <p class="sub" id="topline">Speak anywhere. Your words land where the cursor is.</p>
+        </div>
+        <div id="live" class="live" role="status" aria-live="polite"><span class="dot"></span><span id="live-text">Ready</span></div>
+      </header>
+
+      <div id="update-banner" class="banner update" hidden>
+        <div class="grow"><strong id="update-banner-title">Update ready</strong><span class="desc">Restart Pauli Speaks to finish updating. It takes a few seconds.</span></div>
+        <button class="btn primary" data-update-install>Restart now</button>
+      </div>
+      <div id="model-banner" class="banner" hidden></div>
+
+      <div class="keys-strip" aria-label="Shortcuts">
+        <div class="kitem"><span id="ptt-chips" class="chips"></span><span>Hold to talk</span></div>
+        <div class="kitem"><span id="hf-chips" class="chips"></span><span>Hands-free</span></div>
+        <div class="kitem"><span id="tr-chips" class="chips"></span><span id="tr-label">Talk &amp; translate</span></div>
+        <div class="kitem"><span id="cancel-chips" class="chips"></span><span>Cancel</span></div>
+      </div>
+
+      <div class="statline">
+        <div><b id="st-words">0</b><span>words</span></div>
+        <div><b id="st-wpm">0</b><span>wpm</span></div>
+        <div><b id="st-saved">0</b><span>min saved</span></div>
+        <div><b id="st-count">0</b><span>dictations</span></div>
+        <div><b id="st-streak">0</b><span>day streak</span></div>
+        <figure class="week" aria-label="Words per day, last 7 days">
+          <div id="week-bars" class="week-bars"></div>
+          <figcaption>Words · last 7 days</figcaption>
+        </figure>
+      </div>
+
+      <label class="pad">
+        <span class="pad-label">Scratchpad</span>
+        <textarea id="try-box" rows="3" placeholder="Click here, hold the talk shortcut and say something…"></textarea>
+      </label>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>History</h2>
+          <input id="history-search" type="search" placeholder="Search transcripts" aria-label="Search transcripts" />
+          <button id="clear-history" class="btn quiet">Clear</button>
+        </div>
+        <div id="history" class="history"></div>
+      </section>
+    </section>
+
+    <!-- FILES -->
+    <section class="page" id="page-files" hidden>
+      <header class="topbar">
+        <div>
+          <h1>Transcribe a file</h1>
+          <p class="sub">Audio or video - voice memos, lectures, meetings, interviews. Runs on this PC like dictation.</p>
+        </div>
+      </header>
+      <label id="drop" class="drop">
+        <input id="file-input" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.flac,.webm,.mp4,.mkv,.mov" />
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+        <span><b>Drop a file here</b> or click to choose</span>
+        <small>mp3, m4a, wav, ogg, flac, webm, mp4, mov…</small>
+      </label>
+      <div class="inline">
+        <label class="inline check"><input type="checkbox" id="file-translate" /> Translate into <span id="file-target">English</span></label>
+      </div>
+      <section id="file-job" class="panel" hidden>
+        <div class="panel-head">
+          <h2 id="file-name">File</h2>
+          <span id="file-status" class="desc"></span>
+        </div>
+        <div id="file-meter" class="meter big"><i></i></div>
+        <textarea id="file-text" rows="12" readonly placeholder="The transcript will appear here…"></textarea>
+        <div class="inline">
+          <button id="file-copy" class="btn" disabled>Copy</button>
+          <button id="file-txt" class="btn" disabled>Save .txt</button>
+          <button id="file-srt" class="btn" disabled>Save subtitles (.srt)</button>
+        </div>
+      </section>
+    </section>
+
+    <!-- DICTIONARY -->
+    <section class="page" id="page-dictionary" hidden>
+      <header class="topbar">
+        <div>
+          <h1>Dictionary &amp; snippets</h1>
+          <p class="sub">Teach Pauli Speaks your words, and give it shortcuts for text you type a lot.</p>
+        </div>
+      </header>
+      <section class="panel">
+        <h2>Dictionary</h2>
+        <p class="desc">Names, brands and jargon. They're also given to Whisper as hints, so it hears them right the first time.</p>
+        <form id="dict-form" class="dict-form">
+          <input id="dict-from" placeholder="When I say… (polyspeaks)" required />
+          <span class="arrow" aria-hidden="true">→</span>
+          <input id="dict-to" placeholder="Write… (Pauli Speaks)" required />
+          <button class="btn primary" type="submit">Add</button>
+        </form>
+        <div id="dict-list" class="rows"></div>
+      </section>
+      <section class="panel">
+        <h2>Snippets</h2>
+        <p class="desc">Say the trigger phrase and the full text is typed instead - your email, address, signature, a standard reply.</p>
+        <form id="snip-form" class="snip-form">
+          <input id="snip-trigger" placeholder="Trigger phrase (my email)" required />
+          <textarea id="snip-text" rows="2" placeholder="Text to insert (name@example.com)" required></textarea>
+          <button class="btn primary" type="submit">Add</button>
+        </form>
+        <div id="snip-list" class="rows"></div>
+      </section>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="page-settings" hidden>
+      <header class="topbar">
+        <div>
+          <h1>Settings</h1>
+          <p class="sub">Saved automatically.</p>
+        </div>
+      </header>
+
+      <section class="panel">
+        <h2>Shortcuts</h2>
+        <div id="shortcut-rows" class="rows"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Translation</h2>
+        <div class="rows">
+          <label class="row">
+            <div><div class="title">Always translate</div><div class="desc">Every dictation is pasted in the target language. When off, use the translate shortcut only when you need it.</div></div>
+            <span class="switch"><input type="checkbox" id="tr-always" /><span></span></span>
+          </label>
+          <div class="row">
+            <div><div class="title">Translate into</div><div class="desc">Speech already in this language is left as is.</div></div>
+            <select id="tr-target"></select>
+          </div>
+          <div class="row">
+            <div><div class="title">Quality</div><div id="tr-quality-desc" class="desc"></div></div>
+            <div class="segmented small" id="tr-quality">
+              <button data-quality="fast">Fast</button>
+              <button data-quality="best">Best</button>
+            </div>
+          </div>
+          <div class="row" id="tr-model-row">
+            <div><div class="title">Offline translator</div><div class="desc" id="tr-model-desc"></div></div>
+            <button id="tr-download" class="btn">Download</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Speech recognition</h2>
+        <div class="segmented" id="engine">
+          <button data-engine="local"><b>On this PC</b><small>Free · private · works offline</small></button>
+          <button data-engine="cloud"><b>Cloud API</b><small>Groq free tier · fastest</small></button>
+        </div>
+        <div id="local-settings" class="rows">
+          <div id="models"></div>
+          <div class="row">
+            <div><div class="title">Acceleration</div><div class="desc" id="accel-desc">Use the graphics card when there is one.</div></div>
+            <div class="segmented small" id="accel">
+              <button data-accel="auto">GPU</button>
+              <button data-accel="cpu">CPU only</button>
+            </div>
+          </div>
+        </div>
+        <div id="cloud-settings" class="rows" hidden>
+          <div class="row"><div class="title">API base URL</div><input id="cloud-url" placeholder="https://api.groq.com/openai/v1" /></div>
+          <div class="row"><div class="title">API key</div><input id="cloud-key" type="password" placeholder="gsk_…" autocomplete="off" /></div>
+          <div class="row"><div class="title">Model</div><input id="cloud-model" placeholder="whisper-large-v3-turbo" /></div>
+          <div class="row">
+            <div class="desc">Free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>. Audio goes to that service only in this mode.</div>
+            <div class="inline"><span id="cloud-result" class="desc"></span><button id="cloud-test" class="btn">Test</button></div>
+          </div>
+        </div>
+        <div class="row stack">
+          <div><div class="title">Languages you speak</div><div class="desc">One language is fastest. With several (or Auto) Pauli Speaks detects which one you used.</div></div>
+          <div id="languages" class="lang-chips"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Dictation</h2>
+        <div class="rows">
+          <label class="row"><div><div class="title">Use dictionary words as hints</div><div class="desc">Whisper spells your names and terms correctly instead of guessing.</div></div><span class="switch"><input type="checkbox" data-setting="vocabularyPrompt" /><span></span></span></label>
+          <label class="row"><div><div class="title">Live preview</div><div class="desc">Shows the words above the bar while you speak. Uses more CPU/GPU; on-this-PC engine only.</div></div><span class="switch"><input type="checkbox" data-setting="livePreview" /><span></span></span></label>
+          <div class="row">
+            <div><div class="title">Stop hands-free after silence</div><div class="desc">Finishes a hands-free dictation automatically when you stop talking.</div></div>
+            <select id="auto-stop">
+              <option value="0">Never</option>
+              <option value="3">After 3 seconds</option>
+              <option value="5">After 5 seconds</option>
+              <option value="10">After 10 seconds</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>App styles</h2>
+        <p class="desc">Pauli Speaks notices which app you are dictating into and adjusts the text.</p>
+        <div class="rows">
+          <label class="row"><div class="title">Adapt to the app</div><span class="switch"><input type="checkbox" id="styles-on" /><span></span></span></label>
+        </div>
+        <div id="app-rules" class="rows"></div>
+        <form id="rule-form" class="rule-form">
+          <input id="rule-app" placeholder="App file, e.g. chrome.exe" list="recent-apps" required />
+          <datalist id="recent-apps"></datalist>
+          <select id="rule-style"></select>
+          <button class="btn" type="submit">Add app</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Command mode</h2>
+        <p class="desc">Select text anywhere, hold <span id="cmd-chips" class="chips"></span> and say what to do: "make this more formal", "translate to German", "turn this into a bulleted list". With nothing selected it writes new text for you. Uses a free Groq API key (set under Speech recognition → Cloud API).</p>
+        <div class="rows">
+          <div class="row"><div><div class="title">AI model</div><div class="desc">Any chat model your API provider offers.</div></div><input id="cmd-model" placeholder="llama-3.3-70b-versatile" /></div>
+          <div class="row"><div class="desc" id="cmd-key-state"></div><div class="inline"><span id="cmd-result" class="desc"></span><button id="cmd-test" class="btn">Test</button></div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Read aloud</h2>
+        <p class="desc">Select text anywhere and press <span id="read-chips" class="chips"></span> to hear it. Press it again, or Esc, to stop.</p>
+        <div class="rows">
+          <div class="row"><div class="title">Voice</div><select id="tts-voice"></select></div>
+          <div class="row">
+            <div class="title">Speed <span id="tts-rate-value" class="desc"></span></div>
+            <div class="inline"><input id="tts-rate" type="range" min="0.6" max="1.8" step="0.1" /><button id="tts-test" class="btn">Try</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Microphone</h2>
+        <div class="rows">
+          <div class="row">
+            <div><div class="title">Input device</div><div class="desc">Test shows the live level for five seconds.</div></div>
+            <div class="inline">
+              <select id="mic"></select>
+              <button id="mic-test" class="btn">Test</button>
+            </div>
+          </div>
+          <div id="mic-meter" class="meter big" hidden><i></i></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Text</h2>
+        <div class="rows">
+          <label class="row"><div><div class="title">Remove filler words</div><div class="desc">um, uh, hmm, ovaj…</div></div><span class="switch"><input type="checkbox" data-setting="removeFillers" /><span></span></span></label>
+          <label class="row"><div><div class="title">Voice commands</div><div class="desc">"new line", "new paragraph", "novi red"</div></div><span class="switch"><input type="checkbox" data-setting="voiceCommands" /><span></span></span></label>
+          <label class="row"><div class="title">Capitalize sentences</div><span class="switch"><input type="checkbox" data-setting="capitalize" /><span></span></span></label>
+          <label class="row"><div class="title">Add a space after each dictation</div><span class="switch"><input type="checkbox" data-setting="addTrailingSpace" /><span></span></span></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Behavior</h2>
+        <div class="rows">
+          <label class="row"><div class="title">Start and stop sounds</div><span class="switch"><input type="checkbox" data-setting="sounds" /><span></span></span></label>
+          <label class="row"><div><div class="title">Idle bar</div><div class="desc">Small bar at the bottom of the screen; click it to dictate.</div></div><span class="switch"><input type="checkbox" data-setting="showIdlePill" /><span></span></span></label>
+          <label class="row"><div class="title">Restore my clipboard after pasting</div><span class="switch"><input type="checkbox" data-setting="restoreClipboard" /><span></span></span></label>
+          <label class="row"><div class="title">Start with Windows</div><span class="switch"><input type="checkbox" data-setting="launchAtLogin" /><span></span></span></label>
+        </div>
+      </section>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="page" id="page-about" hidden>
+      <header class="topbar">
+        <div>
+          <h1>About</h1>
+          <p class="sub" id="about-version"></p>
+        </div>
+      </header>
+      <section class="panel">
+        <h2>Updates</h2>
+        <div class="rows">
+          <div class="row">
+            <div><div class="title" id="update-title">Pauli Speaks</div><div class="desc" id="update-desc">Updates install automatically from GitHub.</div></div>
+            <div class="inline">
+              <button id="update-check" class="btn">Check for updates</button>
+              <button class="btn primary" data-update-install hidden>Restart to update</button>
+            </div>
+          </div>
+          <div id="update-meter" class="meter big" hidden><i></i></div>
+        </div>
+      </section>
+      <section class="panel prose">
+        <h2>How it works</h2>
+        <ol>
+          <li>A low-level keyboard hook watches for your shortcut in any app. It never blocks or records other keys.</li>
+          <li>While you hold it, the microphone is recorded at 16 kHz.</li>
+          <li>When you let go, Whisper turns speech into text on your own CPU, so nothing leaves your PC.</li>
+          <li>Optionally the text is translated: Whisper's built-in translator (fast, English) or NLLB-200 (best, 30+ languages).</li>
+          <li>Fillers, voice commands and your dictionary are applied, then the text is pasted with Ctrl+V and your clipboard is put back.</li>
+        </ol>
+        <p>The push-to-talk design follows Wispr Flow: exact key-combination matching, a 500 ms tap / double-tap window, hands-free lock, Esc to cancel and Start-menu masking for Ctrl+Win.</p>
+        <div class="inline">
+          <button class="btn" data-open="data">Data folder</button>
+          <button class="btn" data-open="models">Models folder</button>
+          <button class="btn" data-open="logs">Logs</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
