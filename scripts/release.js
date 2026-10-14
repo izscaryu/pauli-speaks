@@ -1,22 +1,31 @@
 'use strict';
 // Publish a new version to GitHub Releases - the feed the in-app updater reads.
 //
-//   1. bump "version" in package.json (e.g. 1.0.1) and commit
+//   1. bump "version" in package.json (e.g. 1.0.1), commit and push
 //   2. npm run release
 //
-// Runs the tests, checks the version isn't released yet and the work is pushed,
-// then builds the NSIS installer and uploads it with latest.yml + blockmap.
-// Uses the GitHub CLI's login for the token (gh auth login), or GH_TOKEN.
+// Runs the tests, builds the NSIS installer locally, checks that latest.yml
+// describes exactly that installer (sha512 + size), then creates the release
+// with all three files the updater needs and verifies they arrived.
+// Uses the GitHub CLI's login (gh auth login).
 
 const { execSync, spawnSync } = require('node:child_process');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.join(__dirname, '..');
 const pkg = require(path.join(root, 'package.json'));
 const { owner, repo } = pkg.build.publish[0];
-const tag = `v${pkg.version}`;
+const slug = `${owner}/${repo}`;
+const { version } = pkg;
+const tag = `v${version}`;
+const dist = path.join(root, 'dist');
+const exeName = `Pauli-Speaks-Setup-${version}.exe`;
+const assets = [exeName, `${exeName}.blockmap`, 'latest.yml'];
 
 const sh = (cmd) => execSync(cmd, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+const run = (cmd, args) => spawnSync(cmd, args, { cwd: root, stdio: 'inherit', shell: true }).status === 0;
 const fail = (msg) => {
   console.error(`\n✖ ${msg}`);
   process.exit(1);
@@ -25,22 +34,34 @@ const fail = (msg) => {
 if (sh('git status --porcelain')) fail('Commit your changes first (git status is not clean).');
 sh('git fetch --quiet origin');
 if (sh('git rev-parse HEAD') !== sh('git rev-parse @{u}')) fail('Push your commits first (git push).');
-
-const existing = spawnSync('gh', ['release', 'view', tag, '--repo', `${owner}/${repo}`], { cwd: root, encoding: 'utf8' });
-if (existing.status === 0) fail(`${tag} is already released. Bump "version" in package.json.`);
+if (spawnSync('gh', ['release', 'view', tag, '--repo', slug], { cwd: root }).status === 0) {
+  fail(`${tag} is already released. Bump "version" in package.json.`);
+}
 
 console.log('Running tests…');
-const tests = spawnSync('npm', ['test'], { cwd: root, stdio: 'inherit', shell: true });
-if (tests.status !== 0) fail('Tests failed.');
+if (!run('npm', ['test'])) fail('Tests failed.');
 
-const token = process.env.GH_TOKEN || sh('gh auth token');
-console.log(`Building and publishing ${tag} to ${owner}/${repo}…`);
-const build = spawnSync('npx', ['electron-builder', '--win', 'nsis', '--publish', 'always'], {
-  cwd: root,
-  stdio: 'inherit',
-  shell: true,
-  env: { ...process.env, GH_TOKEN: token },
-});
-if (build.status !== 0) fail('Build or upload failed.');
-console.log(`\n✔ Released ${tag}: https://github.com/${owner}/${repo}/releases/tag/${tag}`);
-console.log('Installed copies will pick it up within 6 hours (or via About → Check for updates).');
+console.log(`Building ${tag}…`);
+for (const a of assets) fs.rmSync(path.join(dist, a), { force: true });
+if (!run('npx', ['electron-builder', '--win', 'nsis', '--publish', 'never'])) fail('Build failed.');
+
+const exe = fs.readFileSync(path.join(dist, exeName));
+const latest = fs.readFileSync(path.join(dist, 'latest.yml'), 'utf8');
+const sha512 = crypto.createHash('sha512').update(exe).digest('base64');
+if (!latest.includes(`version: ${version}`) || !latest.includes(sha512) || !latest.includes(`size: ${exe.length}`)) {
+  fail('latest.yml does not match the installer that was just built.');
+}
+
+console.log(`Publishing ${tag} to ${slug}…`);
+const created = run('gh', [
+  'release', 'create', tag, ...assets.map((a) => `"${path.join('dist', a)}"`),
+  '--repo', slug, '--target', 'main', '--title', `"Pauli Speaks ${version}"`, '--generate-notes',
+]);
+if (!created) fail('Creating the GitHub release failed.');
+
+const uploaded = JSON.parse(sh(`gh release view ${tag} --repo ${slug} --json assets`)).assets.map((a) => a.name);
+const missing = assets.filter((a) => !uploaded.includes(a));
+if (missing.length) fail(`Release is missing ${missing.join(', ')} - upload them with: gh release upload ${tag} <files> --repo ${slug}`);
+
+console.log(`\n✔ Released ${tag}: https://github.com/${slug}/releases/tag/${tag}`);
+console.log('Installed copies pick it up within 6 hours, or straight away via About → Check for updates.');

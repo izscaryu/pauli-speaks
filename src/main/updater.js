@@ -34,7 +34,8 @@ class Updater extends EventEmitter {
     this.autoUpdater = autoUpdater;
     autoUpdater.logger = { info: log.info, warn: log.warn, error: log.error, debug: log.debug };
     autoUpdater.autoDownload = true;
-    autoUpdater.autoInstallOnAppQuit = true;
+    // PAULI_UPDATE_NO_INSTALL: test builds download but never install over the real app
+    autoUpdater.autoInstallOnAppQuit = !process.env.PAULI_UPDATE_NO_INSTALL;
     if (process.env.PAULI_UPDATE_DEV) autoUpdater.forceDevUpdateConfig = true;
 
     autoUpdater.on('checking-for-update', () => this.#set({ status: 'checking', error: null }));

@@ -66,6 +66,7 @@
       "icon": "assets/icon.png"
     },
     "nsis": {
+      "artifactName": "Pauli-Speaks-Setup-${version}.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

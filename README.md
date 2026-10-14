@@ -6,7 +6,7 @@ are typed into whatever app has the cursor. Speech recognition runs **on your ow
 
 The push-to-talk behaviour is modelled on Wispr Flow's design.
 
-**Download:** grab the latest `Pauli Speaks Setup x.y.z.exe` from
+**Download:** grab the latest `Pauli-Speaks-Setup-x.y.z.exe` from
 [Releases](https://github.com/izscaryu/pauli-speaks/releases/latest). Installed copies update
 themselves.
 
@@ -66,7 +66,7 @@ Home screen. Click into the **Try it here** box, hold **Ctrl + Win**, say someth
 npm run dist
 ```
 
-This creates `dist/Pauli Speaks Setup 1.0.0.exe`. Use `npm run dist:portable` for a single
+This creates `dist/Pauli-Speaks-Setup-1.0.0.exe`. Use `npm run dist:portable` for a single
 portable `.exe`.
 
 ## Updates and releases
