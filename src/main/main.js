@@ -555,7 +555,7 @@ async function pasteLast() {
 
 function copyLast() {
   const last = history.last();
-  if (last) clipboard.writeText(last.text);
+  if (last) clipboard.writeText(last.text).catch((err) => log.warn(`Copy failed: ${err.message}`));
 }
 
 /**
@@ -931,6 +931,16 @@ async function runSelfTest(dir) {
   try {
     await wait(2500);
     const { samples } = decodeWav(fs.readFileSync(path.join(dir, 'speech.wav')));
+    // Clipboard round-trip exactly as a paste does it (snapshot -> write -> restore).
+    const { snapshot, restore } = require('./paster');
+    const beforeText = await clipboard.readText();
+    const snap = await snapshot();
+    await clipboard.writeText('pauli-selftest');
+    const written = await clipboard.readText();
+    await restore(snap);
+    report.clipboard = { written: written === 'pauli-selftest', restored: (await clipboard.readText()) === beforeText, snapshotOk: snap !== undefined };
+    if (!report.clipboard.written || !report.clipboard.restored || !report.clipboard.snapshotOk) report.ok = false;
+
     await preloadModel();
     report.device = modelState.device;
     report.gpuError = modelState.gpuError || null;

@@ -7,8 +7,13 @@
 //   4. after a short delay restore the previous clipboard - unless something
 //      else changed it in the meantime ("Clipboard changed since paste,
 //      skipping restoration")
+//
+// Electron 44 replaced the old synchronous clipboard API (availableFormats,
+// readHTML, readImage...) with an async W3C-style one: read() returns
+// ClipboardItems carrying every format - including raw Windows formats - and
+// write() puts them back atomically.
 
-const { clipboard } = require('electron');
+const { clipboard, ClipboardItem } = require('electron');
 const win32 = require('./win32');
 const log = require('./logger');
 
@@ -26,27 +31,54 @@ async function waitForModifiersReleased(timeoutMs) {
   return false;
 }
 
-function snapshot() {
-  const formats = clipboard.availableFormats();
-  if (formats.length === 0) return null;
-  const snap = {};
-  const text = clipboard.readText();
-  if (text) snap.text = text;
-  if (formats.includes('text/html')) snap.html = clipboard.readHTML();
-  if (formats.includes('text/rtf')) snap.rtf = clipboard.readRTF();
-  if (formats.some((f) => f.startsWith('image/'))) {
-    const image = clipboard.readImage();
-    if (!image.isEmpty()) snap.image = image;
+/**
+ * Copy of everything on the clipboard (text, HTML, images, files, app formats).
+ * Payloads are read eagerly so the snapshot survives the clipboard changing.
+ * Best effort: on failure we paste anyway and just can't restore.
+ * @returns {Promise<ClipboardItem[]|null>} null = clipboard was empty
+ */
+async function snapshot() {
+  try {
+    const items = await clipboard.read();
+    const out = [];
+    for (const item of items) {
+      const data = {};
+      for (const type of item.types) {
+        try {
+          data[type] = await item.getType(type);
+        } catch {
+          // a format that can't be read back is skipped, the rest is kept
+        }
+      }
+      if (Object.keys(data).length) out.push(new ClipboardItem(data));
+    }
+    return out.length ? out : null;
+  } catch (err) {
+    log.warn(`Could not snapshot the clipboard: ${err.message}`);
+    return undefined;
   }
-  return Object.keys(snap).length ? snap : null;
 }
 
-function restore(snap) {
-  if (snap) clipboard.write(snap);
-  else clipboard.clear();
+async function restore(snap) {
+  if (snap === undefined) return;
+  try {
+    if (snap) await clipboard.write(snap);
+    else clipboard.clear();
+  } catch (err) {
+    log.warn(`Could not restore the clipboard: ${err.message}`);
+  }
 }
 
 let pending = null;
+
+/** Take over a queued restore (a newer paste/copy supersedes it) and return its snapshot. */
+function takePending() {
+  if (!pending) return null;
+  clearTimeout(pending.timer);
+  const { snap } = pending;
+  pending = null;
+  return { snap };
+}
 
 /**
  * @param {string} text
@@ -59,26 +91,23 @@ async function pasteText(text, { restoreClipboard = true } = {}) {
     await sleep(20);
   }
 
-  // A new paste supersedes a queued restore of the previous one.
-  let snap;
-  if (pending) {
-    clearTimeout(pending.timer);
-    snap = pending.snap;
-    pending = null;
-  } else {
-    snap = restoreClipboard ? snapshot() : null;
-  }
+  const queued = takePending();
+  const snap = queued ? queued.snap : restoreClipboard ? await snapshot() : undefined;
 
-  clipboard.writeText(text);
+  await clipboard.writeText(text);
   await sleep(25);
   const ok = win32.sendPaste();
   if (!ok) log.warn('SendInput for Ctrl+V was blocked (is the target app running as administrator?)');
 
-  if (restoreClipboard) {
-    const timer = setTimeout(() => {
+  if (restoreClipboard && snap !== undefined) {
+    const timer = setTimeout(async () => {
       pending = null;
-      if (clipboard.readText() === text) restore(snap);
-      else log.info('Clipboard changed since paste, skipping restoration');
+      try {
+        if ((await clipboard.readText()) === text) await restore(snap);
+        else log.info('Clipboard changed since paste, skipping restoration');
+      } catch (err) {
+        log.warn(`Clipboard restore check failed: ${err.message}`);
+      }
     }, RESTORE_DELAY_MS);
     pending = { timer, snap };
   }
@@ -95,22 +124,19 @@ async function getSelectedText() {
     win32.releaseModifiers(MODIFIER_VKS);
     await sleep(20);
   }
-  const snap = pending ? pending.snap : snapshot();
-  if (pending) {
-    clearTimeout(pending.timer);
-    pending = null;
-  }
+  const queued = takePending();
+  const snap = queued ? queued.snap : await snapshot();
   clipboard.clear();
   win32.sendCopy();
   let text = '';
   const end = Date.now() + 450;
   while (Date.now() < end) {
     await sleep(30);
-    text = clipboard.readText();
+    text = await clipboard.readText();
     if (text) break;
   }
-  restore(snap);
+  await restore(snap);
   return text;
 }
 
-module.exports = { pasteText, getSelectedText, waitForModifiersReleased };
+module.exports = { pasteText, getSelectedText, waitForModifiersReleased, snapshot, restore };
