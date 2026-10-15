@@ -143,6 +143,9 @@ remote.js   pauli-speaks:// links and --flags, from startup argv and second-inst
 | `src/renderer/app.*` | Main window (Home, Shortcuts, Files, Dictionary, Settings, About) |
 
 Data lives in `%APPDATA%\Pauli Speaks\`: `settings.json`, `history.json`, `models\`, `logs\`.
+Uninstalling asks whether to delete this folder too (the default is to keep it); updates never
+touch it. The uninstaller also removes the `pauli-speaks://` link handler and the
+start-with-Windows entry that the app registered ([`build/installer.nsh`](build/installer.nsh)).
 
 ## Troubleshooting
 

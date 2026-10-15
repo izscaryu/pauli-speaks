@@ -76,7 +76,8 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Pauli Speaks"
+      "shortcutName": "Pauli Speaks",
+      "include": "build/installer.nsh"
     }
   },
   "allowScripts": {
