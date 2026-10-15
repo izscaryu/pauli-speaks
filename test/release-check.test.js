@@ -1,0 +1,61 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
+const { installerName, checkRelease } = require('../scripts/release-check');
+
+const exe = Buffer.from('pretend this is an installer');
+const sha512 = crypto.createHash('sha512').update(exe).digest('base64');
+const exeName = 'Pauli-Speaks-Setup-1.1.0.exe';
+
+/** latest.yml as electron-builder writes it. */
+const latestYml = ({ version = '1.1.0', name = exeName, hash = sha512, size = exe.length } = {}) => `version: ${version}
+files:
+  - url: ${name}
+    sha512: ${hash}
+    size: ${size}
+path: ${name}
+sha512: ${hash}
+releaseDate: '2026-10-15T10:00:00.000Z'
+`;
+
+const good = { tag: 'v1.1.0', version: '1.1.0', exe, latestYml: latestYml() };
+
+test('the installer name follows the version', () => {
+  assert.equal(installerName('1.1.0'), exeName);
+});
+
+test('a release whose latest.yml describes the installer passes', () => {
+  assert.deepEqual(checkRelease(good), []);
+});
+
+test('the tag must match the version in package.json', () => {
+  const problems = checkRelease({ ...good, tag: 'v1.0.9' });
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /v1\.0\.9.*1\.1\.0/);
+  assert.equal(checkRelease({ ...good, tag: '1.1.0' }).length, 1, 'the tag needs its "v"');
+});
+
+test('latest.yml must name the same version', () => {
+  assert.match(checkRelease({ ...good, latestYml: latestYml({ version: '1.0.1' }) }).join(), /version/);
+});
+
+test('latest.yml must point at this installer', () => {
+  assert.match(checkRelease({ ...good, latestYml: latestYml({ name: 'Pauli Speaks Setup 1.1.0.exe' }) }).join(), /path|url/);
+});
+
+test('latest.yml must carry the installer\'s sha512 and size', () => {
+  const other = crypto.createHash('sha512').update('a different file').digest('base64');
+  assert.match(checkRelease({ ...good, latestYml: latestYml({ hash: other }) }).join(), /sha512/);
+  assert.match(checkRelease({ ...good, latestYml: latestYml({ size: exe.length + 1 }) }).join(), /size/);
+});
+
+test('a hash in one place of latest.yml and another elsewhere is caught', () => {
+  const other = crypto.createHash('sha512').update('signed later').digest('base64');
+  const mixed = latestYml().replace(/^sha512: .*$/m, `sha512: ${other}`);
+  assert.match(checkRelease({ ...good, latestYml: mixed }).join(), /sha512/);
+});
+
+test('an empty or missing latest.yml fails', () => {
+  assert.ok(checkRelease({ ...good, latestYml: '' }).length > 0);
+});

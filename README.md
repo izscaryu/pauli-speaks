@@ -76,7 +76,7 @@ Home screen. Click into the **Try it here** box, hold **Ctrl + Win**, say someth
 npm run dist
 ```
 
-This creates `dist/Pauli-Speaks-Setup-1.0.0.exe`. Use `npm run dist:portable` for a single
+This creates `dist/Pauli-Speaks-Setup-<version>.exe`. Use `npm run dist:portable` for a single
 portable `.exe`.
 
 ## Updates and releases
@@ -87,17 +87,20 @@ and then every 6 hours (`electron-updater`). It downloads new versions in the ba
 offers **Restart to update** in the tray, the main window and About. If you ignore that, the
 update installs the next time you quit.
 
-To publish a new version (needs the GitHub CLI logged in to an account with push access):
-
-1. Change `"version"` in `package.json` (e.g. `1.0.1`), commit and push.
-2. Run:
+Releases are built by GitHub Actions, not on a developer's PC. To publish a new version, with
+everything committed and pushed on `main`:
 
 ```bash
-npm run release
+npm run release -- 1.1.0
 ```
 
-This runs the tests, builds the installer and uploads it with `latest.yml` (the file the
-updater reads) to a new `v1.0.1` release.
+(or `patch`, `minor`, `major`). This runs the tests, sets `"version"` in `package.json`, commits
+"Release v1.1.0", tags it `v1.1.0` and pushes both. The tag starts
+[`.github/workflows/release.yml`](.github/workflows/release.yml), which builds the installer,
+checks that `latest.yml` (the file the updater reads) matches it exactly, and creates the
+GitHub release with the `.exe`, `.blockmap` and `latest.yml`.
+
+Every push and pull request runs the tests in [CI](.github/workflows/ci.yml).
 
 ## Tests
 

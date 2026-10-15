@@ -1,0 +1,117 @@
+# Builds and publishes a release when a v* tag is pushed (npm run release -- x.y.z).
+#
+#   build:   tests → NSIS installer → [signing, not yet] → latest.yml check → artifact
+#   release: GitHub release with the .exe, .blockmap and latest.yml
+#
+# The installed app's updater reads latest.yml from the newest release, so a
+# release is only created when latest.yml matches the installer exactly.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Tag matches package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $version in package.json"
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Build installer (unsigned)
+        run: npx electron-builder --win nsis --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      # ------------------------------------------------------------------
+      # CODE SIGNING (SignPath Foundation) - NOT ENABLED YET
+      #
+      # Added once the SignPath application is approved (plan M1). Steps:
+      #   1. Upload dist/Pauli-Speaks-Setup-<version>.exe as an artifact and
+      #      submit it with signpath/github-action-submit-signing-request
+      #      (pin it to a commit SHA). Needs a SIGNPATH_API_TOKEN repository
+      #      secret plus the organization id, project slug and signing policy
+      #      slug from SignPath.
+      #   2. Replace dist/Pauli-Speaks-Setup-<version>.exe with the signed file.
+      #   3. Regenerate dist/latest.yml and the .blockmap for the SIGNED file
+      #      (sha512 and size change when a file is signed). If this is
+      #      skipped, the check below fails - and if the check were skipped,
+      #      every installed copy would reject the update.
+      # No secrets are used by this workflow until then.
+      # ------------------------------------------------------------------
+
+      - name: Check latest.yml matches the installer
+        run: node scripts/release-check.js "$GITHUB_REF_NAME"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: |
+            dist/Pauli-Speaks-Setup-*.exe
+            dist/Pauli-Speaks-Setup-*.exe.blockmap
+            dist/latest.yml
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Pauli Speaks ${GITHUB_REF_NAME#v}" \
+            --generate-notes \
+            --verify-tag
+
+      - name: Check all three files arrived
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          uploaded=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          for f in release/*; do
+            name=$(basename "$f")
+            if ! grep -qxF "$name" <<< "$uploaded"; then
+              echo "::error::$name is missing from the release"
+              exit 1
+            fi
+          done
+          echo "Released $GITHUB_REF_NAME with: $uploaded"
