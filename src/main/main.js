@@ -540,7 +540,7 @@ async function runDictation(audio, seconds, t0) {
   // "scratch that" at the end throws away what was just said
   const scratched = after.some((c) => c.action === 'undo');
   const text = scratched ? '' : cleaned;
-  log.info(`Transcribed in ${Date.now() - t0}ms (${result.language || '?'}${result.translatedTo ? ` -> ${result.translatedTo}` : ''}, ${sessionApp ? sessionApp.exe : '?'}: ${style})${before.length + after.length ? `, commands: ${[...before, ...after].map((c) => c.action + (c.arg ? `:${c.arg}` : '')).join(' ')}` : ''}`);
+  log.info(`Transcribed in ${Date.now() - t0}ms (${result.language || '?'}${result.translatedTo ? ` -> ${result.translatedTo}` : ''}, ${sessionApp ? sessionApp.exe : '?'}: ${style})${before.length + after.length ? `, commands: ${[...before, ...after].map((c) => c.action).join(' ')}` : ''}`);
   if (!text.trim() && !before.length && !after.length) return flash('No speech detected');
   sendOverlayState({ state: 'idle' });
 
@@ -583,7 +583,7 @@ async function runCommand(audio, seconds) {
   );
   if (controller.cancelled) return sendOverlayState({ state: 'idle' });
   if (!output) return flash('The AI returned nothing - try rephrasing', 'error');
-  log.info(`Command "${instruction}" on ${selection.length} chars -> ${output.length} chars`);
+  log.info(`Command (${instruction.length} chars) on ${selection.length} chars -> ${output.length} chars`);
   history.add({
     kind: 'command',
     text: output,
