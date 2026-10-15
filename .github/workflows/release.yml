@@ -95,10 +95,12 @@ jobs:
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          LINKS: https://github.com/${{ github.repository }}/blob/main
         run: |
           gh release create "$GITHUB_REF_NAME" release/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "Pauli Speaks ${GITHUB_REF_NAME#v}" \
+            --notes "[Code signing policy]($LINKS/docs/code-signing-policy.md) · [Privacy]($LINKS/PRIVACY.md) · [Open-source licences]($LINKS/THIRD_PARTY_NOTICES.md)" \
             --generate-notes \
             --verify-tag
 
