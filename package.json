@@ -44,6 +44,10 @@
         "releaseType": "release"
       }
     ],
+    "extraFiles": [
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
+    ],
     "files": [
       "src/**/*",
       "assets/**/*",
