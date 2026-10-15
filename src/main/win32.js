@@ -1,9 +1,7 @@
 'use strict';
-// Thin user32 bindings - the parts of Wispr Flow's native "Wispr Flow Helper.exe"
-// we need, called in-process through koffi (FFI) instead of a C# sidecar:
+// Thin user32 / kernel32 bindings, called in-process through koffi (FFI):
 //   * SendInput            - Ctrl+V paste and the Start-menu masking key tap
 //   * GetAsyncKeyState     - physical key state, used to evict stale keys
-//                            (Wispr's CheckStaleKeys helper request)
 
 const koffi = require('koffi');
 
@@ -40,8 +38,7 @@ const PAULI_MARKER = 0x5041554c; // 'PAUL' in dwExtraInfo, identifies our own in
 const VK_CONTROL = 0x11;
 const VK_V = 0x56;
 // Unassigned virtual key. Tapping it while Win is held stops the Start menu
-// from opening when Win is released - the same trick as Wispr's
-// "SendMaskingSequence" / "windows-shortcut-masking" (and AutoHotkey's vkE8).
+// from opening when Win is released - the same trick as AutoHotkey's vkE8 masking.
 const VK_MASK = 0xe8;
 
 const EXTENDED = new Set([0x5b, 0x5c, 0xa3, 0xa5, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2d, 0x2e]);
@@ -74,7 +71,7 @@ function sendCopy() {
   ]);
 }
 
-/** Executable of the focused window, e.g. { exe: 'Code.exe', pid: 1234 } - Wispr's GetActiveAppInfo. */
+/** Executable of the focused window, e.g. { exe: 'Code.exe', pid: 1234 } */
 function foregroundApp() {
   try {
     const hwnd = GetForegroundWindow();

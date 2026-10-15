@@ -14,6 +14,7 @@
     </div>
     <nav aria-label="Sections">
       <button class="nav active" data-page="home"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Transcripts</button>
+      <button class="nav" data-page="shortcuts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>Shortcuts</button>
       <button class="nav" data-page="files"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M10 17v-5l4 2.5z"/></svg>Files</button>
       <button class="nav" data-page="dictionary"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/></svg>Dictionary</button>
       <button class="nav" data-page="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Settings</button>
@@ -74,6 +75,70 @@
           <button id="clear-history" class="btn quiet">Clear</button>
         </div>
         <div id="history" class="history"></div>
+      </section>
+    </section>
+
+    <!-- SHORTCUTS -->
+    <section class="page" id="page-shortcuts" hidden>
+      <header class="topbar">
+        <div>
+          <h1>Shortcuts &amp; commands</h1>
+          <p class="sub">Choose how you start, steer and finish dictation. Up to four shortcuts per action.</p>
+        </div>
+        <button id="sc-reset" class="btn">Reset to defaults</button>
+      </header>
+
+      <div id="tester" class="tester" tabindex="0" aria-label="Test a key, pedal or mouse button. Focus here, then press something.">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>
+        <div class="grow">
+          <div class="title">Test a key, pedal or mouse button</div>
+          <div id="tester-out" class="desc" aria-live="polite">Click here, then press something. You see exactly what Pauli Speaks' keyboard hook sees. Shortcuts pause while you test.</div>
+        </div>
+        <span id="tester-keys" class="chips"></span>
+      </div>
+
+      <h2 class="group-title">Start talking</h2>
+      <section class="panel flush" id="g-start" aria-label="Start talking"></section>
+      <h2 class="group-title">While talking</h2>
+      <section class="panel flush" id="g-during" aria-label="While talking"></section>
+      <h2 class="group-title">After talking</h2>
+      <section class="panel flush" id="g-after" aria-label="After talking"></section>
+
+      <div class="group-head"><h2 class="group-title">More ways to start</h2><span class="desc">For pedals, Stream Deck, mice and scripts.</span></div>
+      <section class="panel">
+        <div class="rows">
+          <div class="row"><div><div class="title">Double-tap a modifier</div><div class="desc">Press Add above, then tap Ctrl, Alt or Shift twice quickly - within 0.4 s, nothing else pressed. A double-tap always toggles.</div></div></div>
+          <div class="row"><div><div class="title">Foot pedals and macro keys</div><div class="desc">Set the pedal or Stream Deck key to send F13-F24: no app uses them. A pedal that sends press and release separately works as Hold.</div></div></div>
+          <div class="row"><div><div class="title">Mouse buttons</div><div class="desc">Middle click and the side buttons work as shortcuts, but they still do their usual job too (Back, Forward) - Windows doesn't let Pauli Speaks block them yet.</div></div></div>
+          <div class="row stack">
+            <div><div class="title">Links and command line</div><div class="desc">Point Stream Deck, AutoHotkey, foot-pedal software or a script at these. Links can only start and stop dictation, because any web page can open a link; pasting and key presses need the command line.</div></div>
+            <div id="remote-links" class="links"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="group-head"><h2 class="group-title">Voice commands</h2><span class="desc">Say these while dictating. Add your own in any language.</span></div>
+      <section class="panel">
+        <label class="row">
+          <div><div class="title">Voice commands</div><div class="desc">Line breaks and snippets work anywhere. Actions like "send it" only count at the very start or end, so "I'll send it tomorrow" stays as text.</div></div>
+          <span class="switch"><input type="checkbox" data-setting="voiceCommandsEnabled" /><span></span></span>
+        </label>
+        <div id="vc-list" class="vc-list"></div>
+        <form id="vc-form" class="vc-form">
+          <input id="vc-say" placeholder="When I say… (pošalji)" aria-label="Phrase" required />
+          <select id="vc-do" aria-label="Action">
+            <option value="enter">Press Enter</option>
+            <option value="tab">Press Tab</option>
+            <option value="newline">Insert a line break</option>
+            <option value="paragraph">Insert a blank line</option>
+            <option value="undo">Remove the last dictation</option>
+            <option value="text">Type text…</option>
+            <option value="snippet">Insert a snippet…</option>
+          </select>
+          <input id="vc-text" placeholder="Text to type (\n = new line)" aria-label="Text to type" hidden />
+          <select id="vc-snippet" aria-label="Snippet" hidden></select>
+          <button class="btn primary" type="submit">Add</button>
+        </form>
       </section>
     </section>
 
@@ -150,8 +215,10 @@
       </header>
 
       <section class="panel">
-        <h2>Shortcuts</h2>
-        <div id="shortcut-rows" class="rows"></div>
+        <div class="panel-head"><h2>Shortcuts</h2></div>
+        <div class="rows">
+          <div class="row"><div><div class="title">Shortcuts and voice commands have their own page</div><div class="desc">Up to four shortcuts per action, hold or toggle, mouse buttons, pedals and links.</div></div><button class="btn" data-go="shortcuts">Open</button></div>
+        </div>
       </section>
 
       <section class="panel">
@@ -281,7 +348,6 @@
         <h2>Text</h2>
         <div class="rows">
           <label class="row"><div><div class="title">Remove filler words</div><div class="desc">um, uh, hmm, ovaj…</div></div><span class="switch"><input type="checkbox" data-setting="removeFillers" /><span></span></span></label>
-          <label class="row"><div><div class="title">Voice commands</div><div class="desc">"new line", "new paragraph", "novi red"</div></div><span class="switch"><input type="checkbox" data-setting="voiceCommands" /><span></span></span></label>
           <label class="row"><div class="title">Capitalize sentences</div><span class="switch"><input type="checkbox" data-setting="capitalize" /><span></span></span></label>
           <label class="row"><div class="title">Add a space after each dictation</div><span class="switch"><input type="checkbox" data-setting="addTrailingSpace" /><span></span></span></label>
         </div>
@@ -328,7 +394,7 @@
           <li>Optionally the text is translated: Whisper's built-in translator (fast, English) or NLLB-200 (best, 30+ languages).</li>
           <li>Fillers, voice commands and your dictionary are applied, then the text is pasted with Ctrl+V and your clipboard is put back.</li>
         </ol>
-        <p>The push-to-talk design follows Wispr Flow: exact key-combination matching, a 500 ms tap / double-tap window, hands-free lock, Esc to cancel and Start-menu masking for Ctrl+Win.</p>
+        <p>Shortcuts use exact key-combination matching, a 500 ms tap / double-tap window, hands-free lock, Esc to cancel and Start-menu masking for Ctrl+Win.</p>
         <div class="inline">
           <button class="btn" data-open="data">Data folder</button>
           <button class="btn" data-open="models">Models folder</button>

@@ -1,7 +1,7 @@
 'use strict';
 // Pauli Speaks - main process.
 //
-// Architecture (push-to-talk design modelled on Wispr Flow 1.6):
+// Architecture:
 //   keyboard.js  global low-level hook -> shortcut-engine (exact key-set match)
 //   dictation-controller.js  push-to-talk / hands-free / translate / command state machine
 //   overlay window  floating status pill + microphone capture (16 kHz mono) + read aloud
@@ -19,15 +19,19 @@ const {
 
 const log = require('./logger');
 const win32 = require('./win32');
-const { Settings } = require('./settings');
+const { Settings, DEFAULTS } = require('./settings');
 const { History } = require('./history');
 const { KeyboardService } = require('./keyboard');
 const { DictationController } = require('./dictation-controller');
-const { validateShortcut } = require('./shortcut-rules');
-const { formatShortcut } = require('./keys');
-const { cleanTranscript, countWords, toSrt } = require('./text-cleanup');
+const { isTalkAction } = require('./shortcut-rules');
+const { sameSet } = require('./shortcut-engine');
+const { ShortcutRecorder } = require('./shortcut-recorder');
+const { LastPaste } = require('./last-paste');
+const { formatShortcut, sortKeys, VK } = require('./keys');
+const { cleanTranscript, cleanUtterance, countWords, toSrt } = require('./text-cleanup');
 const { speechLevel, splitAtPauses, SAMPLE_RATE } = require('./audio-utils');
-const { pasteText, getSelectedText } = require('./paster');
+const { pasteText, pressKey, getSelectedText } = require('./paster');
+const { PROTOCOL, parseCommandLine } = require('./remote');
 const { resolveStyle } = require('./app-styles');
 const { buildCommandMessages, chatComplete } = require('./llm');
 const { LocalAsr } = require('./asr/local-asr');
@@ -56,8 +60,13 @@ let mainWindow = null;
 let quitting = false;
 let modelState = { model: null, acceleration: null, status: 'idle', percent: 0, error: null, device: null };
 let translatorState = { status: 'idle', percent: 0, error: null };
-let recordingAction = null;
-let recordingMax = [];
+let recorder = null; // ShortcutRecorder behind "+ Add" on the Shortcuts page
+let keyTest = null; // "Test a key" readout: { max }
+let lastTalkBinding = null;
+const lastPaste = new LastPaste(); // what undoLast removes
+let enterAfterPaste = false;
+let overlayReady = false;
+const remoteQueue = [];
 let trayHintShown = false;
 let sessionApp = null;
 let previewTimer = null;
@@ -121,6 +130,8 @@ function createOverlay() {
     positionOverlay();
     sendOverlayState({ state: 'idle' });
     if (settings.get().showIdlePill) overlay.showInactive();
+    overlayReady = true;
+    remoteQueue.splice(0).forEach(runRemote); // links / flags that arrived before the recorder could start
   });
   overlay.on('closed', () => {
     overlay = null;
@@ -137,11 +148,27 @@ function hideOverlayIfIdle() {
   if (overlay && controller.status === 'idle' && !reading && !settings.get().showIdlePill) overlay.hide();
 }
 
+/** Keys of the first chord bound to an action (optionally filtered), for labels. */
+function bindingKeys(action, test = () => true) {
+  const b = settings.get().bindings.find((x) => x.action === action && x.trigger !== 'doubleTap' && test(x));
+  return b ? b.keys : [];
+}
+
+const holdKeys = () => bindingKeys('dictate', (b) => b.behaviour !== 'toggle');
+
+/** "hold Ctrl + Win to dictate", or whatever the first dictation shortcut is. */
+function talkHint() {
+  const hold = holdKeys();
+  if (hold.length) return `hold ${formatShortcut(hold)} to dictate`;
+  const any = bindingKeys('dictate');
+  return any.length ? `press ${formatShortcut(any)} to dictate` : 'click the bar to dictate';
+}
+
 function sendOverlayState(state) {
   send(overlay, 'overlay:state', {
     ...state,
-    shortcut: formatShortcut(settings.get().shortcuts.ptt),
-    handsFreeShortcut: formatShortcut(settings.get().shortcuts.handsFree),
+    shortcut: formatShortcut(holdKeys().length ? holdKeys() : bindingKeys('dictate')),
+    handsFreeShortcut: formatShortcut(bindingKeys('dictate', (b) => b.behaviour === 'toggle')),
   });
   if (state.state === 'idle') setTimeout(hideOverlayIfIdle, 250);
 }
@@ -193,13 +220,24 @@ function createMainWindow(page) {
       trayHintShown = true;
       tray.displayBalloon({
         title: 'Pauli Speaks is still running',
-        content: `Hold ${formatShortcut(settings.get().shortcuts.ptt)} anywhere to dictate. Right-click the tray icon to quit.`,
+        content: `${talkHint().replace(/^./, (c) => c.toUpperCase())} anywhere. Right-click the tray icon to quit.`,
         iconType: 'info',
       });
     }
   });
+  // The recorder and the key test switch shortcuts off; never leave them on behind the user's back.
+  mainWindow.on('blur', () => {
+    if (keyTest) setKeyTest(false);
+  });
+  mainWindow.on('hide', () => {
+    if (!recorder.active) return;
+    stopShortcutRecording();
+    send(mainWindow, 'shortcut:recording', { done: true, cancelled: true });
+  });
   mainWindow.on('closed', () => {
     mainWindow = null;
+    stopShortcutRecording();
+    if (keyTest) setKeyTest(false);
   });
   return mainWindow;
 }
@@ -213,8 +251,7 @@ function createTray() {
 
 function updateTrayMenu() {
   if (!tray) return;
-  const s = settings.get();
-  tray.setToolTip(`Pauli Speaks - hold ${formatShortcut(s.shortcuts.ptt)} to dictate`);
+  tray.setToolTip(`Pauli Speaks - ${talkHint()}`);
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'Open Pauli Speaks', click: () => createMainWindow() },
@@ -253,6 +290,7 @@ function listeningState(extra = {}) {
 
 function startRecording() {
   if (reading) stopReading();
+  enterAfterPaste = false;
   sessionApp = win32.foregroundApp();
   showOverlay();
   sendOverlayState(listeningState());
@@ -450,10 +488,11 @@ async function transcribe(audio, { translate = false } = {}) {
 
   const source = result.language || (s.languages.length === 1 ? s.languages[0] : null);
   if (source === target) return result;
-  const original = cleanTranscript(result.text, { ...s, addTrailingSpace: false, snippets: [] });
+  // Voice commands are found in the language they were spoken in ("pošalji"), before translating.
+  const { text: original, before, after } = cleanUtterance(result.text, { ...s, addTrailingSpace: false, snippets: [] });
   if (!original.trim()) return result;
   const text = await translateText(original, source || 'en', target);
-  return { ...result, text, language: source, translatedTo: target, original };
+  return { ...result, text, language: source, translatedTo: target, original, before, after };
 }
 
 async function finishDictation(reason) {
@@ -475,7 +514,20 @@ async function finishDictation(reason) {
     log.error('Dictation failed', err);
     flash(err.message.length > 80 ? 'Something went wrong - see Pauli Speaks for details' : err.message, 'error', 4500);
     broadcast('app:error', { message: err.message });
+  } finally {
+    enterAfterPaste = false;
   }
+}
+
+/** Text plus the voice commands said at its start / end. */
+function dictationText(result, style) {
+  const s = settings.get();
+  if (!result.original) return cleanUtterance(result.text, { ...s, style });
+  // NLLB output was already cleaned (and its commands found) before translation: only polish it now.
+  const after = result.after || [];
+  const keyAfter = after.some((c) => c.action === 'key');
+  const text = cleanTranscript(result.text, { ...s, removeFillers: false, voiceCommands: false, style, addTrailingSpace: s.addTrailingSpace && !keyAfter });
+  return { text, before: result.before || [], after };
 }
 
 async function runDictation(audio, seconds, t0) {
@@ -484,11 +536,20 @@ async function runDictation(audio, seconds, t0) {
 
   const s = settings.get();
   const style = resolveStyle(sessionApp && sessionApp.exe, s.appStyles);
-  // NLLB output was already cleaned before translation: only polish it now.
-  const opts = result.original ? { ...s, removeFillers: false, voiceCommands: false } : s;
-  const text = cleanTranscript(result.text, { ...opts, style });
-  log.info(`Transcribed in ${Date.now() - t0}ms (${result.language || '?'}${result.translatedTo ? ` -> ${result.translatedTo}` : ''}, ${sessionApp ? sessionApp.exe : '?'}: ${style})`);
-  if (!text.trim()) return flash('No speech detected');
+  const { text: cleaned, before, after } = dictationText(result, style);
+  // "scratch that" at the end throws away what was just said
+  const scratched = after.some((c) => c.action === 'undo');
+  const text = scratched ? '' : cleaned;
+  log.info(`Transcribed in ${Date.now() - t0}ms (${result.language || '?'}${result.translatedTo ? ` -> ${result.translatedTo}` : ''}, ${sessionApp ? sessionApp.exe : '?'}: ${style})${before.length + after.length ? `, commands: ${[...before, ...after].map((c) => c.action + (c.arg ? `:${c.arg}` : '')).join(' ')}` : ''}`);
+  if (!text.trim() && !before.length && !after.length) return flash('No speech detected');
+  sendOverlayState({ state: 'idle' });
+
+  for (const c of before) await runVoiceAction(c, !text.trim());
+  if (scratched) return flash('Dropped that dictation');
+  if (!text.trim()) {
+    if (enterAfterPaste) await pressEnterNow();
+    return;
+  }
 
   history.add({
     text: text.trim(),
@@ -502,8 +563,9 @@ async function runDictation(audio, seconds, t0) {
     app: sessionApp ? sessionApp.exe : null,
     style,
   });
-  sendOverlayState({ state: 'idle' });
-  await pasteText(text, { restoreClipboard: s.restoreClipboard });
+  await paste(text);
+  for (const c of after) await runVoiceAction(c, false);
+  if (enterAfterPaste && !after.some((c) => c.arg === 'Enter')) await pressEnterNow();
 }
 
 /** Command mode: the speech is an instruction for the selected text (or a request to write something). */
@@ -535,7 +597,8 @@ async function runCommand(audio, seconds) {
     app: sessionApp ? sessionApp.exe : null,
   });
   sendOverlayState({ state: 'idle' });
-  await pasteText(output, { restoreClipboard: s.restoreClipboard });
+  await paste(output);
+  if (enterAfterPaste) await pressEnterNow();
 }
 
 function engineLabel() {
@@ -545,17 +608,73 @@ function engineLabel() {
   return modelState.device === 'dml' ? `${name} · GPU` : name;
 }
 
+/** Paste into the focused app and remember it, so "undo last" can take it back. */
+async function paste(text) {
+  const ok = await pasteText(text, { restoreClipboard: settings.get().restoreClipboard });
+  const target = win32.foregroundApp();
+  lastPaste.remember(text, target && target.exe);
+  return ok;
+}
+
 async function pasteLast() {
   const last = history.last();
   if (!last) return flash('Nothing to paste yet');
-  await pasteText(last.text + (settings.get().addTrailingSpace ? ' ' : ''), {
-    restoreClipboard: settings.get().restoreClipboard,
-  });
+  await waitForKeysReleased();
+  await paste(last.text + (settings.get().addTrailingSpace ? ' ' : ''));
 }
 
-function copyLast() {
+function copyLast(notify = false) {
   const last = history.last();
-  if (last) clipboard.writeText(last.text).catch((err) => log.warn(`Copy failed: ${err.message}`));
+  if (!last) return notify ? flash('Nothing to copy yet') : undefined;
+  Promise.resolve(clipboard.writeText(last.text))
+    .then(() => notify && flash('Copied your last dictation'))
+    .catch((err) => log.warn(`Copy failed: ${err.message}`));
+}
+
+/** Take back the text Pauli Speaks typed last (rules in last-paste.js). @returns {Promise<boolean>} removed */
+async function undoLast() {
+  const target = win32.foregroundApp();
+  const plan = lastPaste.undoPlan(target && target.exe);
+  if (plan.error) {
+    flash(plan.error);
+    return false;
+  }
+  await waitForKeysReleased();
+  await pressKey(VK.Backspace, plan.backspaces);
+  return true;
+}
+
+async function pressEnterNow() {
+  enterAfterPaste = false;
+  await waitForKeysReleased();
+  await pressKey(VK.Enter);
+  lastPaste.markSent();
+}
+
+/** "Press Enter" shortcut: while dictating it finishes and sends; otherwise it presses Enter now. */
+function pressEnter() {
+  if (controller.isListening) {
+    enterAfterPaste = true;
+    return controller.stop('enter');
+  }
+  if (controller.status === 'processing') {
+    enterAfterPaste = true;
+    return;
+  }
+  return pressEnterNow();
+}
+
+/** A voice command said at the start or end of a dictation. */
+async function runVoiceAction(c, alone) {
+  if (c.action === 'undo') {
+    if ((await undoLast()) && alone) flash('Removed the last dictation');
+    return;
+  }
+  if (c.action === 'key' && VK[c.arg]) {
+    if (c.arg === 'Enter') return pressEnterNow();
+    await waitForKeysReleased();
+    await pressKey(VK[c.arg]);
+  }
 }
 
 /**
@@ -648,54 +767,95 @@ async function transcribeFile(audio, { translate = false } = {}) {
 
 // ---------------------------------------------------------------- shortcuts
 
-function onAction({ action, phase }) {
-  if (action === 'ptt') return phase === 'down' ? controller.pttDown() : controller.pttUp();
-  if (action === 'translate') return phase === 'down' ? controller.translateDown() : controller.pttUp();
-  if (action === 'command') return phase === 'down' ? controller.commandDown() : controller.pttUp();
-  if (phase !== 'down') return;
-  if (action === 'handsFree') return controller.handsFreeDown();
-  if (action === 'cancel') return reading ? stopReading() : controller.cancel();
-  if (action === 'pasteLast') return pasteLast();
-  if (action === 'readAloud') return readAloud();
+function onAction({ action, phase, binding = {} }) {
+  if (isTalkAction(action)) {
+    if (phase !== 'down') return controller.talkUp({ behaviour: binding.behaviour });
+    lastTalkBinding = binding;
+    return controller.talkDown({ behaviour: binding.behaviour, kind: action });
+  }
+  if (phase === 'down') runAction(action);
 }
 
-function startShortcutRecording(action) {
-  recordingAction = action;
-  recordingMax = [];
-  keyboard.setRecording(true);
+/** Actions that fire once (shortcut down, or a command-line flag). */
+function runAction(action) {
+  if (action === 'cancel') return reading ? stopReading() : controller.cancel();
+  if (action === 'pasteLast') return pasteLast();
+  if (action === 'copyLast') return copyLast(true);
+  if (action === 'undoLast') return undoLast();
+  if (action === 'pressEnter') return pressEnter();
+  if (action === 'readAloud') return readAloud();
+  if (action === 'cycleMode') return flash('Switching modes comes with Modes, in a later version');
+}
+
+// ----- deep links and command-line flags (remote.js)
+
+function runRemote(cmd) {
+  log.info(`Remote command: ${cmd.command}${cmd.mode ? ` (mode ${cmd.mode} - modes are not available yet)` : ''}`);
+  if (cmd.command === 'toggle') return controller.toggle();
+  if (cmd.command === 'start') return controller.start();
+  if (cmd.command === 'stop') return controller.stop('remote');
+  if (cmd.command === 'open') return createMainWindow();
+  return runAction(cmd.command);
+}
+
+function queueRemote(cmd) {
+  if (overlayReady) runRemote(cmd);
+  else remoteQueue.push(cmd);
+}
+
+function registerProtocol() {
+  // From source (`electron .`) Windows must launch electron.exe with the app folder.
+  const ok = process.defaultApp
+    ? app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1] || '.')])
+    : app.setAsDefaultProtocolClient(PROTOCOL);
+  if (!ok) log.warn(`Could not register ${PROTOCOL}:// links`);
+}
+
+// ----- shortcut recorder (shortcut-recorder.js): the global hook records, so Win, mouse buttons and pedals work
+
+function startShortcutRecording(opts) {
+  keyTest = null;
+  if (recorder.start(opts || {})) keyboard.setRecording(true);
 }
 
 function stopShortcutRecording() {
-  recordingAction = null;
-  recordingMax = [];
-  keyboard.setRecording(false);
-  keyboard.setShortcuts(settings.get().shortcuts);
+  if (recorder.active) recorder.stop();
 }
 
-function onRecording({ keys, isRelease, remaining }) {
-  if (!recordingAction) return;
-  if (!isRelease) {
-    if (keys.length >= recordingMax.length) recordingMax = keys;
-    send(mainWindow, 'shortcut:recording', { action: recordingAction, keys });
-    return;
+/** Recording finished (saved, cancelled or stopped): shortcuts work again. */
+function onRecorderEnd() {
+  keyboard.setRecording(!!keyTest);
+  keyboard.setBindings(settings.get().bindings);
+}
+
+function onRecording(e) {
+  if (recorder.active) return recorder.handle(e);
+  if (keyTest) onKeyTest(e);
+}
+
+// ----- "Test a key, pedal or mouse button": what the hook sees, and what it would do
+
+function describeKeys(keys, doubleTap) {
+  const b = settings.get().bindings.find((x) => (doubleTap
+    ? x.trigger === 'doubleTap' && x.keys[0] === keys[0]
+    : x.trigger !== 'doubleTap' && sameSet(x.keys, keys)));
+  return { keys: sortKeys(keys), doubleTap: !!doubleTap, action: b ? b.action : null, behaviour: b ? b.behaviour || null : null };
+}
+
+function onKeyTest(e) {
+  if (!e.isRelease) {
+    if (e.keys.length >= keyTest.max.length) keyTest.max = e.keys;
+    return send(mainWindow, 'shortcut:test', describeKeys(e.keys, false));
   }
-  if (remaining.length > 0) return;
-  const action = recordingAction;
-  const keysToSave = recordingMax;
-  if (action !== 'cancel' && keysToSave.length === 1 && keysToSave[0] === 'Escape') {
-    stopShortcutRecording();
-    send(mainWindow, 'shortcut:recording', { action, done: true, cancelled: true });
-    return;
-  }
-  const error = validateShortcut(keysToSave, action, settings.get().shortcuts);
-  if (error) {
-    recordingMax = [];
-    send(mainWindow, 'shortcut:recording', { action, error, keys: keysToSave });
-    return;
-  }
-  stopShortcutRecording();
-  settings.update({ shortcuts: { [action]: keysToSave } });
-  send(mainWindow, 'shortcut:recording', { action, done: true, keys: keysToSave });
+  if (e.doubleTap) return send(mainWindow, 'shortcut:test', describeKeys(e.keys, true));
+  if (e.remaining.length === 0) keyTest.max = [];
+}
+
+function setKeyTest(on) {
+  if (recorder.active) return;
+  keyTest = on ? { max: [] } : null;
+  keyboard.setRecording(on);
+  if (!on) keyboard.setBindings(settings.get().bindings);
 }
 
 // ---------------------------------------------------------------- IPC
@@ -711,8 +871,16 @@ function registerIpc() {
   ipcMain.handle('history:clear', () => history.clear());
   ipcMain.handle('stats:get', () => history.stats());
   ipcMain.handle('clipboard:copy', (_e, text) => clipboard.writeText(String(text)));
-  ipcMain.handle('shortcut:record-start', (_e, action) => startShortcutRecording(action));
+  ipcMain.handle('shortcut:record-start', (_e, opts) => startShortcutRecording(opts));
   ipcMain.handle('shortcut:record-stop', () => stopShortcutRecording());
+  ipcMain.handle('shortcut:record-confirm', () => recorder.confirm());
+  ipcMain.handle('shortcut:record-retry', () => recorder.retry());
+  ipcMain.handle('shortcut:test', (_e, on) => setKeyTest(!!on));
+  ipcMain.handle('shortcut:reset', () => {
+    stopShortcutRecording();
+    settings.update({ bindings: structuredClone(DEFAULTS.bindings) });
+    return settings.getPublic();
+  });
   ipcMain.handle('model:state', () => publicModelState());
   ipcMain.handle('model:load', () => preloadModel());
   ipcMain.handle('translator:load', () => preloadTranslator());
@@ -744,6 +912,8 @@ function registerIpc() {
     modelsDir: modelsDir(),
     logFile: log.file,
     packaged: app.isPackaged,
+    exePath: process.execPath,
+    protocol: PROTOCOL,
   }));
   ipcMain.handle('app:open-path', (_e, which) => {
     const target = which === 'models' ? modelsDir() : which === 'logs' ? path.dirname(log.file) : app.getPath('userData');
@@ -801,7 +971,7 @@ function registerIpc() {
 // ---------------------------------------------------------------- settings side effects
 
 function applySettings(data, patch) {
-  if (patch.shortcuts && !recordingAction) keyboard.setShortcuts(data.shortcuts);
+  if (patch.bindings && !recorder.active && !keyTest) keyboard.setBindings(data.bindings);
   if ('launchAtLogin' in patch && app.isPackaged) {
     app.setLoginItemSettings({ openAtLogin: !!data.launchAtLogin, args: ['--hidden'] });
   }
@@ -858,7 +1028,10 @@ function init() {
     dismiss: (reason) => {
       log.info(`Dictation dismissed (${reason})`);
       stopRecording(true);
-      if (reason === 'tap') flash(`Hold ${formatShortcut(settings.get().shortcuts.ptt)} while you speak`, 'info', 2200);
+      if (reason === 'tap') {
+        const keys = lastTalkBinding && lastTalkBinding.keys ? lastTalkBinding.keys : holdKeys();
+        flash(`Hold ${formatShortcut(keys)} while you speak`, 'info', 2200);
+      }
       else sendOverlayState({ state: 'idle' });
     },
   });
@@ -874,7 +1047,13 @@ function init() {
   keyboard.on('action', onAction);
   keyboard.on('chord', () => controller.otherChord());
   keyboard.on('recording', onRecording);
-  keyboard.setShortcuts(settings.get().shortcuts);
+  keyboard.setBindings(settings.get().bindings);
+  recorder = new ShortcutRecorder({
+    getBindings: () => settings.get().bindings,
+    onUpdate: (update) => send(mainWindow, 'shortcut:recording', update),
+    onSave: (bindings) => settings.update({ bindings }),
+    onEnd: onRecorderEnd,
+  });
 
   settings.on('change', applySettings);
   history.on('change', () => {
@@ -897,6 +1076,7 @@ function init() {
   });
 
   registerIpc();
+  registerProtocol();
   createOverlay();
   createTray();
   updater.start();
@@ -906,7 +1086,9 @@ function init() {
     log.error('Could not start the global keyboard hook', err);
   }
 
-  const hidden = process.argv.includes('--hidden');
+  const startupCommand = parseCommandLine(process.argv);
+  if (startupCommand) queueRemote(startupCommand);
+  const hidden = process.argv.includes('--hidden') || (startupCommand && startupCommand.command !== 'open');
   if (!hidden || !settings.get().onboarded) createMainWindow();
   preloadModel();
   if (settings.get().translation.always && needsNllb(settings.get())) preloadTranslator();
@@ -967,7 +1149,7 @@ async function runSelfTest(dir) {
     report.file = { ms: Date.now() - t0, segments: file.segments.length, srt: toSrt(file.segments).split('\n').slice(0, 4).join(' | '), text: file.text };
 
     if (mainWindow) {
-      for (const page of ['home', 'files', 'dictionary', 'settings']) {
+      for (const page of ['home', 'shortcuts', 'files', 'dictionary', 'settings']) {
         await js(`document.querySelector('[data-page=${page}]').click()`);
         await wait(500);
         await shot(mainWindow, `page-${page}.png`);
@@ -1000,7 +1182,13 @@ async function runSelfTest(dir) {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => createMainWindow());
+  // A second launch carries a pauli-speaks:// link or a flag (--toggle...), or just means "show the window".
+  app.on('second-instance', (_e, argv) => {
+    if (!controller) return;
+    const cmd = parseCommandLine(argv);
+    if (cmd) queueRemote(cmd);
+    else createMainWindow();
+  });
   app.whenReady().then(init);
   app.on('before-quit', () => {
     quitting = true;

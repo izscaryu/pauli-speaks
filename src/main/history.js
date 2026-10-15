@@ -1,5 +1,5 @@
 'use strict';
-// Transcript history (Wispr keeps this in flow.sqlite; a JSON file is plenty here).
+// Transcript history, kept in a local JSON file.
 
 const fs = require('node:fs');
 const crypto = require('node:crypto');

@@ -1,8 +1,7 @@
 'use strict';
-// Global input listener. Wispr Flow runs a separate native helper with a
-// WH_KEYBOARD_LL / WH_MOUSE_LL hook that streams `key_event_press` /
-// `key_event_release` JSON to Electron over stdout. uiohook-napi gives us the
-// same low-level hooks on its own native thread, so the hook never waits on JS.
+// Global input listener. uiohook-napi installs WH_KEYBOARD_LL / WH_MOUSE_LL
+// hooks on its own native thread, so the hook never waits on JS. It only
+// listens for shortcuts: keystrokes are never stored.
 
 const { EventEmitter } = require('node:events');
 const { uIOhook } = require('uiohook-napi');
@@ -56,9 +55,9 @@ class KeyboardService extends EventEmitter {
     this.started = false;
   }
 
-  /** @param {Record<string, string[]>} shortcuts action -> keys */
-  setShortcuts(shortcuts) {
-    this.engine.setBindings(Object.entries(shortcuts).map(([action, keys]) => ({ action, keys })));
+  /** @param {{id: string, action: string, keys: string[], behaviour?: string, trigger?: string}[]} bindings */
+  setBindings(bindings) {
+    this.engine.setBindings(bindings);
   }
 
   setRecording(on) {

@@ -186,6 +186,83 @@ test('double-tapping the translate shortcut locks hands-free translation', () =>
   assert.equal(controller.translate, true);
 });
 
+// ---------------------------------------------------------------- per-binding behaviour
+
+test('a hold binding stops on release and drops a quick tap at once', async () => {
+  const { controller, calls, advance, settle } = setup();
+  controller.talkDown({ behaviour: 'hold' });
+  advance(100);
+  controller.talkUp({ behaviour: 'hold' });
+  assert.equal(controller.status, 'idle', 'no waiting for a second tap');
+  controller.talkDown({ behaviour: 'hold' });
+  advance(100);
+  controller.talkUp({ behaviour: 'hold' });
+  controller.talkDown({ behaviour: 'hold' });
+  assert.equal(controller.locked, false, 'a hold binding never locks');
+  advance(1500);
+  controller.talkUp({ behaviour: 'hold' });
+  await settle();
+  assert.deepEqual(calls, ['start', 'dismiss:tap', 'start', 'dismiss:tap', 'start', 'finish:release']);
+});
+
+test('a toggle binding starts hands-free, ignores release and stops on the next press', async () => {
+  const { controller, calls, advance, settle } = setup();
+  controller.talkDown({ behaviour: 'toggle' });
+  assert.equal(controller.locked, true);
+  controller.talkUp({ behaviour: 'toggle' });
+  advance(3000);
+  assert.equal(controller.status, 'listening');
+  controller.talkDown({ behaviour: 'toggle' });
+  await settle();
+  assert.deepEqual(calls, ['start', 'finish:hands-free']);
+});
+
+test('both = push-to-talk with double-tap lock', () => {
+  const { controller, advance } = setup();
+  controller.talkDown({ behaviour: 'both' });
+  advance(100);
+  controller.talkUp({ behaviour: 'both' });
+  advance(100);
+  controller.talkDown({ behaviour: 'both' });
+  assert.equal(controller.locked, true);
+});
+
+test('any talk shortcut finishes a locked session', async () => {
+  const { controller, calls, advance, settle } = setup();
+  controller.talkDown({ behaviour: 'toggle' });
+  advance(2000);
+  controller.talkDown({ behaviour: 'hold' });
+  await settle();
+  assert.deepEqual(calls, ['start', 'finish:hold']);
+});
+
+test('a toggle translate binding starts a locked translated session', () => {
+  const { controller } = setup();
+  controller.talkDown({ behaviour: 'toggle', kind: 'translate' });
+  assert.equal(controller.locked, true);
+  assert.equal(controller.translate, true);
+});
+
+test('a hold command binding upgrades a held session', () => {
+  const { controller, calls, advance } = setup();
+  controller.talkDown({ behaviour: 'hold' });
+  advance(700);
+  controller.talkDown({ behaviour: 'hold', kind: 'command' });
+  assert.equal(controller.command, true);
+  assert.deepEqual(calls, ['start']);
+});
+
+test('remote start begins hands-free and is ignored while listening; remote stop finishes', async () => {
+  const { controller, calls, advance, settle } = setup();
+  controller.start();
+  assert.equal(controller.locked, true);
+  controller.start();
+  advance(1000);
+  controller.stop('remote');
+  await settle();
+  assert.deepEqual(calls, ['start', 'finish:remote']);
+});
+
 test('max duration auto-stops', async () => {
   const { controller, calls, advance, settle } = setup();
   controller.handsFreeDown();

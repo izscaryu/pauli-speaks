@@ -1,8 +1,6 @@
 'use strict';
-// Push-to-talk state machine - a port of Wispr Flow's dictation handlers
-// (webpack module 63205: `je` = PTT down, `Ge` = PTT up, `Ye` = hands-free,
-// `Ze` = dismiss, `Xe` = tap timeout) with its constants from module 59725:
-//   DICTATION_DEBOUNCE_DELAY = 500 ms, DICTATION_DURATION_TIMEOUT = 20 min.
+// Push-to-talk state machine. Timings: 500 ms tap / double-tap window,
+// 20 minutes maximum per dictation.
 //
 //   PTT down  idle                       -> start (hold mode)
 //   PTT down  listening, < 500ms, !lock  -> lock (double-tap = hands-free)
@@ -16,6 +14,13 @@
 //   Other chord within 1s of PTT start   -> dismiss (user meant another shortcut)
 //   Translate down                       -> like PTT, but the session is translated
 //                                           (adding it to a held PTT upgrades the session)
+//
+// Every shortcut carries its own behaviour, so the same rules are driven by
+// talkDown/talkUp({ behaviour, kind }):
+//   'both'   = PTT above (hold, or double-tap to lock)
+//   'toggle' = hands-free above (press to start, press again to finish)
+//   'hold'   = hold only: release stops, a quick tap is dropped at once
+// kind 'translate' / 'command' starts (or upgrades a session to) that mode.
 
 const { EventEmitter } = require('node:events');
 
@@ -81,40 +86,51 @@ class DictationController extends EventEmitter {
     this.emit('busy');
   }
 
-  pttDown() {
+  /** Adding translate / command to a running session switches it to that mode. @returns {boolean} upgraded */
+  #upgrade(kind) {
+    if (kind === 'translate' && !this.translate && !this.command) {
+      this.translate = true;
+      return true;
+    }
+    if (kind === 'command' && !this.command) {
+      this.command = true;
+      this.translate = false;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * A talk shortcut went down.
+   * @param {{behaviour?: 'hold'|'toggle'|'both', kind?: 'dictate'|'translate'|'command'}} opts
+   */
+  talkDown({ behaviour = 'both', kind = 'dictate' } = {}) {
     if (this.status === 'processing') return this.#busy();
-    if (this.status === 'idle') return this.#begin(false);
+    if (this.status === 'idle') return this.#begin(behaviour === 'toggle', kind === 'translate', kind === 'command');
+    if (this.#upgrade(kind)) {
+      if (behaviour === 'toggle' && !this.locked) return this.#lock();
+      return this.#set('listening');
+    }
     const elapsed = this.now() - this.startTime;
+    if (behaviour === 'toggle') {
+      if (!this.locked) return this.#lock();
+      if (elapsed < DEBOUNCE_MS) return this.dismiss('double-press');
+      return this.stop('hands-free');
+    }
+    if (behaviour === 'hold') {
+      if (this.locked) return this.stop('hold');
+      return;
+    }
     if (!this.locked && elapsed < DEBOUNCE_MS) return this.#lock();
     if (this.locked) return this.stop('ptt');
   }
 
-  translateDown() {
-    if (this.status === 'processing') return this.#busy();
-    if (this.status === 'idle') return this.#begin(false, true);
-    if (!this.translate && !this.command) {
-      this.translate = true;
-      return this.#set('listening');
-    }
-    return this.pttDown();
-  }
-
-  /** Command mode: the speech is an instruction for the selected text (Wispr's Ctrl+Win+Alt "Lens"). */
-  commandDown() {
-    if (this.status === 'processing') return this.#busy();
-    if (this.status === 'idle') return this.#begin(false, false, true);
-    if (!this.command) {
-      this.command = true;
-      this.translate = false;
-      return this.#set('listening');
-    }
-    return this.pttDown();
-  }
-
-  pttUp() {
-    if (!this.isListening || this.locked) return;
+  /** A talk shortcut was released. Toggle shortcuts ignore their release. */
+  talkUp({ behaviour = 'both' } = {}) {
+    if (behaviour === 'toggle' || !this.isListening || this.locked) return;
     const elapsed = this.now() - this.startTime;
     if (elapsed >= DEBOUNCE_MS) return this.stop('release');
+    if (behaviour === 'hold') return this.dismiss('tap');
     if (this.tapTimer) this.timers.clearTimeout(this.tapTimer);
     this.tapTimer = this.timers.setTimeout(() => {
       this.tapTimer = null;
@@ -122,18 +138,37 @@ class DictationController extends EventEmitter {
     }, DEBOUNCE_MS);
   }
 
-  handsFreeDown() {
-    if (this.status === 'processing') return this.#busy();
-    if (this.status === 'idle') return this.#begin(true);
-    if (!this.locked) return this.#lock();
-    if (this.now() - this.startTime < DEBOUNCE_MS) return this.dismiss('double-press');
-    return this.stop('hands-free');
+  pttDown() {
+    return this.talkDown({ behaviour: 'both' });
   }
 
-  /** Toggle used by the overlay pill / tray menu. */
+  translateDown() {
+    return this.talkDown({ behaviour: 'both', kind: 'translate' });
+  }
+
+  /** Command mode: the speech is an instruction for the selected text (Ctrl+Win+Alt by default). */
+  commandDown() {
+    return this.talkDown({ behaviour: 'both', kind: 'command' });
+  }
+
+  pttUp() {
+    return this.talkUp({ behaviour: 'both' });
+  }
+
+  handsFreeDown() {
+    return this.talkDown({ behaviour: 'toggle' });
+  }
+
+  /** Toggle used by the overlay pill / tray menu / deep links. */
   toggle() {
     if (this.status === 'idle') return this.#begin(true);
     if (this.isListening) return this.stop('toggle');
+  }
+
+  /** Deep link / command-line "start": a hands-free session; a held one is locked, a running one is left alone. */
+  start() {
+    if (this.status === 'idle') return this.#begin(true);
+    if (this.isListening && !this.locked) return this.#lock();
   }
 
   otherChord() {

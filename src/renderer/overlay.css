@@ -54,7 +54,7 @@ html, body {
 
 .pill > * { flex: none; }
 
-/* idle: a slim bar, like Wispr's resting status bar */
+/* idle: a slim resting bar */
 .pill.idle {
   width: 46px;
   height: 9px;
@@ -136,7 +136,7 @@ html, body {
 /* listening (hold) */
 .pill.listening .wave { display: flex; }
 .pill.listening { padding: 0 14px; }
-/* listening (hands-free / locked) shows cancel + stop, like Wispr's POPO bar */
+/* listening (hands-free / locked) shows cancel + stop */
 .pill.listening.locked { padding: 0 6px; }
 .pill.listening.locked .cancel, .pill.listening.locked .stop { display: grid; }
 

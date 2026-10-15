@@ -21,9 +21,14 @@ contextBridge.exposeInMainWorld('pauli', {
   onHistory: on('history:changed'),
   copy: (text) => ipcRenderer.invoke('clipboard:copy', text),
 
-  recordShortcut: (action) => ipcRenderer.invoke('shortcut:record-start', action),
+  recordShortcut: (opts) => ipcRenderer.invoke('shortcut:record-start', opts),
   stopRecordingShortcut: () => ipcRenderer.invoke('shortcut:record-stop'),
+  confirmShortcut: () => ipcRenderer.invoke('shortcut:record-confirm'),
+  retryShortcut: () => ipcRenderer.invoke('shortcut:record-retry'),
   onShortcutRecording: on('shortcut:recording'),
+  setKeyTest: (on) => ipcRenderer.invoke('shortcut:test', on),
+  onKeyTest: on('shortcut:test'),
+  resetShortcuts: () => ipcRenderer.invoke('shortcut:reset'),
 
   getModelState: () => ipcRenderer.invoke('model:state'),
   loadModel: () => ipcRenderer.invoke('model:load'),

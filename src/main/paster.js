@@ -1,5 +1,5 @@
 'use strict';
-// Text insertion. Same strategy as Wispr Flow's helper (PasteTextInternal):
+// Text insertion:
 //   1. wait until the user lets go of modifier keys (else Ctrl+V becomes
 //      Ctrl+Win+V etc.); if they stay down, synthesise key-ups
 //   2. snapshot the clipboard
@@ -80,16 +80,31 @@ function takePending() {
   return { snap };
 }
 
+/** Synthetic keys must not combine with a modifier the user still holds (Shift+Enter, Ctrl+Win+V...). */
+async function ensureModifiersUp() {
+  if (!(await waitForModifiersReleased(1500))) {
+    log.warn('Modifiers still held before sending keys, releasing them');
+    win32.releaseModifiers(MODIFIER_VKS);
+    await sleep(20);
+  }
+}
+
+/** Press a key (Enter, Tab, Backspace...) `count` times in the focused app. */
+async function pressKey(vk, count = 1) {
+  await ensureModifiersUp();
+  const steps = [];
+  for (let i = 0; i < count; i++) steps.push({ vk }, { vk, up: true });
+  const ok = win32.sendKeys(steps);
+  if (!ok) log.warn('SendInput was blocked (is the target app running as administrator?)');
+  return ok;
+}
+
 /**
  * @param {string} text
  * @param {{restoreClipboard?: boolean}} opts
  */
 async function pasteText(text, { restoreClipboard = true } = {}) {
-  if (!(await waitForModifiersReleased(1500))) {
-    log.warn('Modifiers still held before paste, releasing them');
-    win32.releaseModifiers(MODIFIER_VKS);
-    await sleep(20);
-  }
+  await ensureModifiersUp();
 
   const queued = takePending();
   const snap = queued ? queued.snap : restoreClipboard ? await snapshot() : undefined;
@@ -115,8 +130,7 @@ async function pasteText(text, { restoreClipboard = true } = {}) {
 }
 
 /**
- * Selected text of the focused app, via a clipboard round-trip (Wispr's
- * GetSelectedTextViaCopy): snapshot, clear, Ctrl+C, read, restore.
+ * Selected text of the focused app, via a clipboard round-trip: snapshot, clear, Ctrl+C, read, restore.
  * @returns {Promise<string>} '' when nothing is selected
  */
 async function getSelectedText() {
@@ -139,4 +153,4 @@ async function getSelectedText() {
   return text;
 }
 
-module.exports = { pasteText, getSelectedText, waitForModifiersReleased, snapshot, restore };
+module.exports = { pasteText, pressKey, getSelectedText, waitForModifiersReleased, snapshot, restore };

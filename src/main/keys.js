@@ -1,10 +1,8 @@
 'use strict';
 // Key identity used throughout Pauli Speaks.
 //
-// Wispr Flow identifies keys by Windows virtual-key code (see the `dK` table in
-// its main bundle, e.g. ctrl=162, win=91). We receive events from uiohook,
-// which reports its own keycodes, so we normalise both into stable names and
-// keep a VK table for GetAsyncKeyState / SendInput.
+// uiohook reports its own keycodes; we turn them into stable names and keep
+// a Windows virtual-key table for GetAsyncKeyState / SendInput.
 
 const { UiohookKey } = require('uiohook-napi');
 
@@ -45,7 +43,7 @@ const DISPLAY = {
   Period: '.', Slash: '/',
 };
 
-// Same ordering idea as Wispr's `I()` formatter: modifiers first.
+// Display order: modifiers first.
 const ORDER = ['Ctrl', 'CtrlRight', 'Meta', 'MetaRight', 'Alt', 'AltRight', 'Shift', 'ShiftRight'];
 
 function keyName(code) {

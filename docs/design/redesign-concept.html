@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pauli Speaks redesign</title>
+<!--
+  Pauli Speaks: redesign concept ("Quiet instrument, native shell").
+  Self-contained interactive mockup: no build step, no external requests.
+  Open in a browser. Click the sidebar, hold "Hold to try", record a shortcut on the Shortcuts page.
+-->
+<style>
+/* ---------- tokens: same ink + coral language as src/renderer/app.css, Windows 11 geometry */
+:root {
+  --paper: #f6f5f1;
+  --wall: radial-gradient(1200px 600px at 12% -10%, #eadcc8 0%, transparent 60%),
+          radial-gradient(900px 600px at 100% 110%, #d3dbe4 0%, transparent 55%), #ebe7df;
+  --mica: rgba(243, 240, 233, 0.82);
+  --layer: rgba(255, 255, 255, 0.55);
+  --surface: #ffffff;
+  --sunken: #efede7;
+  --hover: rgba(60, 50, 30, 0.06);
+  --ink: #1d1c1a;
+  --ink-2: #5d5951;
+  --ink-3: #8b867b;
+  --line: #e5e1d8;
+  --line-2: #d6d1c6;
+  --signal: #e4533b;
+  --signal-soft: #fbe6e1;
+  --ok: #2f8a57;
+  --ok-soft: #e2f1e8;
+  --warn: #b7741a;
+  --warn-soft: #f6ead6;
+  --focus: #3a6ee0;
+  --key-top: #ffffff;
+  --seg-on: #ffffff;
+  --key-edge: #d6d1c6;
+  --pill: rgba(24, 23, 21, 0.94);
+  --pill-ink: #f1efe9;
+  --pill-muted: rgba(241, 239, 233, 0.6);
+  --pill-coral: #ff6a52;
+  --shadow-card: 0 1px 1px rgba(30, 25, 15, 0.04), 0 2px 8px rgba(30, 25, 15, 0.04);
+  --shadow-win: 0 30px 70px -24px rgba(40, 30, 15, 0.38), 0 2px 6px rgba(30, 25, 15, 0.08);
+  --r-ctl: 4px;
+  --r-card: 8px;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-d: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141412;
+    --wall: radial-gradient(1200px 600px at 12% -10%, #2b2219 0%, transparent 60%),
+            radial-gradient(900px 600px at 100% 110%, #17202b 0%, transparent 55%), #0f0f0e;
+    --mica: rgba(30, 29, 26, 0.84);
+    --layer: rgba(22, 22, 20, 0.6);
+    --surface: #1f1f1c;
+    --sunken: #2a2925;
+    --hover: rgba(255, 250, 240, 0.06);
+    --ink: #ecebe6;
+    --ink-2: #b2ada3;
+    --ink-3: #7d786e;
+    --line: #2f2e2a;
+    --line-2: #3b3a35;
+    --signal: #ff6a52;
+    --signal-soft: #3a211c;
+    --ok: #4cc38a;
+    --ok-soft: #1b2e23;
+    --warn: #e0a347;
+    --warn-soft: #33281a;
+    --focus: #7aa2ff;
+    --key-top: #3a3934;
+    --seg-on: #403f3a;
+    --key-edge: #0d0d0b;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-win: 0 30px 70px -24px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141412;
+  --wall: radial-gradient(1200px 600px at 12% -10%, #2b2219 0%, transparent 60%),
+          radial-gradient(900px 600px at 100% 110%, #17202b 0%, transparent 55%), #0f0f0e;
+  --mica: rgba(30, 29, 26, 0.84);
+  --layer: rgba(22, 22, 20, 0.6);
+  --surface: #1f1f1c;
+  --sunken: #2a2925;
+  --hover: rgba(255, 250, 240, 0.06);
+  --ink: #ecebe6;
+  --ink-2: #b2ada3;
+  --ink-3: #7d786e;
+  --line: #2f2e2a;
+  --line-2: #3b3a35;
+  --signal: #ff6a52;
+  --signal-soft: #3a211c;
+  --ok: #4cc38a;
+  --ok-soft: #1b2e23;
+  --warn: #e0a347;
+  --warn-soft: #33281a;
+  --focus: #7aa2ff;
+  --key-top: #3a3934;
+  --seg-on: #403f3a;
+  --key-edge: #0d0d0b;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-win: 0 30px 70px -24px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--paper); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--wall);
+  background-attachment: fixed;
+  color: var(--ink);
+  font: 14px/20px var(--font);
+  -webkit-font-smoothing: antialiased;
+  padding: 24px 16px 120px;
+}
+h1, h2, h3 { margin: 0; font-family: var(--font-d); text-wrap: balance; }
+p { margin: 0; text-wrap: pretty; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---------- document header (outside the mock window) */
+.doc-head { max-width: 1180px; margin: 0 auto 18px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.doc-head .mark { width: 40px; height: 40px; flex: none; }
+.doc-head h1 { font-size: 20px; line-height: 28px; font-weight: 650; }
+.doc-head p { color: var(--ink-2); font-size: 13px; }
+.doc-head .grow { flex: 1 1 320px; }
+
+/* ---------- controls */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 32px; padding: 0 12px; border-radius: var(--r-ctl);
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink);
+  cursor: pointer; white-space: nowrap;
+  transition-property: background-color, border-color, transform; transition-duration: 120ms;
+}
+.btn:hover { background: var(--sunken); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: transparent; font-weight: 600; }
+.btn.primary:hover { background: color-mix(in srgb, var(--ink) 88%, var(--paper)); }
+.btn.quiet { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn.quiet:hover { background: var(--hover); color: var(--ink); }
+.btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+.icon-btn {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; flex: none;
+  border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--ink-3); cursor: pointer;
+}
+.icon-btn:hover { background: var(--hover); color: var(--ink); }
+.icon-btn.danger:hover { color: var(--signal); }
+select, input[type="text"], input[type="search"], textarea {
+  height: 32px; padding: 0 10px; border-radius: var(--r-ctl);
+  border: 1px solid var(--line-2); border-bottom-color: color-mix(in srgb, var(--ink-3) 60%, var(--line-2));
+  background: var(--surface);
+}
+textarea { height: auto; padding: 8px 10px; resize: vertical; width: 100%; }
+select { padding-right: 28px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; border-bottom: 2px solid var(--focus); }
+
+.seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: 6px; background: var(--sunken); flex: none; }
+.seg button {
+  height: 28px; padding: 0 10px; border: 0; border-radius: var(--r-ctl);
+  background: transparent; color: var(--ink-2); font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--seg-on); color: var(--ink); font-weight: 600; box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, 0.06); }
+
+.switch { position: relative; display: inline-block; width: 40px; height: 20px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; border: 1px solid var(--ink-3); background: transparent; pointer-events: none; transition: background-color 150ms, border-color 150ms; }
+.switch span::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--ink-2); transition: transform 150ms cubic-bezier(.2, .9, .3, 1.2), background-color 150ms;
+}
+.switch input:checked + span { background: var(--ok); border-color: var(--ok); }
+.switch input:checked + span::after { transform: translateX(20px); background: #fff; }
+.switch input:disabled + span { opacity: 0.4; }
+.switch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+kbd {
+  display: inline-grid; place-items: center; min-width: 26px; height: 24px; padding: 0 7px;
+  border: 1px solid var(--key-edge); border-bottom-width: 3px; border-radius: var(--r-ctl);
+  background: var(--key-top); color: var(--ink); font: 600 12px/1 var(--font); white-space: nowrap;
+}
+.keys { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.badge { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; background: var(--sunken); color: var(--ink-2); white-space: nowrap; }
+.badge.new { background: var(--signal-soft); color: var(--signal); }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.desc { color: var(--ink-2); font-size: 13px; line-height: 18px; }
+.muted { color: var(--ink-3); }
+code { font: 12.5px/1.4 var(--mono); padding: 2px 6px; border-radius: var(--r-ctl); background: var(--sunken); }
+
+/* ---------- the mock window */
+.window {
+  max-width: 1180px; height: 800px; margin: 0 auto;
+  display: grid; grid-template-rows: 36px 1fr;
+  border: 1px solid color-mix(in srgb, var(--line-2) 70%, transparent);
+  border-radius: 8px; overflow: hidden;
+  background: var(--mica); -webkit-backdrop-filter: blur(40px) saturate(1.25); backdrop-filter: blur(40px) saturate(1.25);
+  box-shadow: var(--shadow-win);
+}
+.titlebar { display: flex; align-items: center; gap: 10px; padding-left: 14px; font-size: 12px; color: var(--ink-2); user-select: none; }
+.titlebar .mark { width: 16px; height: 16px; }
+.titlebar .caps { margin-left: auto; display: flex; height: 100%; }
+.titlebar .caps span { width: 46px; display: grid; place-items: center; }
+.titlebar .caps span:hover { background: var(--hover); }
+.titlebar .caps span:last-child:hover { background: #c42b1c; color: #fff; }
+.win-body { display: grid; grid-template-columns: 236px 1fr; min-height: 0; }
+
+.side { display: flex; flex-direction: column; gap: 2px; padding: 4px 8px 12px; min-height: 0; }
+.nav {
+  position: relative; display: flex; align-items: center; gap: 12px; height: 36px; padding: 0 12px;
+  border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--ink-2); text-align: left; cursor: pointer;
+}
+.nav:hover { background: var(--hover); color: var(--ink); }
+.nav.active { background: var(--hover); color: var(--ink); font-weight: 600; }
+.nav.active::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--ink); }
+.nav .count { margin-left: auto; font-size: 12px; color: var(--ink-3); font-weight: 400; }
+.side .sep { height: 1px; background: var(--line); margin: 8px 4px; }
+.side-foot { margin-top: auto; display: grid; gap: 6px; padding: 12px; font-size: 12px; line-height: 16px; }
+.side-foot div { display: flex; justify-content: space-between; gap: 8px; }
+.side-foot span:first-child { color: var(--ink-3); }
+
+.content {
+  min-height: 0; overflow: auto; background: var(--layer);
+  border-top: 1px solid var(--line); border-left: 1px solid var(--line); border-top-left-radius: 8px;
+}
+.screen { max-width: 880px; margin: 0 auto; padding: 28px 32px 48px; display: grid; gap: 20px; animation: enter 180ms ease-out; }
+@keyframes enter { from { opacity: 0; transform: translateY(4px); } }
+.screen > * { min-width: 0; }
+.screen-head { display: flex; align-items: flex-start; gap: 16px; }
+.screen-head h1 { font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.01em; }
+.screen-head .grow { flex: 1; }
+.screen-head p { color: var(--ink-2); margin-top: 2px; }
+.section-title { display: flex; align-items: baseline; gap: 10px; margin-top: 6px; }
+.section-title h2 { font-size: 14px; line-height: 20px; font-weight: 600; }
+.section-title p { color: var(--ink-3); font-size: 13px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--shadow-card); }
+.row { display: flex; align-items: center; gap: 16px; padding: 12px 16px; min-height: 64px; }
+.row + .row { border-top: 1px solid var(--line); }
+.row .grow { flex: 1; min-width: 0; }
+.row .title { font-weight: 600; }
+.row .title .badge { margin-left: 6px; vertical-align: 1px; }
+
+/* live status chip (mirrors the pill) */
+.live { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); font-weight: 600; font-size: 13px; flex: none; transition: background-color 150ms, color 150ms; }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+body[data-demo="listening"] .live { background: var(--signal-soft); color: var(--signal); }
+body[data-demo="listening"] .live .dot { animation: blink 1s ease-in-out infinite; }
+body[data-demo="processing"] .live { background: var(--warn-soft); color: var(--warn); }
+@keyframes blink { 50% { opacity: 0.35; } }
+
+/* ---------- home */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 24px; padding: 24px; align-items: center; }
+.hero .label { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); }
+.hero .big-keys { display: flex; align-items: center; gap: 10px; margin: 10px 0 12px; }
+.hero .big-keys kbd {
+  min-width: 88px; height: 64px; padding: 0 18px; border-radius: var(--r-card); border-bottom-width: 6px;
+  font: 600 20px/1 var(--font-d);
+  transition: transform 90ms ease-out, border-bottom-width 90ms ease-out, border-color 150ms, box-shadow 150ms;
+}
+.hero .plus { color: var(--ink-3); font-size: 18px; }
+body[data-demo="listening"] .hero .big-keys kbd { transform: translateY(4px); border-bottom-width: 2px; border-color: var(--signal); box-shadow: 0 0 0 4px var(--signal-soft); }
+.hero .also { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13px; }
+.voice-box { display: grid; gap: 12px; padding: 16px; border-radius: var(--r-card); background: var(--sunken); }
+.voice { height: 76px; display: flex; align-items: center; justify-content: center; gap: 3px; }
+.voice { overflow: hidden; }
+.vbar { flex: 0 1 4px; min-width: 2px; height: 100%; border-radius: 2px; background: var(--ink-3); opacity: 0.45; transform: scaleY(0.05); transition: transform 70ms linear, background-color 150ms, opacity 150ms; }
+body[data-demo="listening"] .vbar { background: var(--signal); opacity: 1; }
+body[data-demo="processing"] .vbar { animation: settle 900ms ease-in-out infinite; }
+@keyframes settle { 50% { transform: scaleY(0.18); opacity: 0.8; } }
+.voice-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.voice-foot .state { flex: 1; color: var(--ink-2); font-size: 13px; min-width: 0; }
+.voice-foot .timer { font: 600 13px/1 var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+.quick { display: flex; flex-wrap: wrap; }
+.quick > div { display: flex; align-items: center; gap: 10px; padding: 12px 14px; flex: 1 1 auto; }
+.quick .meter { width: 64px; }
+.quick > div + div { border-left: 1px solid var(--line); }
+.quick .k { font-size: 12px; color: var(--ink-3); font-weight: 600; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr); }
+.stat { padding: 16px; }
+.stat + .stat { border-left: 1px solid var(--line); }
+.stat b { display: block; font: 600 24px/32px var(--font-d); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--ink-3); }
+.week { display: grid; grid-template-rows: 1fr auto; gap: 6px; padding: 14px 16px 12px; border-left: 1px solid var(--line); }
+.week-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 54px; }
+.week-bars i { display: block; border-radius: 3px 3px 1px 1px; background: var(--line-2); min-height: 3px; }
+.week-bars i.today { background: var(--ink); }
+.week-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; font-size: 11px; color: var(--ink-3); text-align: center; }
+
+.recent { list-style: none; margin: 0; padding: 0; }
+.recent li { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; padding: 12px 16px; align-items: start; }
+.recent li + li { border-top: 1px solid var(--line); }
+.recent li.fresh { animation: fresh 1.6s ease-out; }
+@keyframes fresh { from { background: var(--signal-soft); } }
+.app-glyph { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font: 700 13px/1 var(--font-d); color: #fff; }
+.recent .text { font-size: 14px; line-height: 20px; }
+.recent .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 12px; color: var(--ink-3); }
+.recent .acts { display: flex; gap: 2px; opacity: 0.55; transition: opacity 120ms; }
+.recent li:hover .acts, .recent li:focus-within .acts { opacity: 1; }
+.linkish { border: 0; background: none; padding: 0; color: var(--focus); font-size: 12px; cursor: pointer; }
+
+/* ---------- shortcuts */
+.tester { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px dashed var(--line-2); border-radius: var(--r-card); background: color-mix(in srgb, var(--surface) 60%, transparent); cursor: text; min-height: 56px; }
+.tester:focus-visible { outline: none; border-style: solid; border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent); }
+.tester .grow { flex: 1; min-width: 0; }
+.action { padding: 14px 16px; display: grid; gap: 10px; }
+.action + .action { border-top: 1px solid var(--line); }
+.action-head { display: flex; align-items: flex-start; gap: 16px; }
+.action-head .grow { flex: 1; min-width: 0; }
+.binds { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.bind { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 6px 6px 10px; border-radius: var(--r-ctl); background: var(--sunken); flex-wrap: wrap; }
+.bind .note { font-size: 12px; color: var(--ink-3); }
+.bind .spacer { flex: 1; }
+.bind select { height: 30px; max-width: 190px; }
+.bind.recording { background: transparent; outline: 2px solid var(--focus); outline-offset: -2px; }
+.bind.recording .prompt { color: var(--ink-2); }
+.bind.recording .hint { font-size: 12px; color: var(--ink-3); }
+.bind.recording kbd { border-color: var(--focus); }
+.bind .msg { flex-basis: 100%; font-size: 12.5px; padding: 2px 0 2px; }
+.bind .msg.error { color: var(--signal); }
+.bind .msg.warn { color: var(--warn); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); }
+.legend b { color: var(--ink); font-weight: 600; }
+.cmd-row { display: grid; grid-template-columns: minmax(0, 1.3fr) 20px minmax(0, 1fr) 32px; gap: 10px; align-items: center; padding: 10px 16px; }
+.cmd-row + .cmd-row { border-top: 1px solid var(--line); }
+.phrases { display: flex; flex-wrap: wrap; gap: 6px; }
+.phrase { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--line-2); font-size: 13px; background: var(--surface); }
+.cmd-add { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.links { display: grid; gap: 6px; margin-top: 8px; }
+.links div { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- modes */
+.modes { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+.mode-list { list-style: none; margin: 0; padding: 6px; display: grid; gap: 2px; }
+.mode-item { width: 100%; display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px; border: 0; border-radius: var(--r-ctl); background: transparent; text-align: left; cursor: pointer; }
+.mode-item:hover { background: var(--hover); }
+.mode-item[aria-current="true"] { background: var(--sunken); }
+.mode-item .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; }
+.mode-item b { display: block; font-weight: 600; }
+.mode-item .sub { display: block; font-size: 12px; line-height: 16px; color: var(--ink-3); margin-top: 2px; }
+.field { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; align-items: center; padding: 12px 16px; }
+.field + .field { border-top: 1px solid var(--line); }
+.field > label, .field > .lbl { font-weight: 600; }
+.field .lbl small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-3); }
+.app-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.app-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 4px 0 10px; border-radius: var(--r-ctl); background: var(--sunken); font: 12.5px/1 var(--mono); }
+.app-chip button { width: 22px; height: 22px; border: 0; border-radius: 3px; background: transparent; color: var(--ink-3); cursor: pointer; display: grid; place-items: center; }
+.app-chip button:hover { background: var(--hover); color: var(--ink); }
+
+/* ---------- settings */
+.anchors { display: flex; flex-wrap: wrap; gap: 6px; }
+.anchors a { display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-2); text-decoration: none; font-size: 13px; background: var(--surface); }
+.anchors a:hover { color: var(--ink); border-color: var(--ink-3); }
+.engines { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 16px; }
+.engine { position: relative; display: grid; gap: 4px; padding: 14px; border: 1px solid var(--line-2); border-radius: var(--r-card); cursor: pointer; background: var(--surface); }
+.engine input { position: absolute; opacity: 0; }
+.engine:has(input:checked) { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.engine:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.engine b { font-weight: 600; }
+.engine .badge { justify-self: start; margin-top: 6px; }
+.meter { height: 6px; border-radius: 3px; background: var(--sunken); overflow: hidden; width: 160px; }
+.meter i { display: block; height: 100%; width: 42%; background: var(--ok); border-radius: 3px; animation: level 1.8s ease-in-out infinite; }
+@keyframes level { 0%, 100% { width: 18%; } 30% { width: 64%; } 60% { width: 36%; } }
+
+/* ---------- the pill (overlay) */
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px;
+  border-radius: 999px; background: var(--pill); color: var(--pill-ink);
+  border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  font: 600 12.5px/1 var(--font); white-space: nowrap;
+}
+.pill.idle { width: 48px; height: 10px; padding: 0; opacity: 0.85; }
+.pill .rec { width: 8px; height: 8px; border-radius: 50%; background: var(--pill-coral); animation: blink 1s ease-in-out infinite; }
+.pill .bars { display: inline-flex; align-items: center; gap: 2px; height: 18px; }
+.pill .bars i { width: 3px; height: 100%; border-radius: 2px; background: var(--pill-ink); transform: scaleY(0.3); animation: talk 900ms ease-in-out infinite; }
+.pill .bars i:nth-child(2n) { animation-duration: 700ms; animation-delay: -200ms; }
+.pill .bars i:nth-child(3n) { animation-duration: 1100ms; animation-delay: -450ms; }
+.pill .bars i:nth-child(5n) { animation-duration: 800ms; animation-delay: -650ms; }
+@keyframes talk { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(1); } }
+.pill .t { color: var(--pill-muted); font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+.pill .chip { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); color: var(--pill-ink); font-weight: 600; }
+.pill .chip.coral { background: rgba(255, 106, 82, 0.22); color: #ffb3a6; }
+.pill .stop { width: 22px; height: 22px; border-radius: 50%; background: var(--pill-coral); display: grid; place-items: center; }
+.pill .stop::after { content: ""; width: 8px; height: 8px; border-radius: 2px; background: #fff; }
+.pill .shimmer { width: 70px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgba(255,255,255,.15) 0%, rgba(255,255,255,.7) 50%, rgba(255,255,255,.15) 100%); background-size: 200% 100%; animation: shimmer 1.1s linear infinite; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.pill.warn { color: #ffd59a; }
+.pill svg.i { width: 15px; height: 15px; }
+.pill-board { max-width: 1180px; margin: 28px auto 0; }
+.pill-board .section-title { margin: 0 0 10px; }
+.pill-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 16px; padding: 24px; border-radius: var(--r-card); border: 1px solid color-mix(in srgb, var(--line-2) 70%, transparent); background: color-mix(in srgb, var(--surface) 35%, transparent); }
+.pill-cell { display: grid; justify-items: center; gap: 10px; text-align: center; }
+.pill-cell .cap { font-size: 12.5px; line-height: 17px; color: var(--ink-2); max-width: 220px; }
+.pill-cell .cap b { color: var(--ink); display: block; }
+
+/* desk pill: the live overlay at the bottom of the screen, driven by the demo */
+.desk { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; pointer-events: none; }
+.desk .pill { transition: width 220ms cubic-bezier(.2, .9, .3, 1.2), height 220ms ease, padding 220ms ease; }
+.desk .pill > * { display: none; }
+body[data-demo="listening"] .desk .pill .s-listen,
+body[data-demo="processing"] .desk .pill .s-proc,
+body[data-demo="done"] .desk .pill .s-done { display: inline-flex; }
+body:not([data-demo="idle"]) .desk .pill { width: auto; height: 38px; padding: 0 12px; opacity: 1; }
+.desk .pill .s-listen .bars i { animation: none; transition: transform 70ms linear; }
+
+/* ---------- notes */
+.notes { max-width: 1180px; margin: 28px auto 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.notes .panel { padding: 16px; display: grid; gap: 10px; align-content: start; }
+.notes h3 { font-size: 14px; line-height: 20px; font-weight: 600; }
+.notes ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 13px; line-height: 19px; display: grid; gap: 4px; }
+.swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.sw { display: grid; gap: 4px; font-size: 11.5px; color: var(--ink-2); }
+.sw i { height: 28px; border-radius: var(--r-ctl); border: 1px solid var(--line); }
+
+.toast { position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%); z-index: 30; max-width: min(520px, calc(100vw - 32px)); padding: 10px 14px; border-radius: var(--r-card); background: var(--ink); color: var(--paper); font-size: 13px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); }
+
+/* ---------- responsive: compact navigation like NavigationView */
+@media (max-width: 960px) {
+  .win-body { grid-template-columns: 56px 1fr; }
+  .nav { justify-content: center; padding: 0; }
+  .nav span, .nav .count, .side-foot, .side .sep { display: none; }
+  .hero, .modes { grid-template-columns: minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat:nth-child(3) { border-left: 0; }
+  .stat:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .week { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+  .engines { grid-template-columns: 1fr; }
+  .pill-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .notes { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  body { padding: 16px 16px 120px; }
+  .window { height: 760px; }
+  .titlebar .caps { display: none; }
+  .screen { padding: 20px 16px 40px; }
+  .screen-head { flex-direction: column; }
+  .field { grid-template-columns: 1fr; gap: 8px; }
+  .row { flex-wrap: wrap; }
+  .row .grow { flex-basis: 100%; }
+  .screen-head input[type="search"] { width: 100% !important; }
+  .voice-foot .state { flex-basis: 100%; }
+  .cmd-row, .cmd-add { grid-template-columns: 1fr; }
+  .cmd-row .arrow { display: none; }
+  .quick > div + div { border-left: 0; border-top: 1px solid var(--line); }
+  .quick > div { flex-basis: 100%; }
+  .pill-grid { grid-template-columns: 1fr; }
+  .hero .big-keys kbd { min-width: 64px; height: 52px; font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+@media (forced-colors: active) {
+  kbd, .btn, .panel, .bind, .seg button[aria-pressed="true"], .engine, .pill { border: 1px solid CanvasText; }
+  .vbar, .pill .bars i, .week-bars i { background: CanvasText; forced-color-adjust: none; }
+  .nav.active::before { background: Highlight; }
+}
+</style>
+</head>
+<body data-demo="idle">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mark" viewBox="0 0 64 64">
+      <rect width="64" height="64" rx="15" fill="#1d1c1a" />
+      <g fill="#f1efe9"><rect x="13" y="27" width="5" height="10" rx="2.5" /><rect x="21.5" y="21" width="5" height="22" rx="2.5" /><rect x="38.5" y="23" width="5" height="18" rx="2.5" /><rect x="47" y="28" width="5" height="8" rx="2.5" /></g>
+      <rect x="30" y="14" width="5" height="36" rx="2.5" fill="#ff6a52" />
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z" /></symbol>
+    <symbol id="i-keys" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" /></symbol>
+    <symbol id="i-modes" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11" /></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4M12 8v4l3 2" /></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M10 17v-5l4 2.5z" /></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" /></symbol>
+    <symbol id="i-retry" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4" /></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" /></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3zM12 10v4M12 17.5v.5" /></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" /></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></symbol>
+  </defs>
+</svg>
+
+<header class="doc-head">
+  <svg class="mark" aria-hidden="true"><use href="#mark" /></svg>
+  <div class="grow">
+    <h1>Pauli Speaks redesign concept</h1>
+    <p>Quiet instrument, native shell. Click around the window, hold <b>Hold to try</b>, and record a shortcut on the Shortcuts page.</p>
+  </div>
+  <button class="btn" id="theme" aria-label="Switch theme"><svg class="i"><use href="#i-sun" /></svg><span id="theme-label">System</span></button>
+</header>
+
+<div class="window" role="region" aria-label="App window mockup">
+  <div class="titlebar" aria-hidden="true">
+    <svg class="mark"><use href="#mark" /></svg><span>Pauli Speaks</span>
+    <div class="caps"><span>&#x2014;</span><span>&#x25A2;</span><span>&#x2715;</span></div>
+  </div>
+  <div class="win-body">
+    <nav class="side" aria-label="Sections">
+      <button class="nav active" data-go="home" aria-current="page"><svg class="i"><use href="#i-home" /></svg><span>Home</span></button>
+      <button class="nav" data-go="shortcuts"><svg class="i"><use href="#i-keys" /></svg><span>Shortcuts</span></button>
+      <button class="nav" data-go="modes"><svg class="i"><use href="#i-modes" /></svg><span>Modes</span><span class="count">5</span></button>
+      <button class="nav" data-go="dictionary"><svg class="i"><use href="#i-book" /></svg><span>Dictionary &amp; snippets</span></button>
+      <button class="nav" data-go="history"><svg class="i"><use href="#i-history" /></svg><span>History</span></button>
+      <button class="nav" data-go="files"><svg class="i"><use href="#i-file" /></svg><span>Files</span></button>
+      <div class="sep"></div>
+      <button class="nav" data-go="settings"><svg class="i"><use href="#i-gear" /></svg><span>Settings</span></button>
+      <div class="side-foot">
+        <div><span>Engine</span><span>Whisper Small · GPU</span></div>
+        <div><span>Mode</span><span id="side-mode">Default</span></div>
+        <div><span>Private</span><span>Nothing leaves this PC</span></div>
+      </div>
+    </nav>
+
+    <div class="content" id="content">
+      <!-- HOME -->
+      <section class="screen" data-screen="home" aria-labelledby="h-home">
+        <div class="screen-head">
+          <div class="grow">
+            <h1 id="h-home">Good afternoon</h1>
+            <p>Talk in any app. Your words land where the cursor is.</p>
+          </div>
+          <div class="live" role="status" aria-live="polite"><span class="dot"></span><span id="live-text">Ready</span></div>
+        </div>
+
+        <div class="panel hero">
+          <div>
+            <div class="label">Hold to talk</div>
+            <div class="big-keys" aria-label="Ctrl plus Windows key"><kbd>Ctrl</kbd><span class="plus" aria-hidden="true">+</span><kbd>Win</kbd></div>
+            <p class="desc">Double-tap to keep listening hands-free.</p>
+            <div class="also" style="margin-top:10px">Also <span class="keys"><kbd>Mouse 4</kbd></span> <span class="keys"><kbd>F13</kbd></span><span class="muted">pedal</span>
+              <button class="linkish" data-go="shortcuts">Change</button></div>
+          </div>
+          <div class="voice-box">
+            <div class="voice" id="voice" aria-hidden="true"></div>
+            <div class="voice-foot">
+              <span class="state" id="voice-state">Hold the button and talk. Nothing is recorded.</span>
+              <span class="timer" id="voice-timer">0:00</span>
+              <button class="btn primary" id="try"><svg class="i"><use href="#i-mic" /></svg>Hold to try</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel quick" aria-label="Quick settings">
+          <div><span class="k">Language</span>
+            <div class="seg" data-static role="group" aria-label="Language"><button aria-pressed="false">Auto</button><button aria-pressed="true">EN</button><button aria-pressed="true">HR</button></div></div>
+          <div><span class="k">Translate</span><label class="switch"><input type="checkbox" id="q-translate" aria-label="Always translate" /><span></span></label><select aria-label="Translate into"><option>English</option><option>German</option><option>Croatian</option></select></div>
+          <div><span class="k">Mode</span><select id="q-mode" aria-label="Active mode"></select></div>
+          <div><span class="k">Mic</span><span class="meter" aria-hidden="true"><i></i></span><span class="desc">Shure MV7</span></div>
+        </div>
+
+        <div class="panel stats" aria-label="Your stats">
+          <div class="stat"><b>412</b><span>words today</span></div>
+          <div class="stat"><b>148</b><span>words per minute</span></div>
+          <div class="stat"><b>2 h 51 m</b><span>saved vs typing</span></div>
+          <div class="stat"><b>6 days</b><span>streak</span></div>
+          <figure class="week" style="margin:0" aria-label="Words per day, last 7 days">
+            <div class="week-bars" id="week-bars"></div>
+            <div class="week-days" id="week-days"></div>
+          </figure>
+        </div>
+
+        <div class="section-title"><h2>Recent</h2><p>Hover a row to copy, undo the AI edit or retry.</p><span style="flex:1"></span><button class="btn quiet" data-go="history">All history</button></div>
+        <div class="panel"><ul class="recent" id="recent"></ul></div>
+      </section>
+
+      <!-- SHORTCUTS -->
+      <section class="screen" data-screen="shortcuts" hidden aria-labelledby="h-sc">
+        <div class="screen-head">
+          <div class="grow">
+            <h1 id="h-sc">Shortcuts &amp; commands</h1>
+            <p>Choose how you start, steer and finish dictation. Up to four shortcuts per action.</p>
+          </div>
+          <button class="btn" id="reset">Reset to defaults</button>
+        </div>
+
+        <div class="tester" id="tester" tabindex="0" aria-label="Test a key, pedal or mouse button">
+          <svg class="i" aria-hidden="true"><use href="#i-keys" /></svg>
+          <div class="grow">
+            <div class="title" style="font-weight:600">Test a key, pedal or mouse button</div>
+            <div class="desc" id="tester-out">Click here, then press something. Pauli Speaks shows exactly what its keyboard hook sees.</div>
+          </div>
+          <span class="keys" id="tester-keys"></span>
+        </div>
+
+        <div class="section-title"><h2>Start talking</h2></div>
+        <div class="panel" id="g-start"></div>
+        <div class="section-title"><h2>While talking</h2></div>
+        <div class="panel" id="g-during"></div>
+        <div class="section-title"><h2>After talking</h2></div>
+        <div class="panel" id="g-after"></div>
+
+        <div class="section-title"><h2>More ways to start</h2><p>For pedals, Stream Deck, pens and scripts.</p></div>
+        <div class="panel">
+          <div class="row"><div class="grow"><div class="title">Double-tap Right Ctrl</div><div class="desc">Starts hands-free. Two taps within 0.4 s, no other key in between.</div></div><label class="switch"><input type="checkbox" checked aria-label="Double-tap Right Ctrl" /><span></span></label></div>
+          <div class="row"><div class="grow"><div class="title">Copilot key <span class="badge warn">Store build</span></div><div class="desc">Hold to talk, release to paste. Also the pen's top button. Windows only offers this to signed, packaged apps.</div></div><label class="switch"><input type="checkbox" disabled aria-label="Copilot key" /><span></span></label></div>
+          <div class="row"><div class="grow"><div class="title">Block mouse buttons I use</div><div class="desc">Mouse 4 starts dictation without also going Back in your browser.</div></div><label class="switch"><input type="checkbox" checked aria-label="Block bound mouse buttons" /><span></span></label></div>
+          <div class="row"><div class="grow"><div class="title">“Hey Pauli” <span class="badge">Off by default</span></div><div class="desc">Listens on this PC for the wake phrase, then dictates until you pause. English only. The pill shows a ring while it listens.</div></div><label class="switch"><input type="checkbox" id="wake" aria-label="Hey Pauli wake word" /><span></span></label></div>
+          <div class="row" style="align-items:flex-start"><div class="grow"><div class="title">Links and command line</div><div class="desc">Point Stream Deck, AutoHotkey, foot-pedal software or a script at these.</div>
+            <div class="links">
+              <div><code>pauli-speaks://dictate/toggle</code><button class="icon-btn" data-copy="pauli-speaks://dictate/toggle" aria-label="Copy link"><svg class="i"><use href="#i-copy" /></svg></button></div>
+              <div><code>pauli-speaks://dictate/start?mode=email</code><button class="icon-btn" data-copy="pauli-speaks://dictate/start?mode=email" aria-label="Copy link"><svg class="i"><use href="#i-copy" /></svg></button></div>
+              <div><code>"Pauli Speaks.exe" --toggle</code><button class="icon-btn" data-copy='"Pauli Speaks.exe" --toggle' aria-label="Copy command"><svg class="i"><use href="#i-copy" /></svg></button></div>
+            </div></div></div>
+        </div>
+
+        <div class="section-title"><h2>Voice commands</h2><p>Say these while dictating. Add your own in any language.</p></div>
+        <div class="panel">
+          <div id="cmd-list"></div>
+          <form class="cmd-add" id="cmd-form">
+            <input type="text" id="cmd-say" placeholder="When I say… (pošalji)" aria-label="Phrase" required />
+            <select id="cmd-do" aria-label="Action">
+              <option>Press Enter after pasting</option><option>Insert a line break</option><option>Insert a blank line</option><option>Press Tab</option><option>Remove the last dictation</option><option>Insert a snippet…</option><option>Switch mode…</option>
+            </select>
+            <button class="btn primary" type="submit"><svg class="i"><use href="#i-plus" /></svg>Add</button>
+          </form>
+          <div class="row" style="border-top:1px solid var(--line)"><div class="grow"><div class="title">Only at the start or end</div><div class="desc">“Send it” in the middle of a sentence stays as text.</div></div><label class="switch"><input type="checkbox" checked aria-label="Only match commands at the start or end" /><span></span></label></div>
+        </div>
+      </section>
+
+      <!-- MODES -->
+      <section class="screen" data-screen="modes" hidden aria-labelledby="h-modes">
+        <div class="screen-head">
+          <div class="grow">
+            <h1 id="h-modes">Modes</h1>
+            <p>A mode bundles language, translation, style and cleanup. Give it a shortcut or let it switch on in certain apps.</p>
+          </div>
+          <button class="btn" id="mode-new"><svg class="i"><use href="#i-plus" /></svg>New mode</button>
+        </div>
+        <div class="modes">
+          <div class="panel"><ul class="mode-list" id="mode-list"></ul></div>
+          <div class="panel" id="mode-detail"></div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="screen" data-screen="settings" hidden aria-labelledby="h-set">
+        <div class="screen-head">
+          <div class="grow">
+            <h1 id="h-set">Settings</h1>
+            <p>Saved automatically.</p>
+          </div>
+          <input type="search" placeholder="Find a setting" aria-label="Find a setting" style="width:240px" />
+        </div>
+        <nav class="anchors" aria-label="Settings sections">
+          <a href="#s-speech">Speech</a><a href="#s-mic">Microphone</a><a href="#s-privacy">Privacy</a><a href="#s-updates">Updates</a>
+        </nav>
+
+        <div class="section-title" id="s-speech"><h2>Speech recognition</h2><p>Everything runs on this PC unless you pick Cloud.</p></div>
+        <div class="panel">
+          <div class="engines" role="radiogroup" aria-label="Engine">
+            <label class="engine"><input type="radio" name="engine" checked /><b>Whisper</b><span class="desc">99 languages, the default. Small · 480 MB · GPU.</span><span class="badge ok">In use</span></label>
+            <label class="engine"><input type="radio" name="engine" /><b>Parakeet v3</b><span class="desc">25 European languages incl. Croatian, punctuation built in. Fast on CPU · 640 MB.</span><span class="badge new">New</span></label>
+            <label class="engine"><input type="radio" name="engine" /><b>Cloud</b><span class="desc">Groq or any OpenAI-compatible API. Audio leaves this PC.</span><span class="badge">Needs a key</span></label>
+          </div>
+          <div class="row"><div class="grow"><div class="title">Skip silence</div><div class="desc">Detects speech first, so Whisper never invents “Thanks for watching” from a quiet room.</div></div><label class="switch"><input type="checkbox" checked aria-label="Skip silence" /><span></span></label></div>
+        </div>
+
+        <div class="section-title" id="s-mic"><h2>Microphone</h2></div>
+        <div class="panel">
+          <div class="row"><div class="grow"><div class="title">Input device</div><div class="desc">Warns you when it hears nothing at all.</div></div><span class="meter" aria-hidden="true"><i></i></span><select aria-label="Input device"><option>Shure MV7</option><option>Laptop microphone</option></select></div>
+          <div class="row"><div class="grow"><div class="title">Lower other sound while I talk</div><div class="desc">Music and videos get quieter during dictation, then come back.</div></div><label class="switch"><input type="checkbox" checked aria-label="Lower other sound" /><span></span></label></div>
+        </div>
+
+        <div class="section-title" id="s-privacy"><h2>Privacy</h2></div>
+        <div class="panel">
+          <div class="row"><div class="grow"><div class="title">Keep transcripts</div></div><div class="seg" data-static role="group" aria-label="Keep transcripts"><button aria-pressed="true">Always</button><button aria-pressed="false">30 days</button><button aria-pressed="false">24 hours</button><button aria-pressed="false">Never</button></div></div>
+          <div class="row"><div class="grow"><div class="title">Keep audio for retry</div><div class="desc">Lets you retry a failed dictation or re-run it with a better model.</div></div><div class="seg" data-static role="group" aria-label="Keep audio"><button aria-pressed="false">Off</button><button aria-pressed="true">24 hours</button><button aria-pressed="false">14 days</button></div></div>
+          <div class="row"><div class="grow"><div class="title">Use text near the cursor <span class="badge">On this PC only</span></div><div class="desc">Names in the email you're answering help Whisper spell them right. Never sent anywhere.</div></div><label class="switch"><input type="checkbox" aria-label="Use text near the cursor" /><span></span></label></div>
+          <div class="row"><div class="grow"><div class="title">Never type into password fields</div><div class="desc">Always on.</div></div><label class="switch"><input type="checkbox" checked disabled aria-label="Never type into password fields" /><span></span></label></div>
+        </div>
+
+        <div class="section-title" id="s-updates"><h2>Updates</h2></div>
+        <div class="panel">
+          <div class="row"><div class="grow"><div class="title">Install updates when I'm idle</div><div class="desc">Never restarts in the middle of a dictation.</div></div><label class="switch"><input type="checkbox" checked aria-label="Install updates when idle" /><span></span></label></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<section class="pill-board" aria-labelledby="h-pill">
+  <div class="section-title"><h2 id="h-pill">The pill</h2><p>Bottom centre by default; drag it to the left or right edge and it stays there.</p></div>
+  <div class="pill-grid">
+    <div class="pill-cell"><div class="pill idle"></div><div class="cap"><b>Idle</b>A sliver. Click it to dictate. Can be hidden.</div></div>
+    <div class="pill-cell"><div class="pill"><span class="rec"></span><span class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="t">0:07</span><span class="chip">EN</span></div><div class="cap"><b>Listening</b>Waveform, timer and the language it will use. Click EN to switch.</div></div>
+    <div class="pill-cell"><div class="pill"><svg class="i"><use href="#i-lock" /></svg><span class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="t">1:42</span><span class="stop" aria-hidden="true"></span></div><div class="cap"><b>Hands-free</b>Locked by a double-tap. Stop button, or press the shortcut again.</div></div>
+    <div class="pill-cell"><div class="pill"><span class="rec"></span><span class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="chip coral">HR → EN</span><span class="chip">Email</span></div><div class="cap"><b>Mode + translate</b>Shows the mode a shortcut or app picked.</div></div>
+    <div class="pill-cell"><div class="pill"><svg class="i"><use href="#i-spark" /></svg><span>Command</span><span class="bars"><i></i><i></i><i></i><i></i><i></i><i></i></span></div><div class="cap"><b>Command</b>“Make this friendlier” on the selected text.</div></div>
+    <div class="pill-cell"><div class="pill"><span class="shimmer"></span><span>Transcribing</span></div><div class="cap"><b>Processing</b>A calm shimmer, no spinner.</div></div>
+    <div class="pill-cell"><div class="pill"><svg class="i"><use href="#i-check" /></svg><span>Pasted 23 words</span><span class="chip">Undo</span></div><div class="cap"><b>Done</b>Undo stays for 4 seconds, then the pill shrinks.</div></div>
+    <div class="pill-cell"><div class="pill warn"><svg class="i"><use href="#i-alert" /></svg><span>No sound. Is the mic muted?</span></div><div class="cap"><b>Warning</b>Silent mic, blocked paste (admin window) or no speech.</div></div>
+  </div>
+</section>
+
+<section class="notes" aria-label="Design notes">
+  <div class="panel">
+    <h3>Colour: one signal per meaning</h3>
+    <div class="swatches">
+      <div class="sw"><i style="background:var(--ink)"></i>Ink · text, keycaps</div>
+      <div class="sw"><i style="background:var(--signal)"></i>Coral · live</div>
+      <div class="sw"><i style="background:var(--ok)"></i>Green · ready, on</div>
+      <div class="sw"><i style="background:var(--warn)"></i>Amber · busy, warn</div>
+    </div>
+    <ul><li>Same tokens as today's <code>app.css</code>, so the redesign is an evolution, not a rewrite.</li><li>New icon: ink squircle with a coral voice line, replacing the purple gradient.</li></ul>
+  </div>
+  <div class="panel">
+    <h3>Type and shape: Windows 11</h3>
+    <ul><li>Segoe UI Variable: 12 caption, 14 body, 20 subtitle, 28 title. Sentence case.</li><li>Corner radius 8 px for windows and panels, 4 px for buttons, inputs and rows.</li><li>Compact icon sidebar under 960 px, like NavigationView.</li></ul>
+  </div>
+  <div class="panel">
+    <h3>Window: Mica and motion</h3>
+    <ul><li>Electron: <code>backgroundMaterial: 'mica'</code> with a transparent body, content on a light layer.</li><li>Motion 120–220 ms, only for state changes. Reduced motion and Windows contrast themes are supported.</li></ul>
+  </div>
+</section>
+
+<div class="desk" aria-hidden="true">
+  <div class="pill idle" id="desk-pill">
+    <span class="s-listen" style="align-items:center;gap:8px"><span class="rec"></span><span class="bars" id="desk-bars"></span><span class="t" id="desk-time">0:00</span><span class="chip">EN</span></span>
+    <span class="s-proc" style="align-items:center;gap:8px"><span class="shimmer"></span><span>Transcribing</span></span>
+    <span class="s-done" style="align-items:center;gap:8px"><svg class="i"><use href="#i-check" /></svg><span id="desk-done">Pasted</span><span class="chip">Undo</span></span>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+  return el;
+}
+const icon = (id) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'i'); s.setAttribute('aria-hidden', 'true'); const u = document.createElementNS('http://www.w3.org/2000/svg', 'use'); u.setAttribute('href', `#${id}`); s.append(u); return s; };
+const keycaps = (keys) => h('span', { class: 'keys' }, ...keys.map((k) => h('kbd', {}, k)));
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let toastTimer = 0;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+}
+
+// ------------------------------------------------------------ theme (per-viewer convenience only)
+const THEMES = ['system', 'light', 'dark'];
+let theme = 'system';
+try { theme = localStorage.getItem('ps-redesign-theme') || 'system'; } catch { /* storage blocked */ }
+function applyTheme() {
+  if (theme === 'system') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  $('#theme-label').textContent = { system: 'System', light: 'Light', dark: 'Dark' }[theme];
+}
+applyTheme();
+$('#theme').addEventListener('click', () => {
+  theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+  applyTheme();
+  try { localStorage.setItem('ps-redesign-theme', theme); } catch { /* storage blocked */ }
+});
+
+// ------------------------------------------------------------ navigation
+const SCREENS = ['home', 'shortcuts', 'modes', 'settings'];
+function go(screen) {
+  if (rec) cancelRec();
+  $$('[data-screen]').forEach((s) => { s.hidden = s.dataset.screen !== screen; });
+  $$('.nav').forEach((b) => {
+    const on = b.dataset.go === screen;
+    b.classList.toggle('active', on);
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  $('#content').scrollTop = 0;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-go]');
+  if (!b) return;
+  if (SCREENS.includes(b.dataset.go)) go(b.dataset.go);
+  else toast(`${b.textContent.trim()} keeps today's layout in this concept, with the new styling.`);
+});
+
+// generic static segmented controls + copy buttons
+document.addEventListener('click', (e) => {
+  const sb = e.target.closest('.seg[data-static] button');
+  if (sb) {
+    const group = sb.parentElement;
+    const multi = group.getAttribute('aria-label') === 'Language';
+    if (multi) {
+      if (sb.textContent === 'Auto') group.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === sb)));
+      else { sb.setAttribute('aria-pressed', String(sb.getAttribute('aria-pressed') !== 'true')); group.querySelector('button').setAttribute('aria-pressed', 'false'); }
+    } else group.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === sb)));
+  }
+  const cb = e.target.closest('[data-copy]');
+  if (cb) {
+    const text = cb.dataset.copy;
+    Promise.resolve().then(() => navigator.clipboard.writeText(text)).then(() => toast('Copied'), () => toast(text));
+  }
+});
+$('#wake').addEventListener('change', (e) => toast(e.target.checked ? 'Wake word on. The pill shows a ring while it listens.' : 'Wake word off.'));
+$('#q-translate').addEventListener('change', (e) => { $('#live-text').textContent = e.target.checked ? 'Ready → EN' : 'Ready'; });
+
+// ------------------------------------------------------------ home: week chart + recent
+const week = [820, 1240, 300, 1610, 980, 1430, 412];
+const max = Math.max(...week);
+const days = [];
+for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d.toLocaleDateString(undefined, { weekday: 'narrow' })); }
+$('#week-bars').replaceChildren(...week.map((w, i) => h('i', { class: i === 6 ? 'today' : '', style: `height:${Math.max(4, Math.round((w / max) * 100))}%`, title: `${w.toLocaleString()} words` })));
+$('#week-days').replaceChildren(...days.map((d) => h('span', {}, d)));
+
+const APPS = { slack: ['S', '#7c5a8a'], outlook: ['O', '#2f6db3'], code: ['C', '#2e7d9a'], pauli: ['P', '#1d1c1a'], whatsapp: ['W', '#3b8a5a'] };
+const recent = [
+  { app: 'slack', text: 'Can we move the review to Thursday afternoon? I still need to finish the shortcut settings.', tags: ['EN', 'Chat · no full stop'], meta: '17 words · 6 s', when: '14:12' },
+  { app: 'outlook', text: 'Thanks for the update, I will send the final version tomorrow morning.', original: 'Hvala na novostima, poslat ću konačnu verziju sutra ujutro.', tags: ['HR → EN', 'Email'], meta: '12 words · 5 s', when: '13:40' },
+  { app: 'code', text: 'add a test for the double tap lock when the second tap comes after 500 ms', tags: ['EN', 'Code'], meta: '16 words · 5 s', when: '11:05', ai: true },
+];
+function recentRow(r, fresh) {
+  const orig = r.original ? h('p', { class: 'desc', hidden: true, style: 'margin-top:4px' }, r.original) : null;
+  const [letter, color] = APPS[r.app];
+  return h('li', { class: fresh ? 'fresh' : '' },
+    h('span', { class: 'app-glyph', style: `background:${color}`, 'aria-hidden': 'true' }, letter),
+    h('div', {},
+      h('p', { class: 'text' }, r.text), orig,
+      h('div', { class: 'meta' }, ...r.tags.map((t) => h('span', { class: 'badge' }, t)), `${r.when} · ${r.meta}`,
+        r.original ? h('button', { class: 'linkish', onclick: (e) => { orig.hidden = !orig.hidden; e.target.textContent = orig.hidden ? 'Show original' : 'Hide original'; } }, 'Show original') : null)),
+    h('div', { class: 'acts' },
+      h('button', { class: 'icon-btn', 'aria-label': 'Copy', title: 'Copy', onclick: () => toast('Copied') }, icon('i-copy')),
+      h('button', { class: 'icon-btn', 'aria-label': 'Undo AI edit', title: r.ai ? 'Undo AI edit' : 'Paste raw transcript', onclick: () => toast(r.ai ? 'Raw transcript restored' : 'Raw transcript pasted') }, icon('i-undo')),
+      h('button', { class: 'icon-btn', 'aria-label': 'Retry with another model', title: 'Retry with another model', onclick: () => toast('Retrying with Whisper Large v3 Turbo…') }, icon('i-retry')),
+      h('button', { class: 'icon-btn danger', 'aria-label': 'Delete', title: 'Delete', onclick: (e) => e.target.closest('li').remove() }, icon('i-trash'))));
+}
+$('#recent').replaceChildren(...recent.map((r) => recentRow(r)));
+
+// ------------------------------------------------------------ home: hold-to-try demo
+const voice = $('#voice');
+const VBARS = 44;
+voice.replaceChildren(...Array.from({ length: VBARS }, () => h('i', { class: 'vbar' })));
+$('#desk-bars').replaceChildren(...Array.from({ length: 10 }, () => h('i', {})));
+const demo = { state: 'idle', t0: 0, raf: 0, timer: 0 };
+const fmt = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function setDemo(state) {
+  demo.state = state;
+  document.body.dataset.demo = state;
+  const live = $('#live-text');
+  const vs = $('#voice-state');
+  if (state === 'idle') { live.textContent = $('#q-translate').checked ? 'Ready → EN' : 'Ready'; vs.textContent = 'Hold the button and talk. Nothing is recorded.'; $('#voice-timer').textContent = '0:00'; }
+  if (state === 'listening') { live.textContent = 'Listening'; vs.textContent = 'Listening… let go to paste.'; }
+  if (state === 'processing') { live.textContent = 'Transcribing'; vs.textContent = 'Transcribing on this PC…'; }
+  if (state === 'done') { live.textContent = 'Pasted 11 words'; vs.textContent = 'Pasted into the app with the cursor. Undo is in the pill.'; }
+  $('#desk-pill').classList.toggle('idle', state === 'idle');
+}
+function animate() {
+  const bars = [...$$('.vbar', voice), ...$$('#desk-bars i')];
+  let phase = 0;
+  const frame = () => {
+    if (demo.state !== 'listening') { bars.forEach((b) => { b.style.transform = ''; }); return; }
+    phase += 0.16;
+    const env = 0.55 + 0.45 * Math.sin(phase * 0.21);
+    bars.forEach((b, i) => {
+      const v = reduceMotion ? 0.5 : 0.08 + env * Math.abs(Math.sin(phase + i * 0.47) * Math.cos(phase * 0.6 + i * 1.7));
+      b.style.transform = `scaleY(${Math.min(1, v).toFixed(3)})`;
+    });
+    const t = fmt(Date.now() - demo.t0);
+    $('#voice-timer').textContent = t;
+    $('#desk-time').textContent = t;
+    demo.raf = requestAnimationFrame(frame);
+  };
+  frame();
+}
+function startTalk() {
+  if (demo.state === 'listening') return;
+  clearTimeout(demo.timer);
+  demo.t0 = Date.now();
+  setDemo('listening');
+  animate();
+}
+function stopTalk() {
+  if (demo.state !== 'listening') return;
+  const held = Date.now() - demo.t0;
+  cancelAnimationFrame(demo.raf);
+  if (held < 350) {
+    setDemo('idle');
+    toast('Keep holding while you talk, like holding Ctrl + Win. A quick double-tap keeps it listening.');
+    return;
+  }
+  setDemo('processing');
+  demo.timer = setTimeout(() => {
+    setDemo('done');
+    $('#desk-done').textContent = 'Pasted 11 words';
+    $('#recent').prepend(recentRow({ app: 'pauli', text: 'Testing the new design. This lands wherever the cursor is.', tags: ['EN', 'Default'], meta: `10 words · ${Math.max(1, Math.round(held / 1000))} s`, when: new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) }, true));
+    demo.timer = setTimeout(() => setDemo('idle'), 2600);
+  }, 900);
+}
+const tryBtn = $('#try');
+tryBtn.addEventListener('pointerdown', (e) => { tryBtn.setPointerCapture(e.pointerId); startTalk(); });
+tryBtn.addEventListener('pointerup', stopTalk);
+tryBtn.addEventListener('pointercancel', stopTalk);
+tryBtn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); startTalk(); } });
+tryBtn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); stopTalk(); } });
+
+// ------------------------------------------------------------ modes
+const MODES = [
+  { id: 'default', name: 'Default', color: '#1d1c1a', lang: 'Auto', translate: 'Off', style: 'Normal', cleanup: 'Light', apps: [], enter: false, prompt: '' },
+  { id: 'email', name: 'Email · English', color: '#2f6db3', lang: 'Auto', translate: 'English', style: 'Formal', cleanup: 'Medium', apps: ['outlook.exe', 'thunderbird.exe'], enter: false, prompt: 'Polite and concise. Keep my sign-off.' },
+  { id: 'code', name: 'Code', color: '#2e7d9a', lang: 'EN', translate: 'Off', style: 'Code', cleanup: 'Light', apps: ['code.exe', 'cursor.exe', 'WindowsTerminal.exe'], enter: false, prompt: '' },
+  { id: 'chat', name: 'Chat', color: '#7c5a8a', lang: 'Auto', translate: 'Off', style: 'Casual', cleanup: 'Light', apps: ['slack.exe', 'Discord.exe', 'WhatsApp.exe'], enter: true, prompt: '' },
+  { id: 'notes', name: 'Bilješke (HR)', color: '#b7741a', lang: 'HR', translate: 'Off', style: 'Normal', cleanup: 'None', apps: ['obsidian.exe'], enter: false, prompt: '' },
+];
+let modeSel = 'email';
+const modeSummary = (m) => [m.translate !== 'Off' ? `Translate → ${m.translate}` : (m.lang === 'Auto' ? 'Your languages' : m.lang), m.style, m.apps.length ? m.apps.map((a) => a.replace(/\.exe$/i, '')).slice(0, 2).join(', ') : 'Manual'].join(' · ');
+function seg(options, value, onPick, label) {
+  return h('div', { class: 'seg', role: 'group', 'aria-label': label },
+    ...options.map((o) => h('button', { type: 'button', 'aria-pressed': String(o === value), onclick: () => onPick(o) }, o)));
+}
+function renderModes() {
+  $('#mode-list').replaceChildren(...MODES.map((m) => h('li', {},
+    h('button', { class: 'mode-item', 'aria-current': String(m.id === modeSel), onclick: () => { modeSel = m.id; renderModes(); } },
+      h('span', { class: 'dot', style: `background:${m.color}` }), h('span', {}, h('b', {}, m.name), h('span', { class: 'sub' }, modeSummary(m)))))));
+  const m = MODES.find((x) => x.id === modeSel);
+  const set = (k) => (v) => { m[k] = v; renderModes(); renderShortcuts(); fillModeSelect(); };
+  const binds = ACTIONS.flatMap((a) => a.bindings.filter((b) => b.target === m.name).map((b) => b.keys));
+  const appInput = h('input', { type: 'text', placeholder: 'Add app, e.g. chrome.exe', 'aria-label': 'Add app', style: 'width:200px' });
+  appInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && appInput.value.trim()) { m.apps.push(appInput.value.trim()); renderModes(); } });
+  $('#mode-detail').replaceChildren(
+    h('div', { class: 'field' }, h('label', { for: 'mode-name' }, 'Name'), h('input', { type: 'text', id: 'mode-name', value: m.name, onchange: (e) => set('name')(e.target.value) })),
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'Start with', h('small', {}, 'Shortcuts that open this mode')),
+      h('div', { class: 'app-chips' }, binds.length ? binds.map(keycaps) : h('span', { class: 'desc' }, 'No shortcut yet.'), h('button', { class: 'linkish', 'data-go': 'shortcuts' }, binds.length ? 'Change' : 'Add one'))),
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'Switch on in', h('small', {}, 'When these apps have focus')),
+      h('div', { class: 'app-chips' }, ...m.apps.map((a, i) => h('span', { class: 'app-chip' }, a, h('button', { 'aria-label': `Remove ${a}`, onclick: () => { m.apps.splice(i, 1); renderModes(); } }, icon('i-x')))), appInput)),
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'Language'), seg(['Auto', 'EN', 'HR'], m.lang, set('lang'), 'Language')),
+    h('div', { class: 'field' }, h('label', { for: 'mode-tr' }, 'Translate into'),
+      h('select', { id: 'mode-tr', onchange: (e) => set('translate')(e.target.value) }, ...['Off', 'English', 'German', 'Croatian', 'Italian'].map((o) => h('option', o === m.translate ? { selected: true } : {}, o)))),
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'Style', h('small', {}, 'Capitals and final full stop')), seg(['Normal', 'Casual', 'Formal', 'Code'], m.style, set('style'), 'Style')),
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'Cleanup', h('small', {}, m.cleanup === 'None' || m.cleanup === 'Light' ? 'Rules only, offline' : 'AI: local model or your key')),
+      h('div', { style: 'display:grid;gap:8px' }, seg(['None', 'Light', 'Medium', 'High'], m.cleanup, set('cleanup'), 'Cleanup'),
+        h('span', { class: 'desc' }, { None: 'Exactly what Whisper heard.', Light: 'Removes um/uh, fixes capitals and spoken punctuation.', Medium: 'Also fixes grammar and false starts. Undo AI edit brings back the raw text.', High: 'Rewrites into clean prose in the chosen style.' }[m.cleanup]))),
+    (m.cleanup === 'Medium' || m.cleanup === 'High') ? h('div', { class: 'field', style: 'align-items:start' }, h('label', { for: 'mode-prompt' }, 'Instructions'),
+      h('textarea', { id: 'mode-prompt', rows: '3', placeholder: 'e.g. Keep it short. British spelling.', oninput: (e) => { m.prompt = e.target.value; } }, m.prompt)) : null,
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'After pasting', h('small', {}, 'Handy in chat apps')),
+      h('label', { style: 'display:flex;gap:10px;align-items:center' }, h('span', { class: 'switch' }, h('input', { type: 'checkbox', checked: m.enter, onchange: (e) => { m.enter = e.target.checked; } }), h('span', {})), 'Press Enter')),
+  );
+}
+function fillModeSelect() {
+  const sel = $('#q-mode');
+  const cur = sel.value || 'Default';
+  sel.replaceChildren(...MODES.map((m) => h('option', m.name === cur ? { selected: true } : {}, m.name)));
+}
+$('#q-mode').addEventListener('change', (e) => { $('#side-mode').textContent = e.target.value; });
+$('#mode-new').addEventListener('click', () => {
+  const id = `m${Date.now()}`;
+  MODES.push({ id, name: 'New mode', color: '#8b867b', lang: 'Auto', translate: 'Off', style: 'Normal', cleanup: 'Light', apps: [], enter: false, prompt: '' });
+  modeSel = id;
+  renderModes();
+  fillModeSelect();
+  $('#mode-name').focus();
+  $('#mode-name').select();
+});
+
+// ------------------------------------------------------------ shortcuts
+const MAX_BINDINGS = 4;
+const ACTIONS = [
+  { id: 'dictate', group: 'start', title: 'Dictate', desc: 'Talk, and your words land where the cursor is.', talk: true, min: 1,
+    bindings: [{ keys: ['Ctrl', 'Win'], beh: 'Both', target: 'Default' }, { keys: ['Mouse 4'], beh: 'Hold', target: 'Default', note: 'Back button blocked' }, { keys: ['F13'], beh: 'Toggle', target: 'Email · English', note: 'Foot pedal' }] },
+  { id: 'translate', group: 'start', title: 'Talk & translate', desc: 'Speak Croatian, paste English. Add Shift to a held talk shortcut to switch mid-sentence.', talk: true,
+    bindings: [{ keys: ['Ctrl', 'Win', 'Shift'], beh: 'Hold' }] },
+  { id: 'command', group: 'start', title: 'Command mode', desc: 'Select text and say what to do with it: “make this friendlier”.', talk: true,
+    bindings: [{ keys: ['Ctrl', 'Win', 'Alt'], beh: 'Hold' }] },
+  { id: 'cancel', group: 'during', title: 'Cancel', desc: 'Throw away what you just said. Works mid-chord.', min: 1, max: 1, bindings: [{ keys: ['Esc'] }] },
+  { id: 'cycleMode', group: 'during', title: 'Switch mode', desc: 'Hold the talk shortcut and tap this to cycle modes.', badge: 'New', bindings: [] },
+  { id: 'pasteLast', group: 'after', title: 'Paste last transcript', desc: 'Type your last dictation again.', bindings: [{ keys: ['Shift', 'Alt', 'Z'] }] },
+  { id: 'copyLast', group: 'after', title: 'Copy last transcript', desc: 'Put your last dictation on the clipboard.', badge: 'New', bindings: [] },
+  { id: 'undoLast', group: 'after', title: 'Undo last dictation', desc: 'Removes the text Pauli Speaks just typed.', badge: 'New', bindings: [{ keys: ['Shift', 'Alt', 'U'] }] },
+  { id: 'pressEnter', group: 'after', title: 'Press Enter', desc: 'Send the chat message without reaching for the keyboard.', badge: 'New', bindings: [{ keys: ['Mouse 5'], note: 'Forward button blocked' }] },
+  { id: 'readAloud', group: 'after', title: 'Read aloud', desc: 'Hear the selected text. Press again to stop.', bindings: [{ keys: ['Shift', 'Alt', 'S'] }] },
+];
+const DEFAULTS = JSON.stringify(ACTIONS.map((a) => a.bindings));
+const BEH_HINT = { Hold: 'Talk while you hold it', Toggle: 'Press to start, press again to finish', Both: 'Hold to talk, or double-tap to keep listening' };
+const ORDER = ['Ctrl', 'Right Ctrl', 'Win', 'Right Win', 'Alt', 'Right Alt', 'Shift', 'Right Shift'];
+const MODS = new Set(ORDER);
+const sortKeys = (keys) => [...keys].sort((a, b) => {
+  const ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
+  return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
+});
+const sig = (keys) => sortKeys(keys).join('+');
+function keyName(code) {
+  const map = { ControlLeft: 'Ctrl', ControlRight: 'Right Ctrl', AltLeft: 'Alt', AltRight: 'Right Alt', ShiftLeft: 'Shift', ShiftRight: 'Right Shift', MetaLeft: 'Win', MetaRight: 'Right Win', OSLeft: 'Win', OSRight: 'Right Win',
+    Escape: 'Esc', Space: 'Space', CapsLock: 'Caps Lock', Enter: 'Enter', Tab: 'Tab', Backspace: 'Backspace', Insert: 'Insert', Delete: 'Delete', Pause: 'Pause', ScrollLock: 'Scroll Lock',
+    ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/' };
+  if (map[code]) return map[code];
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  if (/^Numpad/.test(code)) return `Num ${code.slice(6)}`;
+  return code;
+}
+const MOUSE = { 1: 'Middle click', 3: 'Mouse 4', 4: 'Mouse 5' };
+const RESERVED = { 'Win+L': 'locks the PC', 'Win+D': 'shows the desktop', 'Win+E': 'opens File Explorer', 'Win+Tab': 'opens Task view', 'Alt+F4': 'closes windows', 'Ctrl+Alt+Delete': 'opens the security screen', 'Win+R': 'opens Run', 'Win+I': 'opens Settings' };
+const COMMON = { 'Ctrl+C': 'Copy', 'Ctrl+V': 'Paste', 'Ctrl+X': 'Cut', 'Ctrl+Z': 'Undo', 'Ctrl+S': 'Save', 'Ctrl+A': 'Select all', 'Ctrl+F': 'Find', 'Ctrl+T': 'New tab', 'Ctrl+W': 'Close tab', 'Alt+Tab': 'Switch windows' };
+function validate(keys, action) {
+  const k = sortKeys(keys);
+  const s = k.join('+');
+  const pretty = k.join(' + ');
+  if (k.length > 3) return { error: 'Use 3 keys or fewer.' };
+  const single = k.length === 1 ? k[0] : null;
+  const ok = k.some((x) => /^Mouse|^Middle/.test(x))
+    || (single && (/^F\d+$/.test(single) || /^Right /.test(single) || single === 'Caps Lock' || single === 'Pause' || single === 'Scroll Lock' || (single === 'Esc' && action.id === 'cancel')))
+    || (!single && k.some((x) => MODS.has(x)));
+  if (!ok) return { error: 'Add Ctrl, Alt, Shift or Win. Or use one F-key, a right-side modifier, Caps Lock or a mouse button.' };
+  if (RESERVED[s]) return { error: `Windows keeps ${pretty} for itself (it ${RESERVED[s]}).` };
+  for (const a of ACTIONS) for (const b of a.bindings) if (sig(b.keys) === s) return { error: `${pretty} is already used for ${a.title}.` };
+  if (COMMON[s]) return { warn: `${pretty} is ${COMMON[s]} in most apps. Pauli Speaks would take it over everywhere.` };
+  return {};
+}
+
+let rec = null; // { action, keys: [], down: Set, error, warn }
+function startRec(action) {
+  if (rec) cancelRec();
+  rec = { action: action.id, keys: [], down: new Set(), error: null, warn: null };
+  renderShortcuts();
+  $('#rec-row')?.focus();
+}
+function cancelRec() { rec = null; renderShortcuts(); }
+function commitRec() {
+  const action = ACTIONS.find((a) => a.id === rec.action);
+  const b = { keys: sortKeys(rec.keys) };
+  if (action.talk) { b.beh = 'Hold'; if (action.id === 'dictate') b.target = 'Default'; }
+  if (b.keys.some((x) => /^Mouse|^Middle/.test(x))) b.note = 'Click blocked in other apps';
+  action.bindings.push(b);
+  rec = null;
+  renderShortcuts();
+  renderModes();
+  toast(`${b.keys.join(' + ')} now starts ${action.title.toLowerCase()}.`);
+}
+function finishRec() {
+  const action = ACTIONS.find((a) => a.id === rec.action);
+  const v = validate(rec.keys, action);
+  if (v.error) { rec.error = v.error; rec.keys = []; renderShortcuts(); $('#rec-row')?.focus(); return; }
+  if (v.warn) { rec.warn = v.warn; renderShortcuts(); return; }
+  commitRec();
+}
+
+function bindRow(action, b, i) {
+  const remove = () => {
+    if (action.min && action.bindings.length <= action.min) { toast(`${action.title} needs at least one shortcut.`); return; }
+    action.bindings.splice(i, 1);
+    renderShortcuts();
+    renderModes();
+  };
+  return h('li', { class: 'bind' },
+    keycaps(b.keys),
+    b.note ? h('span', { class: 'note' }, b.note) : null,
+    h('span', { class: 'spacer' }),
+    action.talk ? h('span', { title: BEH_HINT[b.beh] }, seg(['Hold', 'Toggle', 'Both'], b.beh, (v) => { b.beh = v; renderShortcuts(); }, `Behaviour for ${b.keys.join(' + ')}`)) : null,
+    action.id === 'dictate' ? h('select', { 'aria-label': `Mode for ${b.keys.join(' + ')}`, onchange: (e) => { b.target = e.target.value; renderModes(); } },
+      ...MODES.map((m) => h('option', m.name === b.target ? { selected: true } : {}, m.name))) : null,
+    h('button', { class: 'icon-btn danger', 'aria-label': `Remove ${b.keys.join(' + ')}`, title: 'Remove', onclick: remove }, icon('i-x')));
+}
+function recRow(action) {
+  const kids = [];
+  if (rec.keys.length) kids.push(keycaps(sortKeys(rec.keys)));
+  else kids.push(h('span', { class: 'prompt' }, 'Press keys, a pedal or a mouse button…'));
+  kids.push(h('span', { class: 'spacer' }));
+  if (rec.warn) {
+    kids.push(h('button', { class: 'btn', onclick: () => { rec.warn = null; rec.keys = []; renderShortcuts(); $('#rec-row')?.focus(); } }, 'Try another'));
+    kids.push(h('button', { class: 'btn primary', onclick: commitRec }, 'Use anyway'));
+    kids.push(h('div', { class: 'msg warn' }, rec.warn));
+  } else {
+    kids.push(h('span', { class: 'hint' }, action.id === 'cancel' ? 'Saves when you let go' : 'Esc cancels · Backspace clears'));
+    kids.push(h('button', { class: 'btn quiet', onclick: cancelRec }, 'Cancel'));
+    if (rec.error) kids.push(h('div', { class: 'msg error' }, rec.error));
+  }
+  return h('li', { class: 'bind recording', id: 'rec-row', tabindex: '0', 'aria-live': 'polite' }, ...kids);
+}
+function actionBlock(a) {
+  const max = a.max || MAX_BINDINGS;
+  const full = a.bindings.length >= max;
+  const recording = rec && rec.action === a.id;
+  const items = a.bindings.map((b, i) => bindRow(a, b, i));
+  if (recording) items.push(recRow(a));
+  return h('div', { class: 'action' },
+    h('div', { class: 'action-head' },
+      h('div', { class: 'grow' }, h('div', { class: 'title' }, a.title, a.badge ? h('span', { class: 'badge new' }, a.badge) : null), h('div', { class: 'desc' }, a.desc)),
+      h('button', { class: 'btn', disabled: full || recording, onclick: () => startRec(a), 'aria-label': `Add shortcut for ${a.title}` }, icon('i-plus'), max === 1 ? 'Change' : `Add${a.bindings.length ? ` (${a.bindings.length} of ${max})` : ''}`)),
+    items.length ? h('ul', { class: 'binds' }, ...items) : h('div', { class: 'desc muted' }, 'Not set. Add one if you want it.'));
+}
+function renderShortcuts() {
+  for (const g of ['start', 'during', 'after']) {
+    const blocks = ACTIONS.filter((a) => a.group === g).map(actionBlock);
+    if (g === 'start') blocks.push(h('div', { class: 'legend' }, ...Object.entries(BEH_HINT).map(([k, v]) => h('span', {}, h('b', {}, k), ` ${v.toLowerCase()}.`))));
+    if (g === 'during') blocks.push(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('div', { class: 'title' }, 'Stop hands-free after silence'), h('div', { class: 'desc' }, 'Finishes on its own when you stop talking.')),
+      h('select', { 'aria-label': 'Stop after silence' }, h('option', {}, 'Never'), h('option', { selected: true }, 'After 3 seconds'), h('option', {}, 'After 5 seconds'), h('option', {}, 'After 10 seconds'))));
+    $(`#g-${g}`).replaceChildren(...blocks);
+  }
+}
+$('#reset').addEventListener('click', () => {
+  const saved = JSON.parse(DEFAULTS);
+  ACTIONS.forEach((a, i) => { a.bindings = saved[i]; });
+  rec = null;
+  renderShortcuts();
+  renderModes();
+  toast('Shortcuts reset to defaults.');
+});
+
+// key + mouse capture for the recorder and the tester
+const tester = $('#tester');
+const testerDown = new Set();
+function showTester(extra) {
+  const names = sortKeys([...testerDown].map(keyName).concat(extra ? [extra] : []));
+  $('#tester-keys').replaceChildren(...names.map((n) => h('kbd', {}, n)));
+  if (names.length) {
+    const match = ACTIONS.find((a) => a.bindings.some((b) => sig(b.keys) === sig(names)));
+    $('#tester-out').textContent = match ? `${names.join(' + ')} → ${match.title}` : `${names.join(' + ')} → not used by Pauli Speaks`;
+  }
+}
+document.addEventListener('keydown', (e) => {
+  if (rec && !rec.warn) {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (rec.down.size === 0 && e.code === 'Escape' && rec.action !== 'cancel') { cancelRec(); return; }
+    if (rec.down.size === 0 && e.code === 'Backspace') { rec.keys = []; rec.error = null; renderShortcuts(); $('#rec-row')?.focus(); return; }
+    rec.down.add(e.code);
+    const n = keyName(e.code);
+    if (!rec.keys.includes(n)) rec.keys.push(n);
+    rec.error = null;
+    renderShortcuts();
+    $('#rec-row')?.focus();
+    return;
+  }
+  if (document.activeElement === tester) {
+    e.preventDefault();
+    testerDown.add(e.code);
+    showTester();
+  }
+}, true);
+document.addEventListener('keyup', (e) => {
+  if (rec && !rec.warn) {
+    e.preventDefault();
+    rec.down.delete(e.code);
+    if (rec.down.size === 0 && rec.keys.length) finishRec(); // keyboard shortcuts save on release
+    return;
+  }
+  if (testerDown.has(e.code)) testerDown.delete(e.code);
+}, true);
+document.addEventListener('mousedown', (e) => {
+  const name = MOUSE[e.button];
+  if (!name) return;
+  if (rec && !rec.warn) {
+    e.preventDefault();
+    if (!rec.keys.includes(name)) rec.keys.push(name);
+    finishRec(); // mouse buttons save on press
+    return;
+  }
+  if (e.target.closest('#tester')) { e.preventDefault(); showTester(name); }
+}, true);
+['mouseup', 'auxclick'].forEach((t) => document.addEventListener(t, (e) => { if (MOUSE[e.button] && (rec || e.target.closest('#tester'))) e.preventDefault(); }, true));
+tester.addEventListener('blur', () => { testerDown.clear(); });
+
+// ------------------------------------------------------------ voice commands
+const COMMANDS = [
+  { say: ['new line', 'novi red'], does: 'Insert a line break' },
+  { say: ['new paragraph', 'novi odlomak'], does: 'Insert a blank line' },
+  { say: ['press enter', 'send it', 'pošalji'], does: 'Press Enter after pasting' },
+  { say: ['scratch that', 'obriši to'], does: 'Remove the last dictation' },
+  { say: ['camel case …', 'snake case …'], does: 'Format the next words for code' },
+  { say: ['translate to German …'], does: 'Switch mode: Translate → German' },
+];
+function renderCommands() {
+  $('#cmd-list').replaceChildren(...COMMANDS.map((c, i) => h('div', { class: 'cmd-row' },
+    h('div', { class: 'phrases' }, ...c.say.map((p) => h('span', { class: 'phrase' }, `“${p}”`))),
+    h('span', { class: 'muted arrow', 'aria-hidden': 'true' }, '→'),
+    h('span', {}, c.does),
+    h('button', { class: 'icon-btn danger', 'aria-label': `Remove ${c.say[0]}`, onclick: () => { COMMANDS.splice(i, 1); renderCommands(); } }, icon('i-trash')))));
+}
+$('#cmd-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const say = $('#cmd-say').value.trim();
+  if (!say) return;
+  const does = $('#cmd-do').value;
+  const existing = COMMANDS.find((c) => c.does === does);
+  if (existing && !existing.say.includes(say)) existing.say.push(say); else if (!existing) COMMANDS.push({ say: [say], does });
+  $('#cmd-say').value = '';
+  renderCommands();
+  toast(`Say “${say}” to ${does.charAt(0).toLowerCase()}${does.slice(1)}.`);
+});
+
+renderShortcuts();
+renderModes();
+fillModeSelect();
+renderCommands();
+</script>
+</body>
+</html>

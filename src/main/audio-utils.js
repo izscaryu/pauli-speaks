@@ -1,6 +1,5 @@
 'use strict';
-// Audio helpers. Wispr records mono 16 kHz (RECORDING_SAMPLE_RATE = 16e3) in
-// 40 ms chunks; we use the same format, which is also what Whisper expects.
+// Audio helpers. Audio is mono 16 kHz in 40 ms chunks, which is what Whisper expects.
 
 const SAMPLE_RATE = 16000;
 

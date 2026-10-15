@@ -4,8 +4,6 @@ Free push-to-talk voice typing for Windows. Hold **Ctrl + Win**, speak, let go: 
 are typed into whatever app has the cursor. Speech recognition runs **on your own PC**
 (OpenAI Whisper), so it is free, works offline and nothing you say leaves your computer.
 
-The push-to-talk behaviour is modelled on Wispr Flow's design.
-
 **Download:** grab the latest `Pauli-Speaks-Setup-x.y.z.exe` from
 [Releases](https://github.com/izscaryu/pauli-speaks/releases/latest). Installed copies update
 themselves.
@@ -16,8 +14,17 @@ themselves.
 - **Hands-free**: double-tap the shortcut (or press Ctrl + Win + Space) to keep recording,
   then press it again to finish. Up to 20 minutes per dictation.
 - **Esc** cancels, **Shift + Alt + Z** pastes the last transcript again.
-- Any shortcut you like: 1–3 keys, a single F-key, a right-side modifier (e.g. Right Alt) or a
-  mouse side button.
+- **Your own shortcuts** on the Shortcuts page: up to four per action, each set to *Hold*,
+  *Toggle* or *Both* (hold, or double-tap to lock). 1–3 keys, a single F-key (F13–F24 for pedals
+  and Stream Deck), a right-side modifier, a mouse button, or a **double-tap** of Ctrl, Alt or
+  Shift. Windows-reserved combinations are refused; Ctrl+C-style app shortcuts ask first.
+  A *Test a key* box shows exactly what the keyboard hook sees.
+- Extra actions: copy last transcript, **undo last dictation**, **press Enter**.
+- **Links and command line** for Stream Deck, AutoHotkey or pedal software:
+  `pauli-speaks://dictate/toggle` (also `start`, `stop`, `cancel`), or
+  `"Pauli Speaks.exe" --toggle` (also `--start`, `--stop`, `--cancel`, `--paste-last`,
+  `--copy-last`, `--undo-last`, `--press-enter`). Links only control dictation, since any web
+  page can open one.
 - **Local Whisper** (Tiny / Base / Small / Large v3 Turbo). The model downloads once and then
   runs offline.
 - Optional **cloud mode** with any OpenAI-compatible API (Groq's free tier by default), with
@@ -29,9 +36,12 @@ themselves.
   English. *Fast* uses Whisper's built-in translator (English only, no extra download). *Best*
   uses Meta's NLLB-200 offline (30+ target languages, ~900 MB one-time download, ~2–3 s per
   sentence).
-- Cleanup: removes "um/uh", voice commands ("new line", "new paragraph", "novi red"),
-  sentence capitalization, and a personal dictionary for names and jargon. Dictionary words are
-  also fed to Whisper as a prompt, so it hears them right the first time.
+- Cleanup: removes "um/uh", sentence capitalization, and a personal dictionary for names and
+  jargon. Dictionary words are also fed to Whisper as a prompt, so it hears them right the first
+  time.
+- **Voice commands you can edit**, in any language: "new line" / "novi red" anywhere in a
+  sentence; "send it" / "pošalji" (press Enter) and "scratch that" / "obriši to" (remove the last
+  dictation) at the start or end of what you say.
 - **GPU acceleration** via DirectML (any DX12 GPU), with an automatic CPU fallback: 2–3× faster
   (Whisper Small: 3.1 s → 1.5 s for 7.6 s of speech on an RTX 3060 laptop).
 - **Snippets**: say "my email" and your address is typed.
@@ -99,33 +109,40 @@ npm test
 
 ```
 uiohook-napi (WH_KEYBOARD_LL / WH_MOUSE_LL on a native thread)
-   └─► shortcut-engine.js     exact key-set matching, auto-repeat filter, stale-key eviction
-        └─► dictation-controller.js   hold / double-tap lock / hands-free / cancel, 500 ms debounce
+   └─► shortcut-engine.js     exact key-set matching, double-taps, auto-repeat filter, stale-key eviction
+        └─► dictation-controller.js   hold / toggle / both per shortcut, double-tap lock, cancel, 500 ms debounce
              ├─► overlay window   mic capture (AudioWorklet, 16 kHz mono) + status pill
              ├─► asr/             Whisper in an Electron utility process (or cloud API)
-             ├─► text-cleanup.js  fillers, voice commands, dictionary
+             ├─► text-cleanup.js  fillers, voice commands (voice-commands.js), dictionary
              └─► paster.js        clipboard snapshot → Ctrl+V via SendInput → restore
+remote.js   pauli-speaks:// links and --flags, from startup argv and second-instance launches
 ```
 
 | File | Purpose |
 |---|---|
 | `src/main/main.js` | App wiring: tray, windows, IPC, dictation pipeline |
 | `src/main/keyboard.js` | Global hook adapter + Start-menu masking for Win-key shortcuts |
-| `src/main/shortcut-engine.js` | Port of Wispr Flow's Keyboard Service matching rules |
-| `src/main/dictation-controller.js` | Port of Wispr Flow's push-to-talk state machine |
+| `src/main/shortcut-engine.js` | Exact key-set matching, double-taps, stale-key eviction |
+| `src/main/dictation-controller.js` | Push-to-talk / hands-free state machine |
+| `src/main/shortcut-rules.js` | Actions, limits, validation (reserved, duplicates, warnings) |
+| `src/main/shortcut-recorder.js` | The recorder behind *+ Add* on the Shortcuts page |
+| `src/main/voice-commands.js` | Editable voice commands and their matching |
+| `src/main/remote.js` | Deep links and command-line flags |
+| `src/main/last-paste.js` | What *Undo last dictation* / "scratch that" may take back |
+| `src/main/settings.js` | `settings.json`, including the migration from one shortcut per action |
 | `src/main/win32.js` | `SendInput` / `GetAsyncKeyState` via koffi |
 | `src/main/paster.js` | Text insertion with clipboard restore |
 | `src/main/asr/whisper-local.js` | Whisper via transformers.js + onnxruntime-node, language detection |
 | `src/main/asr/cloud.js` | OpenAI-compatible `/audio/transcriptions` client |
 | `src/renderer/overlay.*` | Floating pill + microphone recorder |
-| `src/renderer/app.*` | Main window (Home, Dictionary, Settings, About) |
+| `src/renderer/app.*` | Main window (Home, Shortcuts, Files, Dictionary, Settings, About) |
 
 Data lives in `%APPDATA%\Pauli Speaks\`: `settings.json`, `history.json`, `models\`, `logs\`.
 
 ## Troubleshooting
 
 - **Nothing happens when I hold Ctrl + Win.** Another dictation app (e.g. Wispr Flow) might be
-  using the same shortcut. Quit it or change the shortcut in Settings.
+  using the same shortcut. Quit it or change the shortcut on the Shortcuts page.
 - **Text doesn't appear in one specific app.** Windows blocks simulated input into apps running
   as administrator unless Pauli Speaks also runs as administrator. Use **Paste last transcript**,
   or copy from History.

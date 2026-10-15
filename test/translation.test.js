@@ -38,7 +38,8 @@ test('turbo cannot use Whisper translate', () => {
 });
 
 test('default translate shortcut is valid and distinct', () => {
-  assert.deepEqual(DEFAULTS.shortcuts.translate, ['Ctrl', 'Meta', 'Shift']);
-  assert.equal(validateShortcut(DEFAULTS.shortcuts.translate, 'translate', DEFAULTS.shortcuts), null);
+  const b = DEFAULTS.bindings.find((x) => x.action === 'translate');
+  assert.deepEqual(b.keys, ['Ctrl', 'Meta', 'Shift']);
+  assert.equal(validateShortcut(b.keys, 'translate', DEFAULTS.bindings, { ignoreId: b.id }), null);
   assert.deepEqual(DEFAULTS.translation, { always: false, target: 'en', quality: 'fast' });
 });

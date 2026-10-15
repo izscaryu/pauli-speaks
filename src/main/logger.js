@@ -1,5 +1,5 @@
 'use strict';
-// Minimal file logger (Wispr uses electron-log; we keep it dependency-free).
+// Minimal file logger, dependency-free.
 
 const fs = require('node:fs');
 const path = require('node:path');

@@ -1,7 +1,7 @@
 'use strict';
-// Local replacement for the FORMAT step of Wispr Flow's server pipeline
-// (pipeline steps ASR -> ALIGN -> FORMAT in module 99593). Wispr runs an LLM
-// on Baseten; we apply deterministic, offline rules instead.
+// Transcript cleanup with deterministic, offline rules (no AI service needed).
+
+const { activeCommands, applyInsertCommands, extractEdgeCommands } = require('./voice-commands');
 
 const ARTIFACTS = [
   /\[(?:BLANK_AUDIO|MUSIC|NOISE|SILENCE|INAUDIBLE|SOUND|APPLAUSE|LAUGHTER|[A-Z _]+)\]/g,
@@ -13,11 +13,6 @@ const ARTIFACTS = [
 const SILENCE_HALLUCINATIONS = /^(?:thank you\.?|thanks for watching!?|thank you for watching!?|you|bye\.?|\.+|hvala\.?|hvala na gledanju!?)$/i;
 
 const FILLERS = /(^|[\s,])(?:u+m+|u+h+|e+r+m+|h+m+|mhm|a+h+|eh+|ovaj+)(?=[\s,.!?]|$)[,]?/gi;
-
-const VOICE_COMMANDS = [
-  [/,?[ \t]*\b(?:new paragraph|novi odlomak)\b[,.!]?[ \t]*/gi, '\n\n'],
-  [/,?[ \t]*\b(?:new line|newline|novi red)\b[,.!]?[ \t]*/gi, '\n'],
-];
 
 function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -37,7 +32,7 @@ function applyDictionary(text, dictionary) {
 const normalize = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 /**
- * Snippets (Wispr calls them the same): say the trigger, get the text. A
+ * Snippets: say the trigger, get the text. A
  * dictation that is only the trigger becomes exactly the snippet; a trigger
  * inside a sentence is replaced in place.
  * @returns {{text: string, whole: boolean}}
@@ -69,24 +64,44 @@ function capitalizeSentenceStarts(text) {
     .replace(/([.!?]\s+|\n\s*)(\p{Ll})/gu, (_, s, c) => s + c.toUpperCase());
 }
 
-/**
- * @param {string} raw
- * @param {{removeFillers?: boolean, voiceCommands?: boolean, capitalize?: boolean,
- *          addTrailingSpace?: boolean, dictionary?: {from: string, to: string}[],
- *          snippets?: {trigger: string, text: string}[], style?: string}} opts
- */
-function cleanTranscript(raw, opts = {}) {
+/** Whisper artifacts, silence hallucinations and filler words. */
+function prepare(raw, opts) {
   let text = String(raw || '');
   for (const re of ARTIFACTS) text = text.replace(re, ' ');
   text = text.replace(/[ \t]+/g, ' ').trim();
   if (SILENCE_HALLUCINATIONS.test(text)) return '';
-
   if (opts.removeFillers) {
     text = text.replace(FILLERS, '$1').replace(/^[\s,]+/, '').replace(/\s+,/g, ',');
   }
-  if (opts.voiceCommands) {
-    for (const [re, rep] of VOICE_COMMANDS) text = text.replace(re, rep);
-  }
+  return text;
+}
+
+/**
+ * @param {string} raw
+ * @param {{removeFillers?: boolean, voiceCommands?: boolean|object[], voiceCommandsEnabled?: boolean,
+ *          capitalize?: boolean, addTrailingSpace?: boolean, dictionary?: {from: string, to: string}[],
+ *          snippets?: {trigger: string, text: string}[], style?: string}} opts
+ */
+function cleanTranscript(raw, opts = {}) {
+  return finish(prepare(raw, opts), opts);
+}
+
+/**
+ * A dictation about to be pasted: cleanTranscript plus the action commands
+ * ("press enter", "scratch that") said at its start or end.
+ * @returns {{text: string, before: {action: string, arg: string}[], after: {action: string, arg: string}[]}}
+ */
+function cleanUtterance(raw, opts = {}) {
+  const { text, before, after } = extractEdgeCommands(prepare(raw, opts), activeCommands(opts));
+  const keyAfter = after.some((c) => c.action === 'key');
+  return { text: finish(text, keyAfter ? { ...opts, addTrailingSpace: false } : opts), before, after };
+}
+
+/** Inline voice commands, dictionary, spacing, capitals, snippets, app style. */
+function finish(prepared, opts) {
+  let text = prepared;
+  if (!text) return '';
+  text = applyInsertCommands(text, activeCommands(opts), opts.snippets);
   text = applyDictionary(text, opts.dictionary);
   text = text
     .replace(/[ \t]+/g, ' ')
@@ -121,4 +136,4 @@ function toSrt(segments) {
     .join('\n');
 }
 
-module.exports = { cleanTranscript, countWords, applyDictionary, applySnippets, applyStyle, toSrt };
+module.exports = { cleanTranscript, cleanUtterance, countWords, applyDictionary, applySnippets, applyStyle, toSrt };

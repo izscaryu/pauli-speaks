@@ -3,5 +3,17 @@ dist/
 *.log
 *.stackdump
 
-# Local-only reverse-engineering notes (not published)
+# Local-only notes and planning (not published)
 analysis/
+reports/
+research_notes/
+docs/plans/
+
+# Never commit secrets or local settings
+.env
+.env.*
+*.pem
+*.pfx
+*.p12
+settings.json
+settings.v*.json

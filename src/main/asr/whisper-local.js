@@ -1,7 +1,6 @@
 'use strict';
 // Offline speech-to-text with Whisper via transformers.js + onnxruntime-node.
-// This replaces Wispr Flow's paid server ASR (a Baseten "chain" at
-// chain-*.api.baseten.co/.../run_remote) with a model that runs on this PC.
+// The model runs on this PC, so no audio is sent anywhere.
 //
 // Measured on an RTX 3060 laptop, 7.6 s of speech:
 //   Base  CPU 2.2 s  | GPU (DirectML) 0.8 s
@@ -103,8 +102,7 @@ function createLocalWhisper({ cacheDir, onProgress = () => {} }) {
   /**
    * transformers.js falls back to English when no language is given, so we
    * detect it ourselves: one decoder step after <|startoftranscript|> and pick
-   * the most likely language token, limited to the user's languages (the same
-   * idea as Wispr's `selectedLanguages`).
+   * the most likely language token, limited to the user's languages.
    */
   async function detectLanguage(input_features, candidates) {
     const { Tensor } = await lib();

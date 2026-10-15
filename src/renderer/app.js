@@ -9,15 +9,32 @@ const KEY_LABELS = {
   Mouse3: 'Mouse 3', Mouse4: 'Mouse 4', Mouse5: 'Mouse 5', Space: 'Space', Backquote: '`',
 };
 const ORDER = ['Ctrl', 'CtrlRight', 'Meta', 'MetaRight', 'Alt', 'AltRight', 'Shift', 'ShiftRight'];
-const SHORTCUTS = [
-  { action: 'ptt', title: 'Push-to-talk', desc: 'Hold while speaking, release to paste. Double-tap to lock hands-free.' },
-  { action: 'handsFree', title: 'Hands-free', desc: 'Press to start, press again to finish.' },
-  { action: 'translate', title: 'Talk & translate', desc: 'Hold to dictate in the translation language. Add it to a held push-to-talk to switch mid-sentence.' },
-  { action: 'command', title: 'Command mode', desc: 'Hold and say what to do with the selected text, or what to write.' },
-  { action: 'readAloud', title: 'Read aloud', desc: 'Reads the selected text out loud. Press again to stop.' },
-  { action: 'cancel', title: 'Cancel', desc: 'Throw away the current dictation, or stop reading.' },
-  { action: 'pasteLast', title: 'Paste last transcript', desc: 'Paste your previous dictation again.' },
+// The Shortcuts page, grouped as in docs/design/redesign-concept.html. talk = per-shortcut Hold / Toggle / Both.
+const ACTION_INFO = [
+  { action: 'dictate', group: 'start', title: 'Dictate', desc: 'Talk, and your words land where the cursor is.', talk: true, min: 1 },
+  { action: 'translate', group: 'start', title: 'Talk & translate', desc: 'Dictate into your translation language. Add it to a held talk shortcut to switch mid-sentence.', talk: true },
+  { action: 'command', group: 'start', title: 'Command mode', desc: 'Say what to do with the selected text, or what to write.', talk: true },
+  { action: 'cancel', group: 'during', title: 'Cancel', desc: 'Throw away what you just said, or stop reading. Works mid-chord.', min: 1, max: 1 },
+  { action: 'cycleMode', group: 'during', title: 'Switch mode', desc: 'Reserved for Modes, which arrive in a later version.', badge: 'Soon' },
+  { action: 'pasteLast', group: 'after', title: 'Paste last transcript', desc: 'Type your last dictation again.' },
+  { action: 'copyLast', group: 'after', title: 'Copy last transcript', desc: 'Put your last dictation on the clipboard.', badge: 'New' },
+  { action: 'undoLast', group: 'after', title: 'Undo last dictation', desc: 'Removes the text Pauli Speaks just typed, in the app it typed it into.', badge: 'New' },
+  { action: 'pressEnter', group: 'after', title: 'Press Enter', desc: 'Send the chat message. While you dictate, it finishes and sends.', badge: 'New' },
+  { action: 'readAloud', group: 'after', title: 'Read aloud', desc: 'Hear the selected text. Press again, or Esc, to stop.' },
 ];
+const ACTION_TITLE = Object.fromEntries(ACTION_INFO.map((a) => [a.action, a.title]));
+const MAX_BINDINGS = 4;
+const BEHAVIOURS = [['hold', 'Hold', 'Talk while you hold it'], ['toggle', 'Toggle', 'Press to start, press again to finish'], ['both', 'Both', 'Hold to talk, or double-tap to keep listening']];
+const MOUSE_NOTE = { Mouse3: 'Also middle-clicks in other apps', Mouse4: 'Also goes Back in browsers', Mouse5: 'Also goes Forward in browsers' };
+const VC_PRESETS = {
+  enter: { action: 'key', arg: 'Enter' },
+  tab: { action: 'key', arg: 'Tab' },
+  newline: { action: 'insert', arg: '\n' },
+  paragraph: { action: 'insert', arg: '\n\n' },
+  undo: { action: 'undo', arg: '' },
+  text: { action: 'insert' },
+  snippet: { action: 'snippet' },
+};
 const STYLE_LABELS = { normal: 'Normal', casual: 'Casual · no final full stop', formal: 'Formal · always punctuated', code: 'Code · no capitals or full stop' };
 const LANGUAGES = [
   ['en', 'English'], ['hr', 'Croatian'], ['de', 'German'], ['es', 'Spanish'], ['fr', 'French'],
@@ -31,11 +48,12 @@ const LANG_NAME = Object.fromEntries(LANGUAGES);
 const ICONS = {
   copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
   trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
+  x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
 };
 
 let settings = null;
 let modelState = null;
-let recording = null;
+let rec = null; // shortcut being recorded: { action, replaceId, keys, error, warning }
 let historyItems = [];
 let dictation = { status: 'idle' };
 
@@ -63,7 +81,16 @@ function keyChips(keys) {
   return sorted.map((k) => el('kbd', { class: 'key' }, KEY_LABELS[k] || k.replace(/^Digit/, '')));
 }
 
-const fillChips = (target, keys) => target.replaceChildren(...keyChips(keys));
+const keyText = (keys) => [...keys].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)).map((k) => KEY_LABELS[k] || k.replace(/^Digit/, '')).join(' + ');
+
+/** First binding of an action that passes `test`, or null. */
+const firstBinding = (action, test = () => true) => (settings.bindings || []).find((b) => b.action === action && test(b)) || null;
+
+/** Keycaps for a binding: a double-tap shows its key twice-marked. */
+function bindingChips(b) {
+  if (!b) return keyChips([]);
+  return b.trigger === 'doubleTap' ? [...keyChips(b.keys), el('span', { class: 'tap', title: 'Double-tap' }, '×2')] : keyChips(b.keys);
+}
 const code = (c) => (c || '??').toUpperCase();
 
 let toastTimer = null;
@@ -100,21 +127,21 @@ document.querySelectorAll('.nav').forEach((b) =>
   b.addEventListener('click', () => {
     document.querySelectorAll('.nav').forEach((n) => n.classList.toggle('active', n === b));
     document.querySelectorAll('.page').forEach((p) => (p.hidden = p.id !== `page-${b.dataset.page}`));
-    if (recording) api.stopRecordingShortcut();
-    recording = null;
+    if (rec) api.stopRecordingShortcut();
+    rec = null;
     renderShortcuts();
     if (b.dataset.page === 'settings') renderMics();
   }),
 );
+document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => showPage(b.dataset.go)));
 
 // ------------------------------------------------------------------ transcripts page
 
 function renderStrip() {
-  const s = settings.shortcuts;
-  fillChips($('#ptt-chips'), s.ptt);
-  fillChips($('#hf-chips'), s.handsFree);
-  fillChips($('#tr-chips'), s.translate);
-  fillChips($('#cancel-chips'), s.cancel);
+  $('#ptt-chips').replaceChildren(...bindingChips(firstBinding('dictate', (b) => b.behaviour !== 'toggle')));
+  $('#hf-chips').replaceChildren(...bindingChips(firstBinding('dictate', (b) => b.behaviour === 'toggle')));
+  $('#tr-chips').replaceChildren(...bindingChips(firstBinding('translate')));
+  $('#cancel-chips').replaceChildren(...bindingChips(firstBinding('cancel')));
   $('#tr-label').textContent = `Talk → ${LANG_NAME[settings.translation.target] || code(settings.translation.target)}`;
   $('#side-engine').textContent = modelLabel();
   $('#side-translate').textContent = translationLabel();
@@ -400,31 +427,220 @@ for (const format of ['txt', 'srt']) {
   });
 }
 
-// ------------------------------------------------------------------ settings: shortcuts
+// ------------------------------------------------------------------ shortcuts page
+
+function startRec(action, replaceId = null) {
+  if (rec) api.stopRecordingShortcut();
+  rec = { action, replaceId, keys: [], error: null, warning: null };
+  api.recordShortcut({ action, replaceId });
+  renderShortcuts();
+}
+
+function cancelRec() {
+  api.stopRecordingShortcut();
+  rec = null;
+  renderShortcuts();
+}
+
+function saveBindings(bindings, message) {
+  return save({ bindings }, message);
+}
+
+function behaviourControl(b) {
+  if (b.trigger === 'doubleTap') return el('span', { class: 'desc', title: 'A double-tap always toggles' }, 'Toggle');
+  const label = keyText(b.keys);
+  return el('div', { class: 'segmented small three', role: 'group', 'aria-label': `Behaviour for ${label}` },
+    ...BEHAVIOURS.map(([value, name, hint]) => el('button', {
+      class: b.behaviour === value ? 'active' : '',
+      title: hint,
+      'aria-pressed': String(b.behaviour === value),
+      onclick: () => b.behaviour !== value && saveBindings(settings.bindings.map((x) => (x.id === b.id ? { ...x, behaviour: value } : x)), `${label}: ${name.toLowerCase()}`),
+    }, name)));
+}
+
+function bindRow(info, b, count) {
+  const label = keyText(b.keys) + (b.trigger === 'doubleTap' ? ' double-tap' : '');
+  const remove = () => {
+    if (count <= (info.min || 0)) return toast(`${info.title} needs at least one shortcut.`);
+    saveBindings(settings.bindings.filter((x) => x.id !== b.id), `Removed ${label}`);
+  };
+  const mouse = b.keys.find((k) => MOUSE_NOTE[k]);
+  const note = b.trigger === 'doubleTap' ? 'Double-tap' : mouse ? MOUSE_NOTE[mouse] : /^F(1[3-9]|2[0-4])$/.test(b.keys[0]) && b.keys.length === 1 ? 'Pedal or macro key' : null;
+  return el('li', { class: 'bind' },
+    el('span', { class: 'chips' }, bindingChips(b)),
+    note ? el('span', { class: 'note' }, note) : null,
+    el('span', { class: 'spacer' }),
+    info.talk ? behaviourControl(b) : null,
+    info.max === 1 ? el('button', { class: 'btn quiet', onclick: () => startRec(info.action, b.id) }, 'Change') : null,
+    el('button', { class: 'icon-btn danger', title: 'Remove', 'aria-label': `Remove ${label}`, html: ICONS.x, onclick: remove }));
+}
+
+function recRow(info) {
+  const kids = [rec.keys.length
+    ? el('span', { class: 'chips' }, keyChips(rec.keys))
+    : el('span', { class: 'prompt' }, 'Press keys, a pedal or a mouse button…')];
+  kids.push(el('span', { class: 'spacer' }));
+  if (rec.warning) {
+    kids.push(el('button', { class: 'btn', onclick: () => api.retryShortcut() }, 'Try another'));
+    kids.push(el('button', { class: 'btn primary', onclick: () => api.confirmShortcut() }, 'Use anyway'));
+    kids.push(el('div', { class: 'msg warn', role: 'alert' }, rec.warning));
+  } else {
+    kids.push(el('span', { class: 'hint' }, info.action === 'cancel' ? 'Saves when you let go' : 'Esc cancels · Backspace clears'));
+    kids.push(el('button', { class: 'btn quiet', onclick: cancelRec }, 'Cancel'));
+    if (rec.error) kids.push(el('div', { class: 'msg error', role: 'alert' }, rec.error));
+  }
+  return el('li', { class: 'bind recording', id: 'rec-row', tabindex: '-1', 'aria-live': 'polite' }, ...kids);
+}
+
+function actionBlock(info) {
+  const list = (settings.bindings || []).filter((b) => b.action === info.action);
+  const max = info.max || MAX_BINDINGS;
+  const recording = rec && rec.action === info.action;
+  const items = list.map((b) => (recording && rec.replaceId === b.id ? recRow(info) : bindRow(info, b, list.length)));
+  if (recording && !rec.replaceId) items.push(recRow(info));
+  const single = max === 1 && list.length > 0;
+  return el('div', { class: 'action' },
+    el('div', { class: 'action-head' },
+      el('div', { class: 'grow' },
+        el('div', { class: 'title' }, info.title, info.badge ? el('span', { class: 'badge' }, info.badge) : null),
+        el('div', { class: 'desc' }, info.desc)),
+      single ? null : el('button', {
+        class: 'btn',
+        disabled: list.length >= max || recording,
+        'aria-label': `Add shortcut for ${info.title}`,
+        onclick: () => startRec(info.action),
+      }, `+ Add${list.length ? ` (${list.length} of ${max})` : ''}`)),
+    items.length ? el('ul', { class: 'binds' }, items) : el('div', { class: 'desc muted' }, 'Not set. Add one if you want it.'));
+}
 
 function renderShortcuts() {
-  $('#shortcut-rows').replaceChildren(...SHORTCUTS.map(({ action, title, desc }) => {
-    const isRec = recording && recording.action === action;
-    const keys = isRec ? recording.keys : settings.shortcuts[action];
-    return el('div', { class: `row${isRec ? ' recording' : ''}` },
-      el('div', {}, el('div', { class: 'title' }, title), el('div', { class: 'desc' }, desc)),
-      el('div', { class: 'inline' },
-        el('span', { class: 'chips' }, isRec && !keys.length ? el('span', { class: 'key empty' }, 'Press keys…') : keyChips(keys)),
-        isRec
-          ? el('button', { class: 'btn', onclick: () => { api.stopRecordingShortcut(); recording = null; renderShortcuts(); } }, 'Cancel')
-          : el('button', { class: 'btn', onclick: () => { recording = { action, keys: [] }; api.recordShortcut(action); renderShortcuts(); } }, 'Change')),
-      isRec && recording.error ? el('div', { class: 'err' }, recording.error) : null);
-  }));
+  if (!settings) return;
+  for (const group of ['start', 'during', 'after']) {
+    const blocks = ACTION_INFO.filter((a) => a.group === group).map(actionBlock);
+    if (group === 'start') {
+      blocks.push(el('div', { class: 'legend' }, ...BEHAVIOURS.map(([, name, hint]) => el('span', {}, el('b', {}, name), ` ${hint.toLowerCase()}.`))));
+    }
+    $(`#g-${group}`).replaceChildren(...blocks);
+  }
+  if (rec) $('#rec-row')?.focus({ preventScroll: true });
 }
 
 api.onShortcutRecording((e) => {
-  if (!recording || e.action !== recording.action) return;
+  if (!rec || (e.action && e.action !== rec.action)) return;
   if (e.done) {
-    recording = null;
-    if (!e.cancelled) toast('Shortcut saved');
-  } else if (e.error) recording = { ...recording, keys: [], error: e.error };
-  else recording = { ...recording, keys: e.keys, error: null };
+    const was = rec;
+    rec = null;
+    if (!e.cancelled && e.keys) {
+      const what = (ACTION_TITLE[was.action] || was.action).toLowerCase();
+      toast(`${keyText(e.keys)}${e.binding && e.binding.trigger === 'doubleTap' ? ' double-tap' : ''} → ${what}`);
+    }
+  } else if (e.cleared) rec = { ...rec, keys: [], error: null, warning: null };
+  else if (e.warning) rec = { ...rec, keys: e.keys, error: null, warning: e.warning };
+  else if (e.error) rec = { ...rec, keys: [], error: e.error, warning: null };
+  else rec = { ...rec, keys: e.keys || [], error: null };
   renderShortcuts();
+});
+
+// The hook does the recording; the window only has to keep keys from typing or clicking.
+document.addEventListener('keydown', (e) => {
+  if (rec || (document.activeElement === $('#tester') && e.key !== 'Tab')) e.preventDefault();
+}, true);
+['mousedown', 'mouseup', 'auxclick'].forEach((type) => document.addEventListener(type, (e) => {
+  if (e.button > 0 && (rec || e.target.closest('#tester'))) e.preventDefault();
+}, true));
+
+$('#sc-reset').addEventListener('click', async () => {
+  if (!confirm('Put every shortcut back to how Pauli Speaks came? Your own shortcuts are removed.')) return;
+  rec = null;
+  settings = await api.resetShortcuts();
+  renderAll();
+  toast('Shortcuts reset');
+});
+
+// ----- "Test a key, pedal or mouse button": the main-process hook reports what it sees
+
+const tester = $('#tester');
+tester.addEventListener('focus', () => api.setKeyTest(true));
+tester.addEventListener('blur', () => api.setKeyTest(false));
+window.addEventListener('blur', () => document.activeElement === tester && tester.blur());
+api.onKeyTest((d) => {
+  $('#tester-keys').replaceChildren(...keyChips(d.keys), d.doubleTap ? el('span', { class: 'tap' }, '×2') : null);
+  const what = `${keyText(d.keys)}${d.doubleTap ? ' double-tap' : ''}`;
+  const beh = d.behaviour ? ` (${BEHAVIOURS.find(([v]) => v === d.behaviour)[1].toLowerCase()})` : '';
+  $('#tester-out').textContent = d.action ? `${what} → ${ACTION_TITLE[d.action] || d.action}${beh}` : `${what} → not used by Pauli Speaks`;
+});
+
+// ----- links and command line
+
+function renderRemoteLinks(info) {
+  const exe = info.packaged ? `"${info.exePath}"` : '"Pauli Speaks.exe"';
+  const lines = [
+    [`${info.protocol}://dictate/toggle`, 'Start or stop'],
+    [`${info.protocol}://dictate/start`, 'Start hands-free'],
+    [`${info.protocol}://dictate/stop`, 'Finish and paste'],
+    [`${exe} --toggle`, 'Also --start, --stop, --cancel, --paste-last, --copy-last, --undo-last, --press-enter'],
+  ];
+  $('#remote-links').replaceChildren(...lines.map(([text, desc]) => el('div', { class: 'link' },
+    el('code', {}, text),
+    el('button', { class: 'icon-btn', title: 'Copy', 'aria-label': `Copy ${text}`, html: ICONS.copy, onclick: async () => { await api.copy(text); toast('Copied'); } }),
+    el('span', { class: 'desc' }, desc))));
+}
+
+// ----- voice commands
+
+function describeCommand(c) {
+  if (c.action === 'key') return `Press ${c.arg}`;
+  if (c.action === 'undo') return 'Remove the last dictation';
+  if (c.action === 'snippet') return `Insert snippet “${c.arg}”`;
+  if (c.arg === '\n') return 'Insert a line break';
+  if (c.arg === '\n\n') return 'Insert a blank line';
+  return `Type “${c.arg.replace(/\n/g, '↵')}”`;
+}
+
+function renderVoiceCommands() {
+  const list = settings.voiceCommands || [];
+  const removePhrase = (i, p) => {
+    const next = list.map((c, j) => (j === i ? { ...c, phrases: c.phrases.filter((x) => x !== p) } : c)).filter((c) => c.phrases.length);
+    save({ voiceCommands: next }, `Removed “${p}”`);
+  };
+  $('#vc-list').replaceChildren(...(list.length ? list.map((c, i) => el('div', { class: 'vc-row' },
+    el('div', { class: 'phrases' }, ...c.phrases.map((p) => el('span', { class: 'phrase' }, `“${p}”`,
+      el('button', { title: 'Remove', 'aria-label': `Remove “${p}”`, html: ICONS.x, onclick: () => removePhrase(i, p) })))),
+    el('span', { class: 'arrow', 'aria-hidden': 'true' }, '→'),
+    el('span', { class: 'does', title: c.action === 'key' || c.action === 'undo' ? 'Only at the start or end of what you say' : 'Anywhere in what you say' }, describeCommand(c)),
+  )) : [el('div', { class: 'empty' }, 'No voice commands. Add one below.')]));
+  const snip = $('#vc-snippet');
+  snip.replaceChildren(...(settings.snippets || []).map((s) => el('option', { value: s.trigger }, s.trigger)));
+  $('#vc-form').classList.toggle('off', !settings.voiceCommandsEnabled);
+}
+
+function syncVoiceForm() {
+  const kind = $('#vc-do').value;
+  $('#vc-text').hidden = kind !== 'text';
+  $('#vc-snippet').hidden = kind !== 'snippet';
+}
+$('#vc-do').addEventListener('change', syncVoiceForm);
+
+$('#vc-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const phrase = $('#vc-say').value.replace(/\s+/g, ' ').trim();
+  if (!phrase) return;
+  const list = settings.voiceCommands || [];
+  if (list.some((c) => c.phrases.some((p) => p.toLowerCase() === phrase.toLowerCase()))) return toast(`“${phrase}” is already a voice command`);
+  const preset = VC_PRESETS[$('#vc-do').value];
+  const typed = $('#vc-text').value.replace(/\\n/g, '\n'); // a one-line field: "\n" means a line break
+  const arg = preset.action === 'snippet' ? $('#vc-snippet').value : preset.action === 'insert' && preset.arg === undefined ? typed : preset.arg;
+  if ((preset.action === 'snippet' || preset.action === 'insert') && !arg) {
+    return toast(preset.action === 'snippet' ? 'Add a snippet on the Dictionary page first' : 'Type the text to insert');
+  }
+  const same = list.findIndex((c) => c.action === preset.action && c.arg === arg);
+  const next = same >= 0
+    ? list.map((c, i) => (i === same ? { ...c, phrases: [...c.phrases, phrase] } : c))
+    : [...list, { phrases: [phrase], action: preset.action, arg }];
+  await save({ voiceCommands: next }, `Say “${phrase}”: ${describeCommand({ action: preset.action, arg }).toLowerCase()}`);
+  $('#vc-say').value = '';
+  $('#vc-text').value = '';
+  $('#vc-say').focus();
 });
 
 // ------------------------------------------------------------------ settings: translation
@@ -579,7 +795,7 @@ $('#rule-form').addEventListener('submit', (e) => {
 // ----- command mode
 
 function renderCommand() {
-  fillChips($('#cmd-chips'), settings.shortcuts.command);
+  $('#cmd-chips').replaceChildren(...bindingChips(firstBinding('command')));
   if (document.activeElement !== $('#cmd-model')) $('#cmd-model').value = settings.command.model;
   $('#cmd-key-state').textContent = settings.cloud.hasApiKey ? 'API key saved.' : 'No API key yet - add one under Speech recognition → Cloud API.';
 }
@@ -596,7 +812,7 @@ $('#cmd-test').addEventListener('click', async () => {
 // ----- read aloud
 
 function renderReadAloud() {
-  fillChips($('#read-chips'), settings.shortcuts.readAloud);
+  $('#read-chips').replaceChildren(...bindingChips(firstBinding('readAloud')));
   const voices = speechSynthesis.getVoices();
   const select = $('#tts-voice');
   select.replaceChildren(el('option', { value: '' }, 'System default'),
@@ -694,6 +910,7 @@ function renderAll() {
   renderStrip();
   renderLive();
   renderShortcuts();
+  renderVoiceCommands();
   renderTranslation();
   renderEngine();
   renderModels();
@@ -751,6 +968,8 @@ async function init() {
   const hour = new Date().getHours();
   $('#greeting').textContent = hour < 5 ? 'Good evening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   $('#about-version').textContent = `Version ${info.version} · free · speech by OpenAI Whisper, translation by Meta NLLB-200`;
+  renderRemoteLinks(info);
+  syncVoiceForm();
   renderAll();
   renderStats();
   loadHistory();

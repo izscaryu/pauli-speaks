@@ -4,7 +4,7 @@ Prioritised with the product-lens "feature prioritization" method:
 **ICE = Impact × Confidence ÷ Effort** (each 1–5). Higher is better.
 
 **Who it's for:** someone who writes a lot on Windows (chat, email, code, school), in
-Croatian and English, and wants Wispr Flow-style dictation without paying or sending audio
+Croatian and English, and wants push-to-talk dictation without paying or sending audio
 to a server.
 **What success looks like:** most days have at least one dictation, and "time saved" keeps
 growing. Both are already measured on the Transcripts page.
@@ -36,7 +36,7 @@ with Releases). Once one exists, add `electron-updater` with a `publish` block i
 | # | Feature | What it does | I | C | E | ICE |
 |---|---|---|---|---|---|---|
 | 1 | **GPU acceleration (DirectML)** | onnxruntime-node already ships `DirectML.dll`; running Whisper with `device: 'dml'` should make Small/Turbo several times faster on any DX12 GPU | 5 | 3 | 1 | **15** |
-| 2 | **Snippets / voice shortcuts** | Say "my email" → pastes your address; say "sign off" → full signature. Wispr has this as a paid feature | 4 | 5 | 2 | **10** |
+| 2 | **Snippets / voice shortcuts** | Say "my email" → pastes your address; say "sign off" → full signature. paid apps charge for this | 4 | 5 | 2 | **10** |
 | 3 | **Auto-stop on silence** (hands-free) | Ends a hands-free dictation after N seconds of silence, so there's no second keypress | 3 | 5 | 2 | 7.5 |
 | 4 | **Dictionary as Whisper prompt** | Feeds dictionary words to Whisper as the initial prompt, so names are recognised correctly instead of only being fixed afterwards | 4 | 3 | 2 | 6 |
 | 5 | **Per-app behaviour** | e.g. in VS Code / terminal: no auto-capitalisation or trailing period; in Slack: no trailing period. Uses `GetForegroundWindow` → exe name | 4 | 4 | 3 | 5.3 |

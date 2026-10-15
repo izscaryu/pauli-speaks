@@ -1,5 +1,4 @@
-// AudioWorklet that collects mono 16 kHz samples in ~40 ms chunks
-// (Wispr: CHUNK_DURATION_MS = 40, RECORDING_SAMPLE_RATE = 16000).
+// AudioWorklet that collects mono 16 kHz samples in ~40 ms chunks.
 
 const CHUNK = 640;
 

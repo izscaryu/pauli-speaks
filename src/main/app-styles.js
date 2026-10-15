@@ -1,7 +1,6 @@
 'use strict';
-// Per-app writing style. Wispr Flow sends the focused app (name, bundle id,
-// type) with every request so its LLM can adapt tone; we do the same locally
-// with simple rules keyed on the focused window's executable name.
+// Per-app writing style: simple local rules keyed on the focused window's
+// executable name (no text or screenshots leave the PC).
 
 const STYLES = {
   normal: { label: 'Normal', desc: 'Sentences as dictated' },

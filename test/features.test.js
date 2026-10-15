@@ -151,6 +151,7 @@ test('command shortcut starts or upgrades a session', () => {
 
 test('new default shortcuts are valid and unique', () => {
   for (const action of ['command', 'readAloud']) {
-    assert.equal(validateShortcut(DEFAULTS.shortcuts[action], action, DEFAULTS.shortcuts), null, action);
+    const b = DEFAULTS.bindings.find((x) => x.action === action);
+    assert.equal(validateShortcut(b.keys, action, DEFAULTS.bindings, { ignoreId: b.id }), null, action);
   }
 });

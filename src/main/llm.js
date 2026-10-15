@@ -1,6 +1,5 @@
 'use strict';
-// Command mode ("Wispr Lens" / "Command" in Wispr Flow, a paid feature there):
-// select text, hold the command shortcut, say what to do with it. Uses any
+// Command mode: select text, hold the command shortcut, say what to do with it. Uses any
 // OpenAI-compatible chat endpoint - by default Groq's free tier, with the same
 // API key as cloud transcription.
 
