@@ -8,6 +8,8 @@ are typed into whatever app has the cursor. Speech recognition runs **on your ow
 [Releases](https://github.com/izscaryu/pauli-speaks/releases/latest). Installed copies update
 themselves.
 
+[Privacy](PRIVACY.md): what stays on your PC and what doesn't. · [Open-source licences](THIRD_PARTY_NOTICES.md)
+
 ## Features
 
 - **Push-to-talk**: hold the shortcut while you speak, release to paste.
