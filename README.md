@@ -134,7 +134,7 @@ remote.js   pauli-speaks:// links and --flags, from startup argv and second-inst
 | `src/main/voice-commands.js` | Editable voice commands and their matching |
 | `src/main/remote.js` | Deep links and command-line flags |
 | `src/main/last-paste.js` | What *Undo last dictation* / "scratch that" may take back |
-| `src/main/settings.js` | `settings.json`, including the migration from one shortcut per action |
+| `src/main/settings.js` | `settings.json`, with a `settingsVersion` and the list of migrations between versions |
 | `src/main/win32.js` | `SendInput` / `GetAsyncKeyState` via koffi |
 | `src/main/paster.js` | Text insertion with clipboard restore |
 | `src/main/asr/whisper-local.js` | Whisper via transformers.js + onnxruntime-node, language detection |

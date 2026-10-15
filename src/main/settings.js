@@ -2,10 +2,9 @@
 // Persistent settings (JSON in userData). Default shortcuts: hold Ctrl+Win to
 // talk, Ctrl+Win+Space hands-free, Shift+Alt+Z paste last, Esc cancel.
 //
-// Shortcuts are a list of bindings, several per action, each with its own
-// behaviour. Version 1 files stored one key combination per action
-// (`shortcuts: {ptt: [...], handsFree: [...]}`) and a voice-command on/off
-// switch; they are migrated on load, and the old file is kept as settings.v1.json.
+// settings.json carries a settingsVersion number. Older files are brought up to
+// date on load by the steps in MIGRATIONS, and the file as it was is kept once
+// as settings.v<its version>.json. Files without a number are version 1.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -93,10 +92,11 @@ const V1_ACTIONS = {
 };
 
 /**
- * Bring a saved settings object up to the current shape (pure).
- * @returns {object} a new object; `shortcuts` and a boolean `voiceCommands` are gone
+ * Version 1 → 2 (Triggers 1.0): one shortcut per action becomes a list of
+ * bindings, and the voice-command on/off switch becomes voiceCommandsEnabled
+ * plus an editable list. Leaves files that already have bindings alone.
  */
-function migrateSettings(saved) {
+function v1to2(saved) {
   const out = { ...saved };
   if (!Array.isArray(out.bindings) && out.shortcuts && typeof out.shortcuts === 'object') {
     const shortcuts = { ...V1_SHORTCUTS, ...out.shortcuts };
@@ -109,12 +109,40 @@ function migrateSettings(saved) {
     if (!('voiceCommandsEnabled' in out)) out.voiceCommandsEnabled = out.voiceCommands;
     out.voiceCommands = structuredClone(DEFAULT_VOICE_COMMANDS);
   }
+  return out;
+}
+
+/** Every change to the shape of settings.json is a step here, in order. */
+const MIGRATIONS = Object.freeze([{ from: 1, to: 2, run: v1to2 }]);
+const SETTINGS_VERSION = MIGRATIONS.at(-1).to;
+
+/** Files written before settings were numbered are version 1. */
+const versionOf = (saved) => (Number.isInteger(saved.settingsVersion) && saved.settingsVersion > 0 ? saved.settingsVersion : 1);
+
+/**
+ * Run the migrations from the file's version up to `target` (pure).
+ * A file from a newer version is returned unchanged.
+ */
+function runMigrations(saved, migrations, target) {
+  let out = { ...saved };
+  for (let v = versionOf(saved); v < target; v++) {
+    const step = migrations.find((m) => m.from === v);
+    if (!step) throw new Error(`No settings migration from version ${v}`);
+    out = { ...step.run(out), settingsVersion: step.to };
+  }
+  return out;
+}
+
+/**
+ * Bring a saved settings object up to the current version and clean the
+ * lists that can be hand-edited (pure).
+ */
+function migrateSettings(saved) {
+  const out = runMigrations(saved, MIGRATIONS, SETTINGS_VERSION);
   if ('bindings' in out) out.bindings = normalizeBindings(out.bindings);
   if ('voiceCommands' in out) out.voiceCommands = normalizeVoiceCommands(out.voiceCommands);
   return out;
 }
-
-const needsMigration = (saved) => 'shortcuts' in saved || typeof saved.voiceCommands === 'boolean';
 
 class Settings extends EventEmitter {
   /**
@@ -132,18 +160,24 @@ class Settings extends EventEmitter {
     } catch {
       // first run or unreadable file: keep defaults
     }
-    if (!saved || typeof saved !== 'object') return;
+    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return;
     for (const [k, v] of Object.entries(migrateSettings(saved))) {
       if (!isSetting(k)) continue;
       this.data[k] = NESTED.includes(k) ? { ...DEFAULTS[k], ...v } : v;
     }
-    if (needsMigration(saved)) {
-      try {
-        fs.copyFileSync(file, path.join(path.dirname(file), 'settings.v1.json'));
-        this.#save();
-      } catch {
-        // read-only folder: the migration still applies in memory
-      }
+    const version = versionOf(saved);
+    if (saved.settingsVersion === SETTINGS_VERSION) return;
+    try {
+      // Keep the file as it was, once per version: an existing backup is never replaced.
+      fs.copyFileSync(file, path.join(path.dirname(file), `settings.v${version}.json`), fs.constants.COPYFILE_EXCL);
+    } catch {
+      // backup already there, or a read-only folder
+    }
+    if (version > SETTINGS_VERSION) return; // from a newer Pauli Speaks: read what we understand, save only on change
+    try {
+      this.#save();
+    } catch {
+      // read-only folder: the migration still applies in memory
     }
   }
 
@@ -193,9 +227,9 @@ class Settings extends EventEmitter {
 
   #save() {
     const tmp = `${this.file}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(this.data, null, 2));
+    fs.writeFileSync(tmp, JSON.stringify({ settingsVersion: SETTINGS_VERSION, ...this.data }, null, 2));
     fs.renameSync(tmp, this.file);
   }
 }
 
-module.exports = { Settings, DEFAULTS, migrateSettings };
+module.exports = { Settings, DEFAULTS, SETTINGS_VERSION, MIGRATIONS, runMigrations, migrateSettings };
