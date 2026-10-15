@@ -10,6 +10,20 @@ themselves.
 
 [Privacy](PRIVACY.md): what stays on your PC and what doesn't. · [Open-source licences](THIRD_PARTY_NOTICES.md) · [Code signing policy](docs/code-signing-policy.md)
 
+### "Windows protected your PC"
+
+When you run the installer, Windows may show a blue **"Windows protected your PC"** screen
+with *Publisher: Unknown publisher*. To install anyway, click **More info**, check that the file
+is `Pauli-Speaks-Setup-x.y.z.exe`, then click **Run anyway**.
+
+This happens because the installer is not code-signed yet. Microsoft Defender SmartScreen warns
+about any download that has no publisher signature or that few people have run; it does not
+mean a virus was found. Every installer is built from this repository's public source by
+[GitHub Actions](.github/workflows/release.yml), so download it only from
+[Releases](https://github.com/izscaryu/pauli-speaks/releases). Pauli Speaks has applied for free
+code signing from SignPath Foundation, which signs open-source projects; the
+[code signing policy](docs/code-signing-policy.md) describes how signed releases will be made.
+
 ## Features
 
 - **Push-to-talk**: hold the shortcut while you speak, release to paste.
