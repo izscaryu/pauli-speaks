@@ -148,6 +148,10 @@ html, body {
 .pill.message.error { border-color: rgba(255, 107, 122, 0.6); }
 .pill.message.error .label { color: #ffd0d5; }
 
+/* listening, but the microphone delivers no sound: amber hint next to the usual controls */
+.pill.listening.warn { border-color: rgba(224, 163, 71, 0.65); }
+.pill.listening.warn .label { display: block; color: var(--warn); }
+
 .tip {
   padding: 5px 10px;
   border-radius: 8px;

@@ -22,11 +22,15 @@ let ui = { state: 'idle' };
 let messageTimer = null;
 let level = 0;
 let listeningSince = 0;
+let noSound = false; // the microphone has delivered nothing but silence since this dictation started
 
 // ------------------------------------------------------------------ UI
 
 function render(state) {
-  if (state.state === 'listening' && ui.state !== 'listening') listeningSince = performance.now();
+  if (state.state === 'listening' && ui.state !== 'listening') {
+    listeningSince = performance.now();
+    noSound = false;
+  }
   ui = state;
   clearTimeout(messageTimer);
 
@@ -51,10 +55,27 @@ function render(state) {
   }
   if (state.state !== 'idle') tip.hidden = true;
 
+  if (state.state !== 'listening') noSound = false;
+  showNoSound();
+
   const preview = state.state === 'listening' && state.preview ? state.preview.trim() : '';
   previewEl.hidden = !preview;
   // keep the end visible: that's what the user is saying right now
   previewEl.textContent = preview.length > 160 ? `…${preview.slice(-160)}` : preview;
+}
+
+/** Amber warning in the pill while listening to a dead microphone; the dictation itself carries on. */
+function showNoSound() {
+  const on = noSound && ui.state === 'listening';
+  pill.classList.toggle('warn', on);
+  if (on) label.textContent = 'No sound. Is your mic muted?';
+}
+
+function setNoSound(on) {
+  if (noSound === on) return;
+  noSound = on;
+  if (!on && ui.state === 'listening') label.textContent = '';
+  showNoSound();
 }
 
 window.pauli.onOverlayState(render);
@@ -129,6 +150,9 @@ const sounds = {
 const SPEECH_RMS = 0.03;
 const SILENCE_RMS = 0.012;
 const CHUNK_SECONDS = 640 / 16000;
+// A muted or disconnected microphone delivers exact zeros (or ~1e-6); even a quiet room is far above this
+const NO_SOUND_RMS = 0.002;
+const NO_SOUND_SECONDS = 2;
 
 let ctx = null;
 let stream = null;
@@ -143,6 +167,20 @@ let vadAutoStop = false; // main's voice-activity detector ends the dictation; t
 let heardSpeech = false;
 let silentFor = 0;
 let silenceSent = false;
+let heardSound = false;
+let quietFor = 0;
+
+/** Warn when the first 2 seconds of a dictation carry no sound at all; clear it once any sound arrives. */
+function trackNoSound(rms) {
+  if (heardSound) return;
+  if (rms >= NO_SOUND_RMS) {
+    heardSound = true;
+    setNoSound(false);
+    return;
+  }
+  quietFor += CHUNK_SECONDS;
+  if (quietFor >= NO_SOUND_SECONDS) setNoSound(true);
+}
 
 async function ensureContext() {
   if (!ctx) {
@@ -211,6 +249,9 @@ window.pauli.onRecorderStart(async ({ deviceId, sounds: playSounds, autoStopSile
   heardSpeech = false;
   silentFor = 0;
   silenceSent = false;
+  heardSound = false;
+  quietFor = 0;
+  setNoSound(false);
   if (playSounds) sounds.start();
   try {
     await ensureContext();
@@ -236,6 +277,7 @@ window.pauli.onRecorderStart(async ({ deviceId, sounds: playSounds, autoStopSile
         chunks.push(e.data.samples);
         level = Math.max(level, e.data.rms);
         trackSilence(e.data.rms);
+        trackNoSound(e.data.rms);
       }
     };
     sink ??= (() => {
@@ -282,6 +324,7 @@ window.pauli.onRecorderVadFallback(() => {
 window.pauli.onRecorderStop(async ({ id, discard, sounds: playSounds }) => {
   const my = session;
   active = false;
+  heardSound = true; // the flush below must not raise the warning for a dictation that is ending
   if (playSounds) (discard ? sounds.cancel : sounds.stop)();
   if (node) {
     // capture the last ~150 ms the user spoke while releasing the keys
