@@ -41,6 +41,7 @@ const { NLLB_MODEL, NLLB_SIZE, NLLB_CODES } = require('./asr/translator-local');
 const { Updater } = require('./updater');
 const { setupPortable } = require('./portable');
 const { shouldPreloadAtStartup } = require('./system-check');
+const { registerWelcomeIpc, runningProcessNames } = require('./welcome-ipc');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
 const portable = setupPortable(app);
@@ -874,6 +875,15 @@ function registerIpc() {
   ipcMain.handle('settings:update', (_e, patch) => {
     settings.update(patch);
     return settings.getPublic();
+  });
+  registerWelcomeIpc(ipcMain, {
+    getSettings: () => settings.getPublic(),
+    updateSettings: (patch) => settings.update(patch),
+    systemLanguages: () => app.getPreferredSystemLanguages(),
+    gpuInfo: () => app.getGPUInfo('complete'),
+    processNames: runningProcessNames,
+    appVersion: () => app.getVersion(),
+    log,
   });
   ipcMain.handle('history:list', () => history.list());
   ipcMain.handle('history:delete', (_e, id) => history.remove(id));

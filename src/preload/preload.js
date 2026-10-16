@@ -14,6 +14,10 @@ contextBridge.exposeInMainWorld('pauli', {
   updateSettings: (patch) => ipcRenderer.invoke('settings:update', patch),
   onSettings: on('settings:changed'),
 
+  welcomeSystem: () => ipcRenderer.invoke('welcome:system'),
+  welcomeRecommend: (languages) => ipcRenderer.invoke('welcome:recommend', { languages }),
+  finishWelcome: () => ipcRenderer.invoke('welcome:finish'),
+
   listHistory: () => ipcRenderer.invoke('history:list'),
   deleteHistory: (id) => ipcRenderer.invoke('history:delete', id),
   clearHistory: () => ipcRenderer.invoke('history:clear'),
