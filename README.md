@@ -207,6 +207,12 @@ start-with-Windows entry that the app registered ([`build/installer.nsh`](build/
 - **Nothing happens when I hold Ctrl + Win.** Another dictation app (e.g. Wispr Flow) might be
   using the same shortcut. Quit it or change the shortcut on the Shortcuts page. Home says so when
   it sees one running.
+- **"Pauli Speaks can't see your shortcut."** The keyboard hook that watches for your shortcut
+  didn't start. Security or antivirus software sometimes blocks it: allow Pauli Speaks there,
+  then restart Pauli Speaks (right-click the tray icon → *Quit Pauli Speaks*, then start it
+  again). If the banner stays, restart the PC. Separately, while an app running as administrator
+  is in front, Windows hides your keys from Pauli Speaks unless it also runs as administrator.
+  The log says why the hook failed: *About → Logs* opens the folder with `pauli-speaks.log`.
 - **Something in the setup was skipped or went wrong.** Go to *Settings → Run setup again* to go
   through languages, microphone, speech engine and shortcut once more.
 - **Text doesn't appear in one specific app.** Windows blocks simulated input into apps running
