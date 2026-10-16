@@ -17,9 +17,9 @@
   const { title } = Welcome;
   let alive = false;
 
-  const card = ({ value, checked, title, desc, state, badge, onpick }) => el('label', { class: 'model' },
+  const card = ({ value, checked, title, desc, state, badges = [], onpick }) => el('label', { class: 'model' },
     el('input', { type: 'radio', name: 'welcome-engine', value, checked: checked || null, onchange: () => onpick(value) }),
-    el('div', {}, el('div', { class: 'title' }, title, badge ? el('span', { class: 'tag' }, badge) : null), el('div', { class: 'desc' }, desc)),
+    el('div', {}, el('div', { class: 'title' }, title, ...badges.filter(Boolean).map((b) => el('span', { class: 'tag' }, b))), el('div', { class: 'desc' }, desc)),
     el('span', { class: 'state' }, state));
 
   async function render(body, f) {
@@ -37,8 +37,16 @@
     const recommended = (rec && models.find((m) => m.id === rec.model)) || models.find((m) => m.id === settings.localModel) || models[0];
     const reason = rec && Object.hasOwn(REASONS, rec.reason) ? REASONS[rec.reason] : 'The default for this PC.';
 
-    let selected = recommended.id;
-    let cloudOk = false;
+    // "Run setup again" (or a restart after the download): keep what is set up selected, so the primary
+    // button never swaps a working model with one click. The recommendation stays visible as such.
+    const onboarded = settings.onboarded === true;
+    const current = settings.engine === CLOUD
+      ? (onboarded ? CLOUD : null)
+      : models.find((m) => m.id === settings.localModel && (m.downloaded || onboarded))?.id ?? null;
+    const currentTag = (value) => (value === current ? 'Current' : null);
+
+    let selected = current ?? recommended.id;
+    let cloudOk = current === CLOUD && !!settings.cloud?.hasApiKey; // unchanged cloud setup: no new test needed
     let busy = false;
 
     const go = el('button', { class: 'btn primary', onclick: () => choose() });
@@ -123,10 +131,15 @@
     };
     const sizeOrDownloaded = (m) => (m.downloaded ? 'Downloaded' : m.size);
     const others = models.filter((m) => m !== recommended);
-    const more = el('details', { class: 'we-more', open: others.some((m) => m.id === selected) || null },
+    const more = el('details', { class: 'we-more', open: selected !== recommended.id || null },
       el('summary', {}, 'Other options'),
-      ...others.map((m) => card({ value: m.id, title: `Whisper ${m.label}`, desc: m.note, state: sizeOrDownloaded(m), onpick })),
-      card({ value: CLOUD, title: 'Cloud (Groq, free key)', desc: 'Your audio is sent to Groq to be transcribed.', state: '', onpick }));
+      ...others.map((m) => card({
+        value: m.id, checked: m.id === selected, title: `Whisper ${m.label}`, badges: [currentTag(m.id)], desc: m.note, state: sizeOrDownloaded(m), onpick,
+      })),
+      card({
+        value: CLOUD, checked: selected === CLOUD, title: 'Cloud (Groq, free key)', badges: [currentTag(CLOUD)],
+        desc: 'Your audio is sent to Groq to be transcribed.', state: '', onpick,
+      }));
 
     cloudBox.append(
       el('div', { class: 'row' }, el('div', { class: 'title' }, 'API key'), keyInput),
@@ -138,7 +151,7 @@
       title('Pick your speech engine.'),
       el('div', { class: 'we-list', role: 'radiogroup', 'aria-labelledby': 'welcome-title' },
         el('div', { class: 'we-rec' }, card({
-          value: recommended.id, checked: true, title: `Whisper ${recommended.label}`, badge: 'Recommended',
+          value: recommended.id, checked: selected === recommended.id, title: `Whisper ${recommended.label}`, badges: ['Recommended', currentTag(recommended.id)],
           desc: reason, state: sizeOrDownloaded(recommended), onpick,
         })),
         more,

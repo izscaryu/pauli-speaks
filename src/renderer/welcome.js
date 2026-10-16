@@ -199,6 +199,7 @@ const Welcome = (() => {
 
     // Devices come and go (USB, Bluetooth): reopen only if the one in use is gone or none was there.
     const onDeviceChange = async () => {
+      if (document.hidden) return;
       const my = gen;
       const devices = await listMics();
       if (my !== gen) return;
@@ -208,6 +209,12 @@ const Welcome = (() => {
     };
     // Coming back from Windows Settings: try again if access was blocked.
     const onFocus = () => state === 'blocked' && open();
+    // Closing the window only hides it to the tray: give the microphone back while hidden, open it again on return.
+    const onVisibility = () => {
+      if (!document.hidden) return open();
+      gen++;
+      close();
+    };
 
     return {
       id: 'microphone',
@@ -226,12 +233,14 @@ const Welcome = (() => {
         f.actions(el('button', { class: 'btn primary', onclick: () => f.next() }, 'Continue'));
         navigator.mediaDevices.addEventListener('devicechange', onDeviceChange);
         window.addEventListener('focus', onFocus);
-        open();
+        document.addEventListener('visibilitychange', onVisibility);
+        if (!document.hidden) open();
       },
       leave() {
         gen++;
         navigator.mediaDevices.removeEventListener('devicechange', onDeviceChange);
         window.removeEventListener('focus', onFocus);
+        document.removeEventListener('visibilitychange', onVisibility);
         if (meter) close();
       },
     };

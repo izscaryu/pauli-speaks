@@ -28,6 +28,7 @@
     let works = false; // a dictate shortcut was seen
     let waited = false; // WAIT_MS passed without one
     let recording = null; // { keys, error, warning } while the recorder is open
+    let hookError = null; // null until health:state answers; true when the keyboard hook did not start (no key test then)
     let conflicts = [];
     let timer = null;
     let offKeyTest = null;
@@ -46,7 +47,7 @@
     const canTest = () => document.hasFocus() && !document.hidden;
 
     function startTest() {
-      if (!alive || recording || !canTest()) return;
+      if (!alive || recording || hookError !== false || !canTest()) return;
       offKeyTest ||= api.onKeyTest((d) => d.action === 'dictate' && succeed());
       api.setKeyTest(true).catch(logFail('turning the key test on'));
       clearTimeout(timer);
@@ -75,9 +76,11 @@
 
     // The main process switches the test off when the window loses focus: switch it on again on return.
     const onFocus = () => startTest();
+    // The recorder records through the global hook: never let it pick up typing in another app.
     const onBlur = () => {
       clearTimeout(timer);
       timer = null;
+      if (recording) closeRecorder(true);
     };
 
     // ----- recorder (the Shortcuts page's: startRec / cancelRec in app.js, same IPC)
@@ -166,16 +169,21 @@
     function draw() {
       if (!alive) return;
       keysBox.replaceChildren(...bindingChips(talkBinding()));
-      const text = works ? 'That works.' : 'Press it now to check it works.';
+      const broken = hookError === true && !works;
+      const text = works ? 'That works.' : broken ? "Pauli Speaks can't see your shortcut." : 'Press it now to check it works.';
       if (status.textContent !== text) status.textContent = text;
-      status.className = `wm-status ${works ? 'good' : ''}`;
+      status.className = `wm-status ${works ? 'good' : broken ? 'bad' : ''}`;
       const notes = [];
       if (!works && conflicts.length) notes.push(`${joinNames(conflicts)} ${conflicts.length > 1 ? 'are' : 'is'} running and may use the same shortcut.`);
-      if (!works && waited) notes.push('Nothing arrived. Another app may be using this shortcut.');
-      const show = notes.length > 0 && !recording;
+      if (!works && waited && !broken) notes.push('Nothing arrived. Another app may be using this shortcut.');
+      const show = (notes.length > 0 || broken) && !recording;
       hints.replaceChildren(...(show ? [
         ...notes.map((t) => el('p', { class: 'desc' }, t)),
-        el('button', { class: 'btn', onclick: openRecorder }, 'Record another shortcut'),
+        // Recording another shortcut needs the same hook, so offer the troubleshooting steps instead.
+        broken
+          ? el('p', { class: 'desc' }, 'Dictation by shortcut will not work until this is fixed. ',
+            el('a', { href: HomeNotices.TROUBLESHOOTING_URL, target: '_blank' }, 'Read the troubleshooting steps'))
+          : el('button', { class: 'btn', onclick: openRecorder }, 'Record another shortcut'),
       ] : []));
       drawCards();
       drawRecorder();
@@ -188,6 +196,7 @@
         works = false;
         waited = false;
         recording = null;
+        hookError = null;
         conflicts = [];
         keysBox = el('div', { class: 'we-keys' });
         status = el('p', { class: 'wm-status', role: 'status', 'aria-live': 'polite' });
@@ -201,7 +210,13 @@
         window.addEventListener('focus', onFocus);
         window.addEventListener('blur', onBlur);
         draw();
-        startTest();
+        // A hook that did not start reports nothing: say so instead of waiting for a key that cannot arrive.
+        api.healthState().catch(() => null).then((health) => {
+          if (!alive) return;
+          hookError = !!(health && health.hookError);
+          draw();
+          startTest();
+        });
         // The check ran when the flow started: it is normally done by now.
         f.system.then((sys) => {
           if (!alive || !sys || !Array.isArray(sys.conflicts)) return;
