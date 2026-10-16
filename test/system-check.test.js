@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   baseLanguageCodes, classifyGpu, recommendModel, shouldOfferSmallerModel,
-  KNOWN_CONFLICTS, parseTasklistCsv, findConflicts,
+  KNOWN_CONFLICTS, parseTasklistCsv, findConflicts, shouldPreloadAtStartup,
 } = require('../src/main/system-check');
 
 const BASE = 'onnx-community/whisper-base';
@@ -92,4 +92,12 @@ test('the model ids exist in whisper-local MODELS', () => {
   for (const id of [MODEL_BASE, MODEL_SMALL, MODEL_LARGE_TURBO]) {
     assert.ok(MODELS.some((m) => m.id === id), id);
   }
+});
+
+test('the model loads at startup only for onboarded users on the local engine', () => {
+  assert.equal(shouldPreloadAtStartup({ onboarded: false, engine: 'local' }), false);
+  assert.equal(shouldPreloadAtStartup({ onboarded: true, engine: 'local' }), true);
+  assert.equal(shouldPreloadAtStartup({ onboarded: true, engine: 'cloud' }), false);
+  assert.equal(shouldPreloadAtStartup({ onboarded: 'true', engine: 'local' }), false);
+  assert.equal(shouldPreloadAtStartup(undefined), false);
 });

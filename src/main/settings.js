@@ -65,6 +65,8 @@ const DEFAULTS = Object.freeze({
   betaUpdates: false,
   dictionary: [{ from: 'polyspeaks', to: 'Pauli Speaks' }],
   onboarded: false,
+  setupCard: false,
+  lastSeenVersion: '',
 });
 
 const NESTED = ['cloud', 'translation', 'appStyles', 'command', 'readAloud'];
@@ -118,10 +120,20 @@ function v2to3(saved) {
   return { ...saved, betaUpdates: saved.betaUpdates === true };
 }
 
+/**
+ * Version 3 → 4 (welcome flow): "onboarded" now means the welcome flow is
+ * finished or skipped. Existing users keep their Home setup card; lastSeenVersion
+ * stays unset so they see What's new once.
+ */
+function v3to4(saved) {
+  return { ...saved, setupCard: saved.onboarded === true };
+}
+
 /** Every change to the shape of settings.json is a step here, in order. */
 const MIGRATIONS = Object.freeze([
   { from: 1, to: 2, run: v1to2 },
   { from: 2, to: 3, run: v2to3 },
+  { from: 3, to: 4, run: v3to4 },
 ]);
 const SETTINGS_VERSION = MIGRATIONS.at(-1).to;
 

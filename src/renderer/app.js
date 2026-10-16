@@ -980,10 +980,7 @@ async function init() {
   renderAll();
   renderStats();
   loadHistory();
-  if (!settings.onboarded) {
-    $('#try-box').focus();
-    api.updateSettings({ onboarded: true });
-  }
+  if (!settings.onboarded) $('#try-box').focus();
 }
 
 api.onSettings((s) => {

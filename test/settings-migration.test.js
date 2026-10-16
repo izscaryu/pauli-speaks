@@ -120,7 +120,7 @@ const backupOf = (file, v) => path.join(path.dirname(file), `settings.v${v}.json
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 test('migrations form an unbroken chain up to the current version', () => {
-  assert.equal(SETTINGS_VERSION, 3);
+  assert.equal(SETTINGS_VERSION, 4);
   MIGRATIONS.forEach((m, i) => {
     assert.equal(m.from, i + 1);
     assert.equal(m.to, m.from + 1);
@@ -156,12 +156,39 @@ test('v2 → v3 on its own: "Get early versions" arrives switched off, everythin
   assert.equal(v2to3.run({ betaUpdates: 'yes' }).betaUpdates, false, 'anything but true is off');
 });
 
+test('v3 → v4 on its own: an onboarded user keeps the setup card, lastSeenVersion stays unset', () => {
+  const v3to4 = MIGRATIONS.find((m) => m.from === 3);
+  assert.equal(v3to4.to, 4);
+  const out = v3to4.run({ settingsVersion: 3, onboarded: true, sounds: false });
+  assert.equal(out.setupCard, true);
+  assert.equal(out.onboarded, true);
+  assert.equal(out.sounds, false, 'other settings are kept');
+  assert.equal('lastSeenVersion' in out, false, 'existing users see the release notes once');
+  assert.equal(v3to4.run({ onboarded: false }).setupCard, false);
+  assert.equal(v3to4.run({}).setupCard, false);
+  assert.equal(v3to4.run({ onboarded: 'yes' }).setupCard, false, 'anything but true is off');
+});
+
+test('a v1 file with onboarded: false reaches v4 without a setup card', () => {
+  const out = runMigrations({ onboarded: false }, MIGRATIONS, SETTINGS_VERSION);
+  assert.equal(out.setupCard, false);
+  assert.equal(out.onboarded, false);
+  assert.equal(out.settingsVersion, 4);
+});
+
+test('a new install is not onboarded and has no setup card', () => {
+  const s = new Settings(tempFile(null), plain);
+  assert.equal(s.get().onboarded, false);
+  assert.equal(s.get().setupCard, false);
+  assert.equal(s.get().lastSeenVersion, '');
+});
+
 test('early versions are off by default', () => {
   assert.equal(DEFAULTS.betaUpdates, false);
   assert.equal(new Settings(tempFile(null), plain).get().betaUpdates, false);
 });
 
-test('a v2 file is backed up as settings.v2.json and saved as v3 with early versions off', () => {
+test('a v2 file is backed up as settings.v2.json and saved as the current version with early versions off', () => {
   const v2 = { settingsVersion: 2, sounds: false, bindings: [{ id: 'x', action: 'dictate', keys: ['F8'], behaviour: 'hold' }] };
   const file = tempFile(v2);
   const s = new Settings(file, plain);
@@ -169,8 +196,21 @@ test('a v2 file is backed up as settings.v2.json and saved as v3 with early vers
   assert.equal(s.get().sounds, false);
   assert.deepEqual(readJson(backupOf(file, 2)), v2);
   const saved = readJson(file);
-  assert.equal(saved.settingsVersion, 3);
+  assert.equal(saved.settingsVersion, SETTINGS_VERSION);
   assert.equal(saved.betaUpdates, false);
+});
+
+test('a v3 file is backed up as settings.v3.json and saved as v4 with the setup card kept for onboarded users', () => {
+  const v3 = { settingsVersion: 3, onboarded: true, sounds: false };
+  const file = tempFile(v3);
+  const s = new Settings(file, plain);
+  assert.equal(s.get().setupCard, true);
+  assert.equal(s.get().lastSeenVersion, '');
+  assert.deepEqual(readJson(backupOf(file, 3)), v3);
+  const saved = readJson(file);
+  assert.equal(saved.settingsVersion, 4);
+  assert.equal(saved.setupCard, true);
+  assert.equal(saved.onboarded, true);
 });
 
 test('runMigrations applies each step in order, from the file\'s version to the target', () => {

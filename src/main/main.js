@@ -40,9 +40,12 @@ const { MODELS, isModelDownloaded, canWhisperTranslate, buildPrompt } = require(
 const { NLLB_MODEL, NLLB_SIZE, NLLB_CODES } = require('./asr/translator-local');
 const { Updater } = require('./updater');
 const { setupPortable } = require('./portable');
+const { shouldPreloadAtStartup } = require('./system-check');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
 const portable = setupPortable(app);
+// Development only: run against a scratch data folder instead of the real one.
+if (!app.isPackaged && process.env.PAULI_USER_DATA_DIR) app.setPath('userData', process.env.PAULI_USER_DATA_DIR);
 
 const ROOT = path.join(__dirname, '..', '..');
 const RENDERER = path.join(__dirname, '..', 'renderer');
@@ -1099,7 +1102,7 @@ function init() {
   if (startupCommand) queueRemote(startupCommand);
   const hidden = process.argv.includes('--hidden') || (startupCommand && startupCommand.command !== 'open');
   if (!hidden || !settings.get().onboarded) createMainWindow();
-  preloadModel();
+  if (shouldPreloadAtStartup(settings.get())) preloadModel();
   if (settings.get().translation.always && needsNllb(settings.get())) preloadTranslator();
 
   screen.on('display-metrics-changed', positionOverlay);
