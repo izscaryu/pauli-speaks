@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { gateSpeech, SILENCE_LEVEL, NO_SOUND_LEVEL } = require('../src/main/speech-gate');
+const { gateSpeech, reportOncePerMessage, SILENCE_LEVEL, NO_SOUND_LEVEL } = require('../src/main/speech-gate');
 const { speechLevel, SAMPLE_RATE } = require('../src/main/audio-utils');
 
 const tone = (seconds, amp = 0.1) => Float32Array.from({ length: Math.round(seconds * SAMPLE_RATE) }, (_, i) => amp * Math.sin(i / 10));
@@ -73,4 +73,42 @@ test('a dead microphone says no-sound even with the switch off or no detector', 
   const zeros = new Float32Array(SAMPLE_RATE);
   assert.deepEqual(await gateSpeech(zeros, { enabled: false, detect: null, level }), { skip: 'no-sound' });
   assert.deepEqual(await gateSpeech(zeros, { enabled: true, detect: null, level }), { skip: 'no-sound' });
+});
+
+test('onError is called once with the error for a sync throw and for a rejection, before the fallback', async () => {
+  const audio = tone(2);
+  const syncErr = new Error('worker gone');
+  const asyncErr = new Error('model missing');
+  for (const [detect, err] of [[() => { throw syncErr; }, syncErr], [async () => { throw asyncErr; }, asyncErr]]) {
+    const seen = [];
+    const r = await gateSpeech(audio, { enabled: true, detect, level, onError: (e) => seen.push(e) });
+    assert.deepEqual(seen, [err]);
+    assert.equal(r.audio, audio, 'still falls back to the full audio');
+  }
+});
+
+test('onError is not called on success, with no detector, or with the switch off', async () => {
+  const seen = [];
+  const onError = (e) => seen.push(e);
+  await gateSpeech(tone(2), { enabled: true, detect: async () => [{ start: 0, end: SAMPLE_RATE }], level, onError });
+  await gateSpeech(tone(2), { enabled: true, detect: async () => [], level, onError });
+  await gateSpeech(tone(2), { enabled: true, detect: null, level, onError });
+  await gateSpeech(tone(2), { enabled: false, detect: async () => { throw new Error('x'); }, level, onError });
+  assert.deepEqual(seen, []);
+});
+
+test('a throwing onError never breaks the gate', async () => {
+  const audio = tone(2);
+  const r = await gateSpeech(audio, { enabled: true, detect: async () => { throw new Error('x'); }, level, onError: () => { throw new Error('log failed'); } });
+  assert.equal(r.audio, audio);
+});
+
+test('reportOncePerMessage reports each distinct message once, message text only', () => {
+  const out = [];
+  const onError = reportOncePerMessage((m) => out.push(m));
+  onError(new Error('model missing'));
+  onError(new Error('model missing'));
+  onError(new Error('onnx failed'));
+  onError('plain string');
+  assert.deepEqual(out, ['model missing', 'onnx failed', 'plain string']);
 });

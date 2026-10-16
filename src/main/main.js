@@ -30,7 +30,7 @@ const { LastPaste } = require('./last-paste');
 const { formatShortcut, sortKeys, VK } = require('./keys');
 const { cleanTranscript, cleanUtterance, countWords, toSrt } = require('./text-cleanup');
 const { speechLevel, splitAtPauses, SAMPLE_RATE } = require('./audio-utils');
-const { gateSpeech, SILENCE_LEVEL } = require('./speech-gate');
+const { gateSpeech, reportOncePerMessage, SILENCE_LEVEL } = require('./speech-gate');
 const { pasteText, pressKey, getSelectedText } = require('./paster');
 const { PROTOCOL, parseCommandLine } = require('./remote');
 const { resolveStyle } = require('./app-styles');
@@ -506,6 +506,8 @@ async function transcribe(audio, { translate = false } = {}) {
   return { ...result, text, language: source, translatedTo: target, original, before, after };
 }
 
+const reportDetectorError = reportOncePerMessage((message) => log.warn(`Speech detector unavailable: ${message}`));
+
 async function finishDictation(reason) {
   const t0 = Date.now();
   sendOverlayState({ state: 'processing', mode: controller.command ? 'command' : 'dictate' });
@@ -517,7 +519,7 @@ async function finishDictation(reason) {
     flash('No speech detected');
     return;
   }
-  const gate = await gateSpeech(audio, { enabled: settings.get().silenceDetection, detect: (a) => asr.detectSpeech(a), level: speechLevel });
+  const gate = await gateSpeech(audio, { enabled: settings.get().silenceDetection, detect: (a) => asr.detectSpeech(a), level: speechLevel, onError: reportDetectorError });
   if (gate.skip) {
     log.info(`Speech gate: ${gate.skip}`);
     if (gate.skip === 'no-sound') flash('No sound. Is your mic muted?', 'error');
