@@ -41,3 +41,10 @@ test('very long text is left to Ctrl+Z', () => {
   p.remember('x'.repeat(MAX_UNDO_CHARS + 1), 'Code.exe');
   assert.match(p.undoPlan('Code.exe').error, /Too long/);
 });
+
+test('a dictation left on the clipboard (copy-only) leaves nothing to undo', () => {
+  const p = new LastPaste();
+  p.remember('earlier ', 'Code.exe');
+  p.forget();
+  assert.deepEqual(p.undoPlan('Code.exe'), { error: 'Nothing to undo' });
+});

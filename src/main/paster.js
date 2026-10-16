@@ -3,10 +3,13 @@
 //   1. wait until the user lets go of modifier keys (else Ctrl+V becomes
 //      Ctrl+Win+V etc.); if they stay down, synthesise key-ups
 //   2. snapshot the clipboard
-//   3. put the transcript on the clipboard, send Ctrl+V with SendInput
+//   3. put the transcript on the clipboard (out of clipboard history), send
+//      Ctrl+V with SendInput
 //   4. after a short delay restore the previous clipboard - unless something
 //      else changed it in the meantime ("Clipboard changed since paste,
 //      skipping restoration")
+// A window run as administrator ignores our Ctrl+V: there the text is only
+// left on the clipboard and the caller tells the user to paste it.
 //
 // Electron 44 replaced the old synchronous clipboard API (availableFormats,
 // readHTML, readImage...) with an async W3C-style one: read() returns
@@ -16,6 +19,7 @@
 const { clipboard, ClipboardItem } = require('electron');
 const win32 = require('./win32');
 const log = require('./logger');
+const { planPaste, clipboardFormatsFor } = require('./paste-plan');
 
 const MODIFIER_VKS = [0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0x5b, 0x5c];
 const RESTORE_DELAY_MS = 600;
@@ -99,17 +103,64 @@ async function pressKey(vk, count = 1) {
   return ok;
 }
 
+let ourLevel; // our integrity level, read once (undefined = not read yet, null = unknown)
+const loggedOnce = new Set();
+const logOnce = (key, message) => {
+  if (loggedOnce.has(key)) return;
+  loggedOnce.add(key);
+  log.warn(message);
+};
+
+/** Paste or copy-only, from our integrity level and the focused window's (paste-plan.js). */
+function planForForeground() {
+  if (ourLevel === undefined) {
+    const own = win32.integrityLevelInfo();
+    ourLevel = own.level;
+    if (own.failure) logOnce('own', `Could not read our own integrity level (${own.failure}), pasting as usual`);
+  }
+  const pid = win32.foregroundPid();
+  let targetLevel = null;
+  if (pid) {
+    const target = win32.integrityLevelInfo(pid);
+    targetLevel = target.level;
+    if (target.failure) logOnce('target', `Could not read the focused app's integrity level (${target.failure}), pasting as usual`);
+  }
+  return planPaste({ ourLevel, targetLevel });
+}
+
+/** Our text on the clipboard, kept out of clipboard history and the cloud clipboard where Electron allows it. */
+async function writeExcluded(text) {
+  try {
+    await clipboard.write([new ClipboardItem(clipboardFormatsFor(text))]);
+  } catch (err) {
+    logOnce('exclude', `Could not keep dictations out of clipboard history (${err.message}), writing plain text`);
+    await clipboard.writeText(text);
+  }
+}
+
 /**
+ * Put `text` into the focused app. A window run as administrator (higher integrity level than ours) ignores
+ * our Ctrl+V, so there the text is only left on the clipboard (`copy-only`) and never restored.
  * @param {string} text
  * @param {{restoreClipboard?: boolean}} opts
+ * @returns {Promise<{pasted: boolean, mode: 'paste'|'copy-only'}>}
  */
 async function pasteText(text, { restoreClipboard = true } = {}) {
+  const plan = planForForeground();
+  if (plan.mode === 'copy-only') {
+    takePending(); // a queued restore must not replace the text we leave on the clipboard
+    await writeExcluded(text);
+    log.info('Focused app runs as administrator: text left on the clipboard, no Ctrl+V sent');
+    return { pasted: false, mode: plan.mode };
+  }
+  restoreClipboard = restoreClipboard && plan.restoreClipboard;
+
   await ensureModifiersUp();
 
   const queued = takePending();
   const snap = queued ? queued.snap : restoreClipboard ? await snapshot() : undefined;
 
-  await clipboard.writeText(text);
+  await writeExcluded(text);
   await sleep(25);
   const ok = win32.sendPaste();
   if (!ok) log.warn('SendInput for Ctrl+V was blocked (is the target app running as administrator?)');
@@ -126,7 +177,7 @@ async function pasteText(text, { restoreClipboard = true } = {}) {
     }, RESTORE_DELAY_MS);
     pending = { timer, snap };
   }
-  return ok;
+  return { pasted: ok, mode: plan.mode };
 }
 
 /**

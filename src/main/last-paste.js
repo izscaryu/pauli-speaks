@@ -17,6 +17,11 @@ class LastPaste {
     this.last = { text, app: app || null, sent: false };
   }
 
+  /** The latest dictation wasn't typed (left on the clipboard instead): nothing to take back. */
+  forget() {
+    this.last = null;
+  }
+
   /** Enter was pressed after it (a chat message went out): it can't be undone any more. */
   markSent() {
     if (this.last) this.last.sent = true;

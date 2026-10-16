@@ -671,12 +671,17 @@ function engineLabel() {
   return modelState.device === 'dml' ? `${name} · GPU` : name;
 }
 
-/** Paste into the focused app and remember it, so "undo last" can take it back. */
+/** Paste into the focused app and remember it, so "undo last" can take it back. Administrator windows get copy-only. */
 async function paste(text) {
-  const ok = await pasteText(text, { restoreClipboard: settings.get().restoreClipboard });
+  const result = await pasteText(text, { restoreClipboard: settings.get().restoreClipboard });
+  if (result.mode === 'copy-only') {
+    lastPaste.forget(); // nothing was typed, so nothing to undo
+    flash('Copied. Press Ctrl+V (this app runs as administrator)', 'info', 4500);
+    return result;
+  }
   const target = win32.foregroundApp();
   lastPaste.remember(text, target && target.exe);
-  return ok;
+  return result;
 }
 
 async function pasteLast() {

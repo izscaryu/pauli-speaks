@@ -1,7 +1,8 @@
 'use strict';
-// Thin user32 / kernel32 bindings, called in-process through koffi (FFI):
+// Thin user32 / kernel32 / advapi32 bindings, called in-process through koffi (FFI):
 //   * SendInput            - Ctrl+V paste and the Start-menu masking key tap
 //   * GetAsyncKeyState     - physical key state, used to evict stale keys
+//   * process tokens       - integrity level, to spot windows run as administrator
 
 const koffi = require('koffi');
 
@@ -28,7 +29,20 @@ const OpenProcess = kernel32.func('__stdcall', 'OpenProcess', 'void *', ['uint32
 const CloseHandle = kernel32.func('__stdcall', 'CloseHandle', 'bool', ['void *']);
 const QueryFullProcessImageNameW = kernel32.func('__stdcall', 'QueryFullProcessImageNameW', 'bool',
   ['void *', 'uint32', koffi.out(koffi.pointer('char16_t')), koffi.inout(koffi.pointer('uint32'))]);
+const GetLastError = kernel32.func('__stdcall', 'GetLastError', 'uint32', []);
 const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+// Integrity level of a process (medium for normal apps, high for "Run as
+// administrator"): Windows drops our synthetic Ctrl+V into a higher one.
+const advapi32 = koffi.load('advapi32.dll');
+const OpenProcessToken = advapi32.func('__stdcall', 'OpenProcessToken', 'bool', ['void *', 'uint32', koffi.out(koffi.pointer('void *'))]);
+const GetTokenInformation = advapi32.func('__stdcall', 'GetTokenInformation', 'bool',
+  ['void *', 'int', 'void *', 'uint32', koffi.out(koffi.pointer('uint32'))]);
+const GetSidSubAuthorityCount = advapi32.func('__stdcall', 'GetSidSubAuthorityCount', 'void *', ['void *']);
+const GetSidSubAuthority = advapi32.func('__stdcall', 'GetSidSubAuthority', 'void *', ['void *', 'uint32']);
+const TOKEN_QUERY = 0x0008;
+const TokenIntegrityLevel = 25;
+const LABEL_BUFFER_BYTES = 128; // TOKEN_MANDATORY_LABEL (16) + its one-sub-authority SID (12) on x64, with room to spare
 
 const INPUT_KEYBOARD = 1;
 const KEYEVENTF_EXTENDEDKEY = 0x1;
@@ -71,14 +85,23 @@ function sendCopy() {
   ]);
 }
 
-/** Executable of the focused window, e.g. { exe: 'Code.exe', pid: 1234 } */
-function foregroundApp() {
+/** Process id of the focused window, null if there is none */
+function foregroundPid() {
   try {
     const hwnd = GetForegroundWindow();
     if (!hwnd) return null;
     const pidOut = [0];
     GetWindowThreadProcessId(hwnd, pidOut);
-    const pid = pidOut[0];
+    return pidOut[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Executable of the focused window, e.g. { exe: 'Code.exe', pid: 1234 } */
+function foregroundApp() {
+  try {
+    const pid = foregroundPid();
     if (!pid) return null;
     const handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
     if (!handle) return null;
@@ -96,6 +119,44 @@ function foregroundApp() {
   }
 }
 
+/**
+ * Mandatory integrity level of a process: 0x2000 medium, 0x3000 high (elevated), 0x4000 system.
+ * @param {number} [pid] default: our own process
+ * @returns {{level: number|null, failure: string|null}} level null when it can't be read; failure says which call failed
+ */
+function integrityLevelInfo(pid = process.pid) {
+  let handle = null;
+  let token = null;
+  let label = null;
+  const fail = (call) => ({ level: null, failure: `${call} failed (error ${GetLastError()})` });
+  try {
+    handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+    if (!handle) return fail('OpenProcess');
+    const tokenOut = [null];
+    if (!OpenProcessToken(handle, TOKEN_QUERY, tokenOut) || !tokenOut[0]) return fail('OpenProcessToken');
+    token = tokenOut[0];
+    label = koffi.alloc('uint8', LABEL_BUFFER_BYTES);
+    const needed = [0];
+    if (!GetTokenInformation(token, TokenIntegrityLevel, label, LABEL_BUFFER_BYTES, needed)) return fail('GetTokenInformation');
+    const sid = koffi.decode(label, 'void *'); // TOKEN_MANDATORY_LABEL.Label.Sid
+    if (!sid) return { level: null, failure: 'no integrity label' };
+    const count = koffi.decode(GetSidSubAuthorityCount(sid), 'uint8');
+    if (!count) return { level: null, failure: 'integrity label without sub-authority' };
+    return { level: koffi.decode(GetSidSubAuthority(sid, count - 1), 'uint32'), failure: null };
+  } catch (err) {
+    return { level: null, failure: err.message };
+  } finally {
+    if (label) koffi.free(label);
+    if (token) CloseHandle(token);
+    if (handle) CloseHandle(handle);
+  }
+}
+
+/** @param {number} [pid] default: our own process @returns {number|null} */
+function integrityLevel(pid) {
+  return integrityLevelInfo(pid).level;
+}
+
 function sendMaskKey() {
   return sendKeys([{ vk: VK_MASK }, { vk: VK_MASK, up: true }]);
 }
@@ -109,5 +170,6 @@ function releaseModifiers(vks) {
 }
 
 module.exports = {
-  sendKeys, isKeyDown, sendPaste, sendCopy, sendMaskKey, releaseModifiers, foregroundApp, PAULI_MARKER,
+  sendKeys, isKeyDown, sendPaste, sendCopy, sendMaskKey, releaseModifiers, foregroundApp, foregroundPid,
+  integrityLevel, integrityLevelInfo, PAULI_MARKER,
 };
