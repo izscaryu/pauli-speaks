@@ -4,11 +4,21 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createRecoveryFile } = require('../src/main/recovery-file');
+const { createRecoveryFile: create } = require('../src/main/recovery-file');
+
+const opened = [];
+const createRecoveryFile = (dir) => {
+  const file = create(dir);
+  opened.push(file);
+  return file;
+};
 
 function tempDir(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pauli-recovery-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  t.after(() => {
+    for (const f of opened.splice(0)) f.finish(); // close any open recording before removing the folder
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
   return path.join(dir, 'recovery'); // not created yet: begin() makes it
 }
 
@@ -109,12 +119,56 @@ test('finish() removes both files, and later appends do not bring them back', (t
 
 test('discard() deletes a recording left behind by an earlier run', (t) => {
   const dir = tempDir(t);
-  const earlier = createRecoveryFile(dir);
-  earlier.begin(META);
-  earlier.append(chunk(10, 0));
-  const now = createRecoveryFile(dir); // the app started again after a crash
+  // what a crashed run leaves behind
+  fs.mkdirSync(dir, { recursive: true });
+  const left = chunk(10, 0);
+  fs.writeFileSync(path.join(dir, 'current.pcm'), Buffer.from(left.buffer));
+  fs.writeFileSync(path.join(dir, 'current.json'), JSON.stringify(META));
+  const now = createRecoveryFile(dir); // the app started again
   assert.equal(now.read().audio.length, 10);
   now.discard();
   assert.equal(now.read(), null);
   assert.equal(fs.existsSync(path.join(dir, 'current.json')), false);
+});
+
+test('one file handle from begin() to finish(), not an open and close per append', (t) => {
+  const dir = tempDir(t);
+  const opens = t.mock.method(fs, 'openSync');
+  const appends = t.mock.method(fs, 'appendFileSync');
+  const closes = t.mock.method(fs, 'closeSync');
+  const file = createRecoveryFile(dir);
+  file.begin(META);
+  for (let i = 0; i < 5; i++) file.append(chunk(640, i * 640));
+  // writeFileSync / readFileSync open and close files of their own: count only the .pcm handle
+  const pcmOpens = opens.mock.calls.filter((c) => String(c.arguments[0]).endsWith('current.pcm'));
+  assert.equal(pcmOpens.length, 1);
+  const pcmCloses = () => closes.mock.calls.filter((c) => c.arguments[0] === pcmOpens[0].result).length;
+  assert.equal(appends.mock.callCount(), 0);
+  assert.equal(pcmCloses(), 0);
+  assert.equal(file.read().audio.length, 3200, 'readable while it is still open');
+  file.finish();
+  assert.equal(pcmCloses(), 1);
+  assert.equal(fs.existsSync(path.join(dir, 'current.pcm')), false);
+});
+
+test('begin() again closes the previous handle; finish() closes the last one', (t) => {
+  const dir = tempDir(t);
+  const open = new Set(); // .pcm handles that are open right now
+  const realOpen = fs.openSync;
+  const realClose = fs.closeSync;
+  t.mock.method(fs, 'openSync', (...args) => {
+    const fd = realOpen.apply(fs, args);
+    if (String(args[0]).endsWith('current.pcm')) open.add(fd);
+    return fd;
+  });
+  t.mock.method(fs, 'closeSync', (fd) => {
+    open.delete(fd);
+    return realClose.call(fs, fd);
+  });
+  const file = createRecoveryFile(dir);
+  file.begin(META);
+  file.begin(META);
+  assert.equal(open.size, 1);
+  file.finish();
+  assert.equal(open.size, 0);
 });

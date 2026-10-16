@@ -317,6 +317,7 @@ function startRecording() {
     onSilence: autoStopAfterSilence,
     onVadError: (err) => { reportDetectorError(err); send(overlay, 'recorder:vad-fallback'); },
     onRecoveryError: (err) => log.warn(`Crash recovery file: ${err.message}`),
+    onError: reportTapError,
   });
   send(overlay, 'recorder:start', { deviceId: s.microphoneId, sounds: s.sounds, autoStopSilence: s.autoStopSilence, vadAutoStop: listening.vadAutoStop });
   listening.start();
@@ -538,6 +539,7 @@ async function transcribe(audio, { translate = false } = {}) {
 }
 
 const reportDetectorError = reportOncePerMessage((message) => log.warn(`Speech detector unavailable: ${message}`));
+const reportTapError = reportOncePerMessage((message) => log.warn(`Recording tap: ${message}`));
 
 async function finishDictation(reason) {
   try {

@@ -20,11 +20,12 @@ let lastVadSession = 0;
  * @param {() => void} [o.onSilence]  N seconds without speech: finish the dictation
  * @param {(err: Error) => void} [o.onVadError]  the VAD failed; it is off for the rest of this dictation
  * @param {(err: Error) => void} [o.onRecoveryError]  the crash file failed; it is off for the rest of this dictation
+ * @param {(err: Error) => void} [o.onError]  a pull from the recorder failed (the tap keeps going)
  */
 function createListeningSession({
   settings, recovery = null, mode = 'dictate', requestTail, vadStream = null,
   isHandsFree = () => false, onSilence = () => {}, onVadError = () => {}, onRecoveryError = () => {},
-  intervalMs = 500, now = Date.now,
+  onError = () => {}, intervalMs = 500, now = Date.now,
 }) {
   const vadAutoStop = Number(settings.autoStopSilence) > 0 && !!settings.silenceDetection;
   const silenceMs = Number(settings.autoStopSilence) * 1000;
@@ -52,26 +53,36 @@ function createListeningSession({
     }
   }
 
-  async function onSamples(samples) {
-    if (ended) return;
-    write(samples);
-    if (!useVad || stopping) return;
-    let r;
-    try {
-      r = await vadStream(vadSession, samples);
-    } catch (err) {
-      useVad = false;
-      if (!ended) onVadError(err); // after end() a fallback would reach the next dictation's overlay
-      return;
-    }
+  function onVadResult(r) {
     if (stopping || silenceSent || !isHandsFree()) return;
     if (r && r.heardSpeech && r.silentMsSinceSpeech >= silenceMs) {
       silenceSent = true;
-      onSilence(); // not awaited: stopping the dictation stops this tap
+      onSilence();
     }
   }
 
-  const tap = (writing || useVad) ? createRecordingTap({ requestTail, onSamples, intervalMs }) : null;
+  function onVadFailure(err) {
+    if (!useVad) return; // already reported for this dictation
+    useVad = false;
+    if (!ended) onVadError(err); // after end() a fallback would reach the next dictation's overlay
+  }
+
+  function onSamples(samples) {
+    if (ended) return;
+    write(samples);
+    if (!useVad || stopping) return;
+    // Not awaited: a slow or stuck detector must never hold up the tap, and so the end of the
+    // dictation. The worker answers VAD pushes in order; a late answer after stop() is ignored.
+    let pushed;
+    try {
+      pushed = Promise.resolve(vadStream(vadSession, samples));
+    } catch (err) {
+      pushed = Promise.reject(err);
+    }
+    pushed.then(onVadResult, onVadFailure);
+  }
+
+  const tap = (writing || useVad) ? createRecordingTap({ requestTail, onSamples, onError, intervalMs }) : null;
 
   return {
     vadAutoStop,

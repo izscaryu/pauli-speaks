@@ -15,10 +15,17 @@ const BYTES_PER_SAMPLE = 4;
 function createRecoveryFile(dir) {
   const pcm = path.join(dir, 'current.pcm');
   const json = path.join(dir, 'current.json');
-  let recording = false;
+  let fd = null; // open from begin() to finish(): one handle for the whole recording
+
+  function close() {
+    if (fd === null) return;
+    const open = fd;
+    fd = null;
+    fs.closeSync(open);
+  }
 
   function remove() {
-    recording = false;
+    close();
     fs.rmSync(pcm, { force: true });
     fs.rmSync(json, { force: true });
   }
@@ -26,16 +33,16 @@ function createRecoveryFile(dir) {
   return {
     /** Starts a new recording (an older one is replaced). @param {{startedAt: number, mode: string}} meta */
     begin(meta) {
+      close();
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(pcm, Buffer.alloc(0));
       fs.writeFileSync(json, JSON.stringify(meta));
-      recording = true;
+      fd = fs.openSync(pcm, 'w');
     },
 
     /** Adds samples to the recording begun in this run; ignored when there is none. @param {Float32Array} samples */
     append(samples) {
-      if (!recording || !samples || !samples.length) return;
-      fs.appendFileSync(pcm, Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength));
+      if (fd === null || !samples || !samples.length) return;
+      fs.writeSync(fd, Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength));
     },
 
     /** The dictation ended (pasted, cancelled, nothing said): the recording is deleted. */

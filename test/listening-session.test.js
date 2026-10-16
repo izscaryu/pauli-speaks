@@ -182,6 +182,57 @@ test('a crash file that cannot be started is reported and never written or finis
   assert.deepEqual(r.calls, []);
 });
 
+test('a speech detector that never answers cannot hold up the end of a dictation', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval'] });
+  let length = 0;
+  const calls = [];
+  const vadCalls = [];
+  const session = createListeningSession({
+    settings: ON,
+    recovery: { begin: () => calls.push('begin'), append: (s) => calls.push(`append ${s.length}`), finish: () => calls.push('finish') },
+    intervalMs: 1000,
+    requestTail: async (from) => new Float32Array(Math.max(0, length - from)),
+    vadStream: () => { vadCalls.push(1); return new Promise(() => {}); }, // a wedged worker
+    isHandsFree: () => true,
+  });
+  session.start();
+  length += 16000;
+  t.mock.timers.tick(1000);
+  await settle();
+  length += 16000;
+  t.mock.timers.tick(1000);
+  await settle();
+  assert.equal(vadCalls.length, 2, 'the tap kept pulling while the first VAD push hung');
+  length += 4000;
+  let timer;
+  const result = await Promise.race([
+    session.stop().then(() => 'stopped'),
+    new Promise((r) => { timer = setTimeout(() => r('stuck'), 500); }),
+  ]);
+  clearTimeout(timer);
+  assert.equal(result, 'stopped');
+  session.complete(new Float32Array(37000));
+  session.end();
+  assert.deepEqual(calls, ['begin', 'append 16000', 'append 16000', 'append 4000', 'append 1000', 'finish']);
+});
+
+test('the tap reports its own failures through onError', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval'] });
+  const errors = [];
+  const session = createListeningSession({
+    settings: { ...ON, autoStopSilence: 0 },
+    recovery: { begin() {}, append() {}, finish() {} },
+    intervalMs: 1000,
+    requestTail: async () => { throw new Error('overlay gone'); },
+    onError: (err) => errors.push(err.message),
+  });
+  session.start();
+  t.mock.timers.tick(1000);
+  await settle();
+  await session.stop();
+  assert.deepEqual(errors, ['overlay gone', 'overlay gone']);
+});
+
 test('end() without stop() (cancel): the file is finished at once and late chunks are ignored', async (t) => {
   const r = rig(t);
   r.session.start();
