@@ -139,6 +139,7 @@ let chunks = [];
 let active = false;
 let session = 0;
 let autoStop = 0;
+let vadAutoStop = false; // main's voice-activity detector ends the dictation; the loudness check below only watches
 let heardSpeech = false;
 let silentFor = 0;
 let silenceSent = false;
@@ -182,7 +183,11 @@ function micErrorMessage(err) {
   return `Microphone error: ${err && err.message ? err.message : err}`;
 }
 
-/** Auto-stop for hands-free mode: after speech was heard, N seconds of silence ends the dictation. */
+/**
+ * Auto-stop for hands-free mode: after speech was heard, N seconds of silence ends the dictation.
+ * While main's voice-activity detector does this (vadAutoStop), the loudness is still tracked,
+ * so falling back to it mid-dictation starts from what was already heard.
+ */
 function trackSilence(rms) {
   if (!autoStop || silenceSent || !ui.locked) return;
   if (rms > SPEECH_RMS) {
@@ -190,18 +195,19 @@ function trackSilence(rms) {
     silentFor = 0;
   } else if (rms < SILENCE_RMS && heardSpeech) {
     silentFor += CHUNK_SECONDS;
-    if (silentFor >= autoStop) {
+    if (silentFor >= autoStop && !vadAutoStop) {
       silenceSent = true;
       window.pauli.sendSilence();
     }
   }
 }
 
-window.pauli.onRecorderStart(async ({ deviceId, sounds: playSounds, autoStopSilence }) => {
+window.pauli.onRecorderStart(async ({ deviceId, sounds: playSounds, autoStopSilence, vadAutoStop: byVad }) => {
   const my = ++session;
   active = true;
   chunks = [];
   autoStop = Number(autoStopSilence) || 0;
+  vadAutoStop = !!byVad;
   heardSpeech = false;
   silentFor = 0;
   silenceSent = false;
@@ -249,6 +255,28 @@ window.pauli.onRecorderStart(async ({ deviceId, sounds: playSounds, autoStopSile
 
 window.pauli.onRecorderSnapshot(({ id }) => {
   window.pauli.sendAudio(id, concat(chunks));
+});
+
+/** The recording from sample `from` on (main's recording tap asks for only what it hasn't had yet). */
+function samplesFrom(from) {
+  let skip = Math.max(0, Math.floor(Number(from) || 0));
+  const rest = [];
+  for (const c of chunks) {
+    if (skip >= c.length) {
+      skip -= c.length;
+      continue;
+    }
+    rest.push(skip ? c.subarray(skip) : c);
+    skip = 0;
+  }
+  return concat(rest);
+}
+
+window.pauli.onRecorderTail(({ id, from }) => window.pauli.sendAudio(id, samplesFrom(from)));
+
+// main's voice-activity detector is unavailable: the loudness auto-stop takes over for this dictation
+window.pauli.onRecorderVadFallback(() => {
+  vadAutoStop = false;
 });
 
 window.pauli.onRecorderStop(async ({ id, discard, sounds: playSounds }) => {

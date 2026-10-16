@@ -3,6 +3,8 @@
 // block the main process (which owns the keyboard hook and windows).
 // Jobs run one at a time: ONNX sessions are not shared safely between
 // concurrent generate() calls, and live previews must not race the final pass.
+// The voice-activity detector has its own ONNX session and its own queue, so the
+// hands-free auto-stop never waits behind a transcription.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -18,7 +20,8 @@ let engine = null;
 let translator = null;
 let vad = null;
 let vadSession = null; // { id, stream } for the live stream; a new id starts a fresh one
-let queue = Promise.resolve();
+let queue = Promise.resolve(); // Whisper and the translator
+let vadQueue = Promise.resolve(); // vad and vad-stream, in order among themselves
 
 /** Created on first use. Throws (failing only that job) if the model can't be read or loaded. */
 function getVad() {
@@ -31,19 +34,23 @@ function vadStream(session, samples) {
   return vadSession.stream.push(samples);
 }
 
+const isVadJob = (type) => type === 'vad' || type === 'vad-stream';
+
 async function handle(data) {
   const { id, type } = data;
   const onProgress = (progress) => port.postMessage({ type: 'progress', progress });
   try {
-    engine ??= createLocalWhisper({ cacheDir: data.cacheDir, onProgress });
-    translator ??= createTranslator({ cacheDir: data.cacheDir, onProgress });
+    if (!isVadJob(type)) {
+      engine ??= createLocalWhisper({ cacheDir: data.cacheDir, onProgress });
+      translator ??= createTranslator({ cacheDir: data.cacheDir, onProgress });
+    }
     let result;
-    if (type === 'load') result = await engine.load(data.model, data.acceleration);
+    if (type === 'vad') result = await getVad().detect(data.audio);
+    else if (type === 'vad-stream') result = await vadStream(data.session, data.samples);
+    else if (type === 'load') result = await engine.load(data.model, data.acceleration);
     else if (type === 'transcribe') result = await engine.transcribe(data.audio, data.opts);
     else if (type === 'load-translator') result = await translator.load();
     else if (type === 'translate') result = await translator.translate(data.text, data.source, data.target);
-    else if (type === 'vad') result = await getVad().detect(data.audio);
-    else if (type === 'vad-stream') result = await vadStream(data.session, data.samples);
     port.postMessage({ id, ok: true, result });
   } catch (err) {
     port.postMessage({ id, ok: false, error: String((err && err.message) || err) });
@@ -51,5 +58,6 @@ async function handle(data) {
 }
 
 port.on('message', ({ data }) => {
-  queue = queue.then(() => handle(data));
+  if (isVadJob(data.type)) vadQueue = vadQueue.then(() => handle(data));
+  else queue = queue.then(() => handle(data));
 });

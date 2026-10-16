@@ -62,6 +62,8 @@ contextBridge.exposeInMainWorld('pauli', {
   onRecorderStart: on('recorder:start'),
   onRecorderStop: on('recorder:stop'),
   onRecorderSnapshot: on('recorder:snapshot'),
+  onRecorderTail: on('recorder:tail'),
+  onRecorderVadFallback: on('recorder:vad-fallback'),
   sendAudio: (id, audio) => ipcRenderer.send('recorder:audio', { id, audio }),
   sendSilence: () => ipcRenderer.send('recorder:silence'),
   sendRecorderError: (message) => ipcRenderer.send('recorder:error', message),

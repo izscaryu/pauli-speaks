@@ -31,6 +31,8 @@ const { formatShortcut, sortKeys, VK } = require('./keys');
 const { cleanTranscript, cleanUtterance, countWords, toSrt } = require('./text-cleanup');
 const { speechLevel, splitAtPauses, SAMPLE_RATE } = require('./audio-utils');
 const { gateSpeech, reportOncePerMessage, SILENCE_LEVEL } = require('./speech-gate');
+const { createRecoveryFile } = require('./recovery-file');
+const { createListeningSession } = require('./listening-session');
 const { pasteText, pressKey, getSelectedText } = require('./paster');
 const { PROTOCOL, parseCommandLine } = require('./remote');
 const { resolveStyle } = require('./app-styles');
@@ -81,6 +83,8 @@ let trayHintShown = false;
 let sessionApp = null;
 let previewTimer = null;
 let previewBusy = false;
+let recovery = null; // crash-recovery file of the dictation in progress
+let listening = null; // tap + crash file + live VAD of the dictation in progress
 let reading = false;
 let fileBusy = false;
 let updater = null;
@@ -305,11 +309,33 @@ function startRecording() {
   showOverlay();
   sendOverlayState(listeningState());
   const s = settings.get();
-  send(overlay, 'recorder:start', { deviceId: s.microphoneId, sounds: s.sounds, autoStopSilence: s.autoStopSilence });
+  listening = createListeningSession({
+    settings: s, recovery, mode: listeningState().mode,
+    requestTail: (from) => requestAudio('tail', { from }),
+    vadStream: (id, samples) => asr.vadStream(id, samples),
+    isHandsFree: () => controller.locked,
+    onSilence: autoStopAfterSilence,
+    onVadError: (err) => { reportDetectorError(err); send(overlay, 'recorder:vad-fallback'); },
+    onRecoveryError: (err) => log.warn(`Crash recovery file: ${err.message}`),
+  });
+  send(overlay, 'recorder:start', { deviceId: s.microphoneId, sounds: s.sounds, autoStopSilence: s.autoStopSilence, vadAutoStop: listening.vadAutoStop });
+  listening.start();
   startPreview();
 }
 
-/** Ask the overlay recorder for audio: the final take ('stop') or what's been said so far ('snapshot'). */
+function endListening() {
+  listening?.end();
+  listening = null;
+}
+
+function autoStopAfterSilence() {
+  if (controller.isListening && controller.locked) {
+    log.info('Auto-stop after silence');
+    controller.stop('silence');
+  }
+}
+
+/** Ask the overlay recorder for audio: the final take ('stop'), what's been said so far ('snapshot') or from sample `extra.from` on ('tail'). */
 function requestAudio(kind, extra = {}) {
   const id = nextAudioId++;
   return new Promise((resolve) => {
@@ -322,18 +348,23 @@ function requestAudio(kind, extra = {}) {
       clearTimeout(timer);
       resolve(audio);
     });
-    send(overlay, kind === 'stop' ? 'recorder:stop' : 'recorder:snapshot', { id, ...extra });
+    send(overlay, `recorder:${kind}`, { id, ...extra });
   });
 }
 
-function stopRecording(discard) {
+async function stopRecording(discard) {
   stopPreview();
   const sounds = settings.get().sounds;
   if (discard) {
+    endListening();
     send(overlay, 'recorder:stop', { id: 0, discard: true, sounds });
-    return Promise.resolve(new Float32Array(0));
+    return new Float32Array(0);
   }
-  return requestAudio('stop', { discard: false, sounds });
+  const tapStopped = listening?.stop(); // its last pull runs while the recorder flushes
+  const audio = await requestAudio('stop', { discard: false, sounds });
+  await tapStopped;
+  listening?.complete(audio);
+  return audio;
 }
 
 // ----- live preview (opt-in, local engine): transcribe what's been said so far every 1.5 s
@@ -509,6 +540,14 @@ async function transcribe(audio, { translate = false } = {}) {
 const reportDetectorError = reportOncePerMessage((message) => log.warn(`Speech detector unavailable: ${message}`));
 
 async function finishDictation(reason) {
+  try {
+    await transcribeDictation(reason);
+  } finally {
+    endListening(); // pasted, nothing said, cancelled or failed: the crash file goes
+  }
+}
+
+async function transcribeDictation(reason) {
   const t0 = Date.now();
   sendOverlayState({ state: 'processing', mode: controller.command ? 'command' : 'dictate' });
   const audio = await stopRecording(false);
@@ -532,6 +571,7 @@ async function finishDictation(reason) {
     if (controller.command) await runCommand(gate.audio, seconds);
     else await runDictation(gate.audio, seconds, t0);
   } catch (err) {
+    // Task 7: keep the crash file here (Retry needs the audio) instead of finishing it with the rest
     log.error('Dictation failed', err);
     flash(err.message.length > 80 ? 'Something went wrong - see Pauli Speaks for details' : err.message, 'error', 4500);
     broadcast('app:error', { message: err.message });
@@ -996,12 +1036,7 @@ function registerIpc() {
     audioRequests.delete(id);
     resolve(audio instanceof Float32Array ? audio : new Float32Array(audio || []));
   });
-  ipcMain.on('recorder:silence', () => {
-    if (controller.isListening && controller.locked) {
-      log.info('Auto-stop after silence');
-      controller.stop('silence');
-    }
-  });
+  ipcMain.on('recorder:silence', autoStopAfterSilence);
   ipcMain.on('recorder:error', (_e, message) => {
     log.error(`Microphone error: ${message}`);
     if (controller.isListening) controller.dismiss('mic-error');
@@ -1050,6 +1085,7 @@ function init() {
     decrypt: (s) => (s.startsWith('plain:') ? s.slice(6) : safeStorage.decryptString(Buffer.from(s, 'base64'))),
   });
   history = new History(path.join(app.getPath('userData'), 'history.json'));
+  recovery = createRecoveryFile(path.join(app.getPath('userData'), 'recovery'));
   asr = new LocalAsr(modelsDir());
   asr.on('progress', (p) => {
     if (p.model === NLLB_MODEL) {

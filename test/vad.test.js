@@ -192,6 +192,50 @@ test('worker: vad and vad-stream messages, a new session id starts a fresh strea
   assert.equal(fresh.result.heardSpeech, false);
 });
 
+test('worker: VAD jobs have their own queue and do not wait behind a running transcription', async () => {
+  const whisper = require('../src/main/asr/whisper-local');
+  const real = whisper.createLocalWhisper;
+  let finishTranscribe = null;
+  const order = [];
+  whisper.createLocalWhisper = () => ({
+    transcribe: () => new Promise((resolve) => {
+      order.push('transcribe started');
+      finishTranscribe = () => resolve({ text: '' });
+    }),
+  });
+  let send;
+  try {
+    send = loadWorker();
+  } finally {
+    whisper.createLocalWhisper = real;
+  }
+  const transcribing = send({ type: 'transcribe', audio: new Float32Array(16000), opts: {} }).then((r) => {
+    order.push('transcribe done');
+    return r;
+  });
+  const realRead = fs.readFileSync;
+  fs.readFileSync = (file, ...rest) => {
+    if (String(file).endsWith('silero_vad.onnx')) throw new Error('ENOENT: no such file');
+    return realRead.call(fs, file, ...rest);
+  };
+  try {
+    let timer;
+    const vadReply = await Promise.race([
+      send({ type: 'vad-stream', session: 'q', samples: new Float32Array(512) }),
+      new Promise((resolve) => { timer = setTimeout(() => resolve({ timedOut: true }), 2000); }),
+    ]);
+    clearTimeout(timer);
+    assert.notEqual(vadReply.timedOut, true, 'the VAD job waited behind the transcription');
+    order.push('vad replied');
+    assert.equal(vadReply.ok, false); // the model is unreadable here; what matters is that it replied
+  } finally {
+    fs.readFileSync = realRead;
+  }
+  assert.deepEqual(order, ['transcribe started', 'vad replied']);
+  finishTranscribe();
+  assert.equal((await transcribing).ok, true);
+});
+
 test('worker: a VAD model that cannot be read fails that job, and the worker keeps working', async () => {
   const send = loadWorker();
   const realRead = fs.readFileSync;

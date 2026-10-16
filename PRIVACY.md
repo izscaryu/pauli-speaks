@@ -6,8 +6,9 @@ the app says so next to that option.
 
 ## What stays on your PC
 
-- **Audio.** The microphone is recorded only while you dictate. The recording is kept in memory
-  until it has been turned into text, and is never saved to disk.
+- **Audio.** The microphone is recorded only while you dictate. So that a crash doesn't lose what
+  you said, the recording is also written to the `recovery\` folder while you dictate, and deleted
+  as soon as the text is pasted or the dictation is cancelled.
 - **Transcripts.** Your last 500 dictations are kept in History so you can copy or paste them
   again. Clear them any time with *Clear* on the Transcripts page.
 - **Your dictionary, snippets, voice commands and settings.**
@@ -53,6 +54,7 @@ next to its `.exe` instead; to delete everything, delete the `.exe` and that fol
 | `history.json` | Your last 500 transcripts |
 | `models\` | Downloaded speech and translation models (can be several GB) |
 | `logs\` | Log files |
+| `recovery\` | The recording of the dictation in progress (`current.pcm`, `current.json`), only until it is pasted or cancelled |
 
 To delete everything: quit Pauli Speaks (tray icon → *Quit Pauli Speaks*), uninstall it from
 Windows Settings → Apps, then delete the `%APPDATA%\Pauli Speaks` folder.
