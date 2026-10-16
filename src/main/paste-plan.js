@@ -31,4 +31,13 @@ function clipboardFormatsFor(text) {
   return formats;
 }
 
-module.exports = { planPaste, clipboardFormatsFor, EXCLUSION_FORMATS };
+/**
+ * Keys that follow a dictation (Enter after paste, "press enter"/"tab" voice commands) only make sense once
+ * the text was typed: after copy-only they could land in another window the user switched to.
+ * @param {{mode: 'paste'|'copy-only'}} pasteResult what pasteText returned
+ */
+function shouldRunFollowUps(pasteResult) {
+  return !pasteResult || pasteResult.mode !== 'copy-only';
+}
+
+module.exports = { planPaste, clipboardFormatsFor, shouldRunFollowUps, EXCLUSION_FORMATS };

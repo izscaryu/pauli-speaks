@@ -34,6 +34,7 @@ const { gateSpeech, reportOncePerMessage, SILENCE_LEVEL } = require('./speech-ga
 const { createRecoveryFile } = require('./recovery-file');
 const { createListeningSession } = require('./listening-session');
 const { pasteText, pressKey, getSelectedText } = require('./paster');
+const { shouldRunFollowUps } = require('./paste-plan');
 const { PROTOCOL, parseCommandLine } = require('./remote');
 const { resolveStyle } = require('./app-styles');
 const { buildCommandMessages, chatComplete } = require('./llm');
@@ -626,7 +627,7 @@ async function runDictation(audio, seconds, t0) {
     app: sessionApp ? sessionApp.exe : null,
     style,
   });
-  await paste(text);
+  if (!shouldRunFollowUps(await paste(text))) return; // enterAfterPaste is reset by the caller
   for (const c of after) await runVoiceAction(c, false);
   if (enterAfterPaste && !after.some((c) => c.arg === 'Enter')) await pressEnterNow();
 }
@@ -660,8 +661,7 @@ async function runCommand(audio, seconds) {
     app: sessionApp ? sessionApp.exe : null,
   });
   sendOverlayState({ state: 'idle' });
-  await paste(output);
-  if (enterAfterPaste) await pressEnterNow();
+  if (shouldRunFollowUps(await paste(output)) && enterAfterPaste) await pressEnterNow();
 }
 
 function engineLabel() {

@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-const { planPaste, clipboardFormatsFor } = require('../src/main/paste-plan');
+const { planPaste, clipboardFormatsFor, shouldRunFollowUps } = require('../src/main/paste-plan');
 
 const MEDIUM = 0x2000;
 const HIGH = 0x3000;
@@ -48,4 +48,10 @@ test('clipboardFormatsFor: the text plus the history/cloud exclusion formats as 
     assert.deepStrictEqual([...bytes], [0, 0, 0, 0], name);
   }
   assert.strictEqual(Object.keys(formats).length, 1 + names.length);
+});
+
+test('shouldRunFollowUps: no Enter or voice-command keys after a copy-only result', () => {
+  assert.strictEqual(shouldRunFollowUps({ pasted: false, mode: 'copy-only' }), false);
+  assert.strictEqual(shouldRunFollowUps({ pasted: true, mode: 'paste' }), true);
+  assert.strictEqual(shouldRunFollowUps({ pasted: false, mode: 'paste' }), true, 'a blocked SendInput behaves as before');
 });
