@@ -94,6 +94,16 @@ test('options override the defaults', () => {
   assert.deepEqual(segs2, [{ start: 10 * FRAME - 1600, end: 21 * FRAME + 1600 }]);
 });
 
+test('missing options fall back to the defaults', () => {
+  const p = probs(100, [[10, 30, 0.9]]);
+  const expected = segmentsFromProbabilities(p, {}, 100 * FRAME);
+  assert.equal(expected.length, 1);
+  const missing = { threshold: undefined, negThreshold: undefined, padBeforeMs: undefined, padAfterMs: undefined, mergeGapMs: undefined, minSpeechMs: undefined };
+  assert.deepEqual(segmentsFromProbabilities(p, missing, 100 * FRAME), expected);
+  assert.deepEqual(segmentsFromProbabilities(p, { threshold: undefined }, 100 * FRAME), expected);
+  assert.deepEqual(segmentsFromProbabilities(p, null, 100 * FRAME), expected);
+});
+
 test('joinSegments concatenates segments with 100 ms of zeros between them', () => {
   const audio = new Float32Array(10000).fill(0.5);
   const segs = [{ start: 100, end: 600 }, { start: 2000, end: 2300 }, { start: 5000, end: 5100 }];

@@ -25,7 +25,10 @@ const msToSamples = (ms) => Math.round((ms * SAMPLE_RATE) / 1000);
  * clamped to [0, totalSamples] (padding that makes neighbours touch merges them too).
  */
 function segmentsFromProbabilities(probs, options = {}, totalSamples) {
-  const o = { ...DEFAULTS, ...options };
+  const o = { ...DEFAULTS };
+  for (const key of Object.keys(DEFAULTS)) {
+    if (options && options[key] != null) o[key] = options[key]; // undefined or null means "use the default"
+  }
   const frames = probs ? probs.length : 0;
   const total = Number.isFinite(totalSamples) ? totalSamples : frames * FRAME;
   const clamp = (n) => Math.max(0, Math.min(total, n));
