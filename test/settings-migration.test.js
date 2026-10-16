@@ -120,7 +120,7 @@ const backupOf = (file, v) => path.join(path.dirname(file), `settings.v${v}.json
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 test('migrations form an unbroken chain up to the current version', () => {
-  assert.equal(SETTINGS_VERSION, 4);
+  assert.equal(SETTINGS_VERSION, 5);
   MIGRATIONS.forEach((m, i) => {
     assert.equal(m.from, i + 1);
     assert.equal(m.to, m.from + 1);
@@ -173,7 +173,7 @@ test('a v1 file with onboarded: false reaches v4 without a setup card', () => {
   const out = runMigrations({ onboarded: false }, MIGRATIONS, SETTINGS_VERSION);
   assert.equal(out.setupCard, false);
   assert.equal(out.onboarded, false);
-  assert.equal(out.settingsVersion, 4);
+  assert.equal(out.settingsVersion, SETTINGS_VERSION);
 });
 
 test('a new install is not onboarded and has no setup card', () => {
@@ -200,7 +200,7 @@ test('a v2 file is backed up as settings.v2.json and saved as the current versio
   assert.equal(saved.betaUpdates, false);
 });
 
-test('a v3 file is backed up as settings.v3.json and saved as v4 with the setup card kept for onboarded users', () => {
+test('a v3 file is backed up as settings.v3.json and saved as the current version with the setup card kept for onboarded users', () => {
   const v3 = { settingsVersion: 3, onboarded: true, sounds: false };
   const file = tempFile(v3);
   const s = new Settings(file, plain);
@@ -208,7 +208,7 @@ test('a v3 file is backed up as settings.v3.json and saved as v4 with the setup 
   assert.equal(s.get().lastSeenVersion, '');
   assert.deepEqual(readJson(backupOf(file, 3)), v3);
   const saved = readJson(file);
-  assert.equal(saved.settingsVersion, 4);
+  assert.equal(saved.settingsVersion, SETTINGS_VERSION);
   assert.equal(saved.setupCard, true);
   assert.equal(saved.onboarded, true);
 });
@@ -300,4 +300,52 @@ test('a file from a newer version is backed up before this version saves over it
   assert.equal(s.get().sounds, false, 'what this version understands is used');
   s.update({ capitalize: false });
   assert.deepEqual(readJson(backupOf(file, SETTINGS_VERSION + 1)), newer);
+});
+
+// --- v4 -> v5 (dictation that just works) ------------------------------------
+
+const V5_DEFAULTS = { silenceDetection: true, crashRecovery: true, historyRetention: 'keep', audioHistory: 'off', languageHints: { shown: [] } };
+
+test('v4 → v5 on its own: existing keys are untouched and the new ones get their defaults', () => {
+  const v4to5 = MIGRATIONS.find((m) => m.from === 4);
+  assert.equal(v4to5.to, 5);
+  const saved = { settingsVersion: 4, sounds: false, languages: ['hr'], cloud: { model: 'x' } };
+  const out = v4to5.run(saved);
+  for (const [k, v] of Object.entries(V5_DEFAULTS)) assert.deepEqual(out[k], v, k);
+  assert.equal(out.sounds, false);
+  assert.deepEqual(out.languages, ['hr']);
+  assert.deepEqual(out.cloud, { model: 'x' });
+  assert.equal(saved.silenceDetection, undefined, 'the input is not changed');
+});
+
+test('v4 → v5 adds only missing keys: a value already there is kept', () => {
+  const v4to5 = MIGRATIONS.find((m) => m.from === 4);
+  const out = v4to5.run({ silenceDetection: false, historyRetention: '24h', languageHints: { shown: ['hr'] } });
+  assert.equal(out.silenceDetection, false);
+  assert.equal(out.historyRetention, '24h');
+  assert.deepEqual(out.languageHints, { shown: ['hr'] });
+  assert.equal(out.crashRecovery, true);
+  assert.equal(out.audioHistory, 'off');
+});
+
+test('the v5 defaults hold for a new install', () => {
+  const data = new Settings(tempFile(null), plain).get();
+  for (const [k, v] of Object.entries(V5_DEFAULTS)) assert.deepEqual(data[k], v, k);
+});
+
+test('a v4 file is backed up as settings.v4.json and saved as v5 with the new defaults', () => {
+  const v4 = { settingsVersion: 4, sounds: false, onboarded: true };
+  const file = tempFile(v4);
+  const s = new Settings(file, plain);
+  for (const [k, v] of Object.entries(V5_DEFAULTS)) assert.deepEqual(s.get()[k], v, k);
+  assert.equal(s.get().sounds, false);
+  assert.deepEqual(readJson(backupOf(file, 4)), v4);
+  const saved = readJson(file);
+  assert.equal(saved.settingsVersion, 5);
+  assert.equal(saved.silenceDetection, true);
+});
+
+test('languageHints merges key by key like the other object settings', () => {
+  const s = new Settings(tempFile({ settingsVersion: 5, languageHints: {} }), plain);
+  assert.deepEqual(s.get().languageHints, { shown: [] });
 });

@@ -30,6 +30,7 @@ const { LastPaste } = require('./last-paste');
 const { formatShortcut, sortKeys, VK } = require('./keys');
 const { cleanTranscript, cleanUtterance, countWords, toSrt } = require('./text-cleanup');
 const { speechLevel, splitAtPauses, SAMPLE_RATE } = require('./audio-utils');
+const { gateSpeech, SILENCE_LEVEL } = require('./speech-gate');
 const { pasteText, pressKey, getSelectedText } = require('./paster');
 const { PROTOCOL, parseCommandLine } = require('./remote');
 const { resolveStyle } = require('./app-styles');
@@ -54,7 +55,6 @@ const RENDERER = path.join(__dirname, '..', 'renderer');
 const PRELOAD = path.join(__dirname, '..', 'preload', 'preload.js');
 const OVERLAY_SIZE = { width: 560, height: 160 };
 const MIN_AUDIO_SECONDS = 0.3;
-const SILENCE_LEVEL = 0.004;
 const PREVIEW_INTERVAL_MS = 1500;
 const PREVIEW_MAX_SECONDS = 25;
 
@@ -513,14 +513,22 @@ async function finishDictation(reason) {
   const seconds = audio.length / SAMPLE_RATE;
   log.info(`Dictation stopped (${reason}), ${seconds.toFixed(1)}s of audio`);
 
-  if (seconds < MIN_AUDIO_SECONDS || speechLevel(audio) < SILENCE_LEVEL) {
+  if (seconds < MIN_AUDIO_SECONDS) {
     flash('No speech detected');
     return;
   }
+  const gate = await gateSpeech(audio, { enabled: settings.get().silenceDetection, detect: (a) => asr.detectSpeech(a), level: speechLevel });
+  if (gate.skip) {
+    log.info(`Speech gate: ${gate.skip}`);
+    if (gate.skip === 'no-sound') flash('No sound. Is your mic muted?', 'error');
+    else flash('No speech detected');
+    return;
+  }
+  if (gate.trimmed) log.info(`Speech gate: ${seconds.toFixed(1)}s -> ${(gate.audio.length / SAMPLE_RATE).toFixed(1)}s of speech`);
 
   try {
-    if (controller.command) await runCommand(audio, seconds);
-    else await runDictation(audio, seconds, t0);
+    if (controller.command) await runCommand(gate.audio, seconds);
+    else await runDictation(gate.audio, seconds, t0);
   } catch (err) {
     log.error('Dictation failed', err);
     flash(err.message.length > 80 ? 'Something went wrong - see Pauli Speaks for details' : err.message, 'error', 4500);

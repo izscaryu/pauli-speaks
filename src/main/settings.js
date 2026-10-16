@@ -67,9 +67,14 @@ const DEFAULTS = Object.freeze({
   onboarded: false,
   setupCard: false,
   lastSeenVersion: '',
+  silenceDetection: true,
+  crashRecovery: true,
+  historyRetention: 'keep', // 'keep' | '24h' | 'off'
+  audioHistory: 'off', // 'off' | '24h'
+  languageHints: { shown: [] },
 });
 
-const NESTED = ['cloud', 'translation', 'appStyles', 'command', 'readAloud'];
+const NESTED = ['cloud', 'translation', 'appStyles', 'command', 'readAloud', 'languageHints'];
 
 /** Known settings only - never inherited names like "__proto__" or "constructor" from a file or the window. */
 const isSetting = (k) => Object.hasOwn(DEFAULTS, k);
@@ -129,11 +134,21 @@ function v3to4(saved) {
   return { ...saved, setupCard: saved.onboarded === true };
 }
 
+/** Version 4 → 5 (dictation that just works): adds the new settings the file lacks, with their defaults. */
+function v4to5(saved) {
+  const out = { ...saved };
+  for (const key of ['silenceDetection', 'crashRecovery', 'historyRetention', 'audioHistory', 'languageHints']) {
+    if (!Object.hasOwn(out, key)) out[key] = structuredClone(DEFAULTS[key]);
+  }
+  return out;
+}
+
 /** Every change to the shape of settings.json is a step here, in order. */
 const MIGRATIONS = Object.freeze([
   { from: 1, to: 2, run: v1to2 },
   { from: 2, to: 3, run: v2to3 },
   { from: 3, to: 4, run: v3to4 },
+  { from: 4, to: 5, run: v4to5 },
 ]);
 const SETTINGS_VERSION = MIGRATIONS.at(-1).to;
 
