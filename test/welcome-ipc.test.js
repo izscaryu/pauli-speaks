@@ -162,6 +162,39 @@ test('whatsnew:seen stores the running app version, not what the window sends', 
   assert.deepEqual(calls.update, [{ lastSeenVersion: '1.2.0' }]);
 });
 
+test("What's new shows once across the pre-releases of a version and the release itself", () => {
+  const state = { onboarded: true, lastSeenVersion: '1.1.3' };
+  let version = '1.2.0-beta.1';
+  const { handlers, calls } = setup({
+    getSettings: () => ({ ...state }),
+    updateSettings: (patch) => { calls.update.push(patch); Object.assign(state, patch); },
+    changelog: () => CHANGELOG,
+    appVersion: () => version,
+  });
+  assert.deepEqual(handlers['whatsnew:get']({}), { version: '1.2.0-beta.1', text: SECTION_1_2_0 });
+  handlers['whatsnew:seen']({});
+  assert.equal(state.lastSeenVersion, '1.2.0');
+  for (version of ['1.2.0-beta.2', '1.2.0', '1.2.0+build.7']) assert.equal(handlers['whatsnew:get']({}), null, version);
+  version = '1.3.0-beta.1';
+  assert.equal(handlers['whatsnew:get']({}), null); // no 1.3.0 section in this changelog, but not because it was seen
+  assert.notEqual(state.lastSeenVersion, '1.3.0');
+});
+
+test('a full pre-release version stored by an older build counts as its base version', () => {
+  const get = (lastSeenVersion, appVersion) => setup({
+    getSettings: () => ({ onboarded: true, lastSeenVersion }), changelog: () => CHANGELOG, appVersion: () => appVersion,
+  }).handlers['whatsnew:get']({});
+  assert.equal(get('1.2.0-beta.1', '1.2.0'), null);
+  assert.equal(get('1.2.0-beta.1', '1.2.0-beta.2'), null);
+  assert.deepEqual(get('1.1.3-beta.1', '1.2.0'), { version: '1.2.0', text: SECTION_1_2_0 });
+});
+
+test('finishing the welcome flow on a pre-release stores its base version', async () => {
+  const { handlers, calls } = setup({ appVersion: () => '1.2.0-beta.3' });
+  await handlers['welcome:finish']({});
+  assert.equal(calls.update[0].lastSeenVersion, '1.2.0');
+});
+
 function redownloadSetup({ status = 'error', model = SMALL, localModel = SMALL, preload } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pauli-redownload-'));
   const modelFolder = path.join(dir, 'onnx-community', 'whisper-small');
@@ -336,6 +369,13 @@ test('backup:import passes on the reason a backup is refused', async (t) => {
   const { handlers, calls } = importFrom(t, JSON.stringify({ app: 'pauli-speaks', settingsVersion: 99, settings: {} }));
   assert.deepEqual(await handlers['backup:import'](), { ok: false, error: 'This backup is from a newer Pauli Speaks. Update first.' });
   assert.deepEqual(calls.update, []);
+});
+
+test('backup:import reads a file that starts with a UTF-8 BOM', async (t) => {
+  const backup = { app: 'pauli-speaks', settingsVersion: SETTINGS_VERSION, settings: { dictionary: [{ from: 'x', to: 'y' }] } };
+  const { handlers, calls } = importFrom(t, `\uFEFF${JSON.stringify(backup)}`);
+  assert.deepEqual(await handlers['backup:import'](), { ok: true });
+  assert.deepEqual(calls.update, [{ dictionary: [{ from: 'x', to: 'y' }] }]);
 });
 
 test('backup:import refuses a file over 1 MB before reading it', async (t) => {

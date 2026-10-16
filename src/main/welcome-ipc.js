@@ -23,7 +23,7 @@ const { execFile } = require('node:child_process');
 const {
   baseLanguageCodes, classifyGpu, recommendModel, findConflicts, parseTasklistCsv, redownloadPath,
 } = require('./system-check');
-const { changelogSection } = require('./changelog');
+const { baseVersion, changelogSection } = require('./changelog');
 const { exportBackup, importBackup, NOT_A_BACKUP } = require('./settings-backup');
 const { SETTINGS_VERSION } = require('./settings');
 
@@ -102,14 +102,15 @@ function registerWelcomeIpc(ipcMain, deps) {
   ipcMain.handle('whatsnew:get', () => {
     const s = getSettings();
     const version = appVersion();
-    if (!s || s.onboarded !== true || s.lastSeenVersion === version) return null;
+    // Base versions on both sides, so 1.2.0-beta.1, -beta.2 and 1.2.0 show the 1.2.0 section once.
+    if (!s || s.onboarded !== true || baseVersion(s.lastSeenVersion) === baseVersion(version)) return null;
     const text = changelogSection(deps.changelog ? deps.changelog() : '', version);
     return text ? { version, text } : null;
   });
 
-  // Always the running version, whatever the window sends.
+  // Always the running (base) version, whatever the window sends.
   ipcMain.handle('whatsnew:seen', () => {
-    updateSettings({ lastSeenVersion: appVersion() });
+    updateSettings({ lastSeenVersion: baseVersion(appVersion()) });
   });
 
   // "Download again": the configured model failed to load although it is marked downloaded. Delete its folder
@@ -134,7 +135,7 @@ function registerWelcomeIpc(ipcMain, deps) {
   });
 
   ipcMain.handle('welcome:finish', () => {
-    updateSettings({ onboarded: true, setupCard: false, lastSeenVersion: appVersion() });
+    updateSettings({ onboarded: true, setupCard: false, lastSeenVersion: baseVersion(appVersion()) });
     return getSettings();
   });
 }
@@ -176,7 +177,8 @@ function registerBackupIpc(ipcMain, deps) {
       if ((await fs.promises.stat(file)).size > MAX_BACKUP_BYTES) return { ok: false, error: 'This file is too big to be a Pauli Speaks backup.' };
       let json;
       try {
-        json = JSON.parse(await fs.promises.readFile(file, 'utf8'));
+        // Notepad and other editors may save a UTF-8 BOM, which JSON.parse refuses.
+        json = JSON.parse((await fs.promises.readFile(file, 'utf8')).replace(/^\uFEFF/, ''));
       } catch {
         return { ok: false, error: NOT_A_BACKUP };
       }

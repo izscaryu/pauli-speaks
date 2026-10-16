@@ -7,6 +7,11 @@ const path = require('node:path');
 
 const CHANGELOG_FILE = path.join(__dirname, '..', '..', 'CHANGELOG.md');
 
+/** The release a version belongs to: `1.2.0-beta.1` and `1.2.0+build.7` -> `1.2.0`; '' for bad input. */
+function baseVersion(version) {
+  return typeof version === 'string' ? version.split(/[-+]/)[0].trim() : '';
+}
+
 /**
  * The body under `## <version>` up to the next `## ` heading, trimmed; null when the version has no section
  * (or an empty one). A heading may carry a date after a space (`## 1.2.0 (2026-10-20)`). A pre-release
@@ -14,7 +19,7 @@ const CHANGELOG_FILE = path.join(__dirname, '..', '..', 'CHANGELOG.md');
  */
 function changelogSection(text, version) {
   if (typeof text !== 'string' || typeof version !== 'string') return null;
-  const base = version.split(/[-+]/)[0].trim();
+  const base = baseVersion(version);
   if (!base) return null;
   const lines = text.split(/\r?\n/);
   const isHeading = (line) => line.startsWith('## ');
@@ -39,4 +44,4 @@ function readChangelog(file = CHANGELOG_FILE) {
   }
 }
 
-module.exports = { changelogSection, readChangelog, CHANGELOG_FILE };
+module.exports = { baseVersion, changelogSection, readChangelog, CHANGELOG_FILE };
