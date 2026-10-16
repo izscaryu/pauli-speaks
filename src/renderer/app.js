@@ -285,7 +285,7 @@ function renderBanner() {
     banner.replaceChildren(
       el('div', { class: 'grow' }, el('strong', {}, `Couldn't load ${job.name}`), el('span', { class: 'desc' }, job.error || '')),
       el('button', { class: 'btn', onclick: () => job.retry() }, 'Retry'),
-      job.again() ? el('button', { class: 'btn', onclick: HomeNotices.redownload }, 'Download again') : null);
+      ...(job.again?.() ? [el('button', { class: 'btn', onclick: HomeNotices.redownload }, 'Download again')] : []));
     side.hidden = true;
     return;
   }
