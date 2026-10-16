@@ -40,7 +40,7 @@ const { MODELS, isModelDownloaded, canWhisperTranslate, buildPrompt } = require(
 const { NLLB_MODEL, NLLB_SIZE, NLLB_CODES } = require('./asr/translator-local');
 const { Updater } = require('./updater');
 const { setupPortable } = require('./portable');
-const { shouldPreloadAtStartup, isAllowedExternalUrl } = require('./system-check');
+const { shouldPreloadAtStartup, shouldOfferSmallerModel, isAllowedExternalUrl } = require('./system-check');
 const { registerWelcomeIpc, runningProcessNames } = require('./welcome-ipc');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
@@ -432,6 +432,7 @@ function publicModelState() {
   const { promise: _p, ...translator } = translatorState;
   return {
     ...rest,
+    offerSmaller: shouldOfferSmallerModel(rest),
     models: MODELS.map((m) => ({ ...m, downloaded: isModelDownloaded(modelsDir(), m.id) })),
     translator: {
       ...translator,
@@ -1112,7 +1113,7 @@ function init() {
   if (startupCommand) queueRemote(startupCommand);
   const hidden = process.argv.includes('--hidden') || (startupCommand && startupCommand.command !== 'open');
   if (!hidden || !settings.get().onboarded) createMainWindow();
-  if (shouldPreloadAtStartup(settings.get())) preloadModel();
+  if (shouldPreloadAtStartup(settings.get(), (id) => isModelDownloaded(modelsDir(), id))) preloadModel();
   if (settings.get().translation.always && needsNllb(settings.get())) preloadTranslator();
 
   screen.on('display-metrics-changed', positionOverlay);

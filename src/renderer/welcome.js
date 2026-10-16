@@ -19,7 +19,13 @@
 //   flow.data              plain object shared by steps (step 1 sets data.languages)
 //
 // Steps 1-2 must never save engine, localModel or acceleration: that starts a
-// model download, which only step 3 may do once the user confirms it.
+// model download, which only step 3 (welcome-engine.js) may do once the user confirms it.
+//
+// A step in another file replaces a placeholder with Welcome.register(step) (same id).
+// Welcome.title(text) builds the heading every step starts with.
+//
+// After the engine step the shell shows a slim progress bar (download / load / error with
+// "Try again") while the speech model is busy, so later steps need no code for it.
 
 const Welcome = (() => {
   const NO_SYSTEM = Object.freeze({ languages: [], gpu: { usable: false, vendor: null }, conflicts: [], recommendation: null });
@@ -278,6 +284,7 @@ const Welcome = (() => {
     const step = STEPS[i];
     current = step;
     drawDots();
+    drawProgress();
     const body = $('#welcome-step');
     body.replaceChildren();
     body.dataset.step = step.id;
@@ -292,6 +299,43 @@ const Welcome = (() => {
         if (current === step) toast('Something went wrong on this step. Skip it for now.');
       });
   }
+
+  // ---------------------------------------------------------------- model progress (after the engine step)
+
+  let lastModel = null;
+  const prog = {
+    text: el('span', { role: 'status', 'aria-live': 'polite' }),
+    pct: el('b'),
+    bar: el('i'),
+    retry: el('button', { class: 'btn', onclick: () => api.loadModel().catch((err) => console.error('welcome: retry failed', err)) }, 'Try again'),
+  };
+  prog.meter = el('div', { class: 'meter' }, prog.bar);
+  $('#welcome-progress').append(el('div', { class: 'grow' }, el('div', { class: 'inline' }, prog.text, prog.pct), prog.meter), prog.retry);
+
+  function drawProgress() {
+    const box = $('#welcome-progress');
+    const m = lastModel;
+    const status = m && m.status;
+    const after = index > STEPS.findIndex((st) => st.id === 'engine');
+    const show = active && after && settings.engine === 'local' && ['downloading', 'loading', 'error'].includes(status);
+    box.hidden = !show;
+    if (!show) return;
+    const label = m.models.find((x) => x.id === m.model)?.label;
+    const name = label ? `Whisper ${label}` : 'the speech model';
+    const text = status === 'downloading' ? `Downloading ${name}`
+      : status === 'loading' ? `Loading ${name}…` : `Couldn't load ${name}: ${m.error || 'unknown error'}`;
+    if (prog.text.textContent !== text) prog.text.textContent = text;
+    prog.pct.textContent = status === 'downloading' ? `${m.percent}%` : '';
+    prog.meter.hidden = status === 'error';
+    prog.bar.style.width = `${status === 'downloading' ? m.percent : 100}%`;
+    prog.retry.hidden = status !== 'error';
+    box.classList.toggle('error', status === 'error');
+  }
+
+  api.onModelState((m) => {
+    lastModel = m;
+    drawProgress();
+  });
 
   function showWelcomePage() {
     document.querySelector('.sidebar').hidden = true;
@@ -321,6 +365,7 @@ const Welcome = (() => {
   function start() {
     if (active) return;
     active = true;
+    lastModel = modelState;
     flow = {
       next,
       finish,
@@ -339,6 +384,7 @@ const Welcome = (() => {
     if (!active) return;
     leaveCurrent();
     active = false;
+    drawProgress();
     $('#welcome-step').replaceChildren();
     delete $('#welcome-step').dataset.step;
     $('#welcome-step-actions').replaceChildren();
@@ -351,6 +397,13 @@ const Welcome = (() => {
   // The tray can ask for another page while the flow is open: keep the flow in front.
   api.onNavigate(() => active && showWelcomePage());
 
-  return { start, stop };
+  // A later script (welcome-engine.js, ...) swaps in the real step for a placeholder slot. Call before start().
+  function register(step) {
+    const i = STEPS.findIndex((s) => s.id === step.id);
+    if (i < 0) throw new Error(`welcome: no step slot called ${step.id}`);
+    STEPS[i] = step;
+  }
+
+  return { start, stop, register, title };
 })();
 window.Welcome = Welcome;

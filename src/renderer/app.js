@@ -247,6 +247,21 @@ $('#clear-history').addEventListener('click', async () => {
   if (confirm('Delete all transcripts? This cannot be undone.')) await api.clearHistory();
 });
 
+/** Home notes when no model job runs: the chosen model isn't on disk yet, or Large v3 Turbo fell back to the CPU. */
+function modelNote() {
+  if (settings.engine !== 'local') return null;
+  const m = modelState.models.find((x) => x.id === settings.localModel);
+  if (m && !m.downloaded && modelState.status === 'idle') {
+    return [el('div', { class: 'grow' }, el('strong', {}, 'The speech model is not downloaded yet.'), el('span', { class: 'desc' }, 'One-time download. After this it runs offline.')),
+      el('button', { class: 'btn primary', onclick: () => api.loadModel() }, `Download Whisper ${m.label} (${m.size})`)];
+  }
+  if (modelState.offerSmaller && modelState.model === settings.localModel) {
+    return [el('div', { class: 'grow' }, el('strong', {}, 'Your graphics card couldn\'t be used, so Whisper Large v3 Turbo is slow on this PC.')),
+      el('button', { class: 'btn', onclick: () => save({ localModel: 'onnx-community/whisper-small' }, 'Switched to Whisper Small') }, 'Use Whisper Small')];
+  }
+  return null;
+}
+
 function renderBanner() {
   const banner = $('#model-banner');
   const side = $('#side-progress');
@@ -257,7 +272,10 @@ function renderBanner() {
   if (tr && tr.status !== 'idle' && tr.status !== 'ready') jobs.push({ name: 'Translator (NLLB-200)', ...tr, retry: api.loadTranslator });
   const job = jobs.find((j) => j.status === 'error') || jobs.find((j) => j.status === 'downloading' || j.status === 'loading');
   if (!job) {
-    banner.hidden = true;
+    const note = modelNote();
+    banner.hidden = !note;
+    banner.classList.remove('error');
+    if (note) banner.replaceChildren(...note);
     side.hidden = true;
     return;
   }

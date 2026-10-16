@@ -534,6 +534,15 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 #page-welcome .wm-status.good { color: var(--ok); }
 #page-welcome .wm-status.bad { color: var(--signal); }
 #page-welcome .welcome-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+#page-welcome .welcome-progress { padding: 10px 14px; }
+#page-welcome .welcome-progress .grow { gap: 6px; }
+#page-welcome .we-list { display: flex; flex-direction: column; gap: 10px; }
+#page-welcome .we-rec { padding: 4px 14px; border: 1px solid var(--ink); border-radius: var(--radius); }
+#page-welcome .we-rec .model { border-top: 0; }
+#page-welcome .we-rec .tag { margin-left: 8px; font-weight: 500; }
+#page-welcome .we-more summary { padding: 6px 0; color: var(--ink-2); font-weight: 600; cursor: pointer; }
+#page-welcome .we-more .model:first-of-type { border-top: 0; }
+#page-welcome .we-cloud { display: flex; flex-direction: column; gap: 4px; }
 
 @media (max-width: 860px) {
   main { padding: 22px 20px 40px; }

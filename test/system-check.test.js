@@ -94,10 +94,27 @@ test('the model ids exist in whisper-local MODELS', () => {
   }
 });
 
-test('the model loads at startup only for onboarded users on the local engine', () => {
-  assert.equal(shouldPreloadAtStartup({ onboarded: false, engine: 'local' }), false);
-  assert.equal(shouldPreloadAtStartup({ onboarded: true, engine: 'local' }), true);
-  assert.equal(shouldPreloadAtStartup({ onboarded: true, engine: 'cloud' }), false);
-  assert.equal(shouldPreloadAtStartup({ onboarded: 'true', engine: 'local' }), false);
-  assert.equal(shouldPreloadAtStartup(undefined), false);
+test('the model loads at startup only for onboarded users on the local engine with the model on disk', () => {
+  const onDisk = () => true;
+  const notOnDisk = () => false;
+  assert.equal(shouldPreloadAtStartup({ onboarded: false, engine: 'local', localModel: BASE }, onDisk), false);
+  assert.equal(shouldPreloadAtStartup({ onboarded: true, engine: 'local', localModel: BASE }, onDisk), true);
+  assert.equal(shouldPreloadAtStartup({ onboarded: true, engine: 'cloud', localModel: BASE }, onDisk), false);
+  assert.equal(shouldPreloadAtStartup({ onboarded: 'true', engine: 'local', localModel: BASE }, onDisk), false);
+  assert.equal(shouldPreloadAtStartup(undefined, onDisk), false);
+});
+
+test('a user who finished the flow early does not get a download at the next start', () => {
+  const asked = [];
+  const notOnDisk = (id) => (asked.push(id), false);
+  assert.equal(shouldPreloadAtStartup({ onboarded: true, engine: 'local', localModel: BASE }, notOnDisk), false);
+  assert.deepEqual(asked, [BASE]);
+  // Truthy but not exactly true does not count, and a missing check never preloads.
+  assert.equal(shouldPreloadAtStartup({ onboarded: true, engine: 'local', localModel: BASE }, () => 'yes'), false);
+  assert.equal(shouldPreloadAtStartup({ onboarded: true, engine: 'local', localModel: BASE }), false);
+});
+
+test('baseLanguageCodes maps the Norwegian variants to no', () => {
+  assert.deepEqual(baseLanguageCodes(['nb-NO', 'en-US']), ['no', 'en']);
+  assert.deepEqual(baseLanguageCodes(['nn-NO', 'nb-NO', 'no']), ['no']);
 });

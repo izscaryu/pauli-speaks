@@ -23,13 +23,17 @@ const KNOWN_CONFLICTS = [
   { name: 'Willow', exe: ['willow.exe', 'willow voice.exe'] },
 ];
 
-/** ['hr-HR', 'en-US', 'en-GB'] -> ['hr', 'en']: lower-case, order kept, deduped, non-strings dropped. */
+// Windows reports Norwegian as Bokmal (nb) or Nynorsk (nn); the app's language list has just 'no'.
+const LANGUAGE_ALIASES = { nb: 'no', nn: 'no' };
+
+/** ['hr-HR', 'en-US', 'en-GB'] -> ['hr', 'en']: lower-case, order kept, deduped, non-strings dropped, nb/nn -> no. */
 function baseLanguageCodes(locales) {
   if (!Array.isArray(locales)) return [];
   const out = [];
   for (const locale of locales) {
     if (typeof locale !== 'string') continue;
-    const code = locale.split(/[-_]/)[0].trim().toLowerCase();
+    const raw = locale.split(/[-_]/)[0].trim().toLowerCase();
+    const code = Object.hasOwn(LANGUAGE_ALIASES, raw) ? LANGUAGE_ALIASES[raw] : raw;
     if (code && !out.includes(code)) out.push(code);
   }
   return out;
@@ -84,9 +88,13 @@ function isAllowedExternalUrl(url) {
   return typeof url === 'string' && (url.startsWith('https://') || url === MIC_PRIVACY_URL);
 }
 
-/** The model loads when the app starts only once the welcome flow is done and the local engine is chosen. */
-function shouldPreloadAtStartup(settings) {
-  return !!settings && settings.onboarded === true && settings.engine === 'local';
+/**
+ * The model loads when the app starts only once the welcome flow is done, the local engine is chosen and the
+ * model is already on disk: someone who clicked "Finish later" before the engine step never confirmed a download.
+ */
+function shouldPreloadAtStartup(settings, isDownloaded) {
+  return !!settings && settings.onboarded === true && settings.engine === 'local'
+    && typeof isDownloaded === 'function' && isDownloaded(settings.localModel) === true;
 }
 
 module.exports = {
