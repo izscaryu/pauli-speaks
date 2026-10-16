@@ -41,8 +41,12 @@
 
     // ----- key test
 
+    // The test switches the shortcuts off app-wide, and main only switches it off again on blur:
+    // never turn it on while the window is hidden or unfocused. onFocus turns it on when we are back.
+    const canTest = () => document.hasFocus() && !document.hidden;
+
     function startTest() {
-      if (!alive || recording) return;
+      if (!alive || recording || !canTest()) return;
       offKeyTest ||= api.onKeyTest((d) => d.action === 'dictate' && succeed());
       api.setKeyTest(true).catch(logFail('turning the key test on'));
       clearTimeout(timer);
@@ -69,8 +73,12 @@
       draw();
     }
 
-    // The main process switches the test off when the window loses focus: switch it on again.
-    const onFocus = () => alive && !recording && api.setKeyTest(true).catch(logFail('turning the key test on'));
+    // The main process switches the test off when the window loses focus: switch it on again on return.
+    const onFocus = () => startTest();
+    const onBlur = () => {
+      clearTimeout(timer);
+      timer = null;
+    };
 
     // ----- recorder (the Shortcuts page's: startRec / cancelRec in app.js, same IPC)
 
@@ -191,6 +199,7 @@
         offRecording = api.onShortcutRecording(onRecording);
         offSettings = api.onSettings(() => draw());
         window.addEventListener('focus', onFocus);
+        window.addEventListener('blur', onBlur);
         draw();
         startTest();
         // The check ran when the flow started: it is normally done by now.
@@ -210,6 +219,7 @@
         offRecording = null;
         offSettings = null;
         window.removeEventListener('focus', onFocus);
+        window.removeEventListener('blur', onBlur);
         stopTest();
       },
     };
