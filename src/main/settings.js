@@ -62,6 +62,7 @@ const DEFAULTS = Object.freeze({
   sounds: true,
   showIdlePill: true,
   launchAtLogin: false,
+  betaUpdates: false,
   dictionary: [{ from: 'polyspeaks', to: 'Pauli Speaks' }],
   onboarded: false,
 });
@@ -112,8 +113,16 @@ function v1to2(saved) {
   return out;
 }
 
+/** Version 2 → 3: "Get early versions" (About → Updates) arrives, switched off. */
+function v2to3(saved) {
+  return { ...saved, betaUpdates: saved.betaUpdates === true };
+}
+
 /** Every change to the shape of settings.json is a step here, in order. */
-const MIGRATIONS = Object.freeze([{ from: 1, to: 2, run: v1to2 }]);
+const MIGRATIONS = Object.freeze([
+  { from: 1, to: 2, run: v1to2 },
+  { from: 2, to: 3, run: v2to3 },
+]);
 const SETTINGS_VERSION = MIGRATIONS.at(-1).to;
 
 /** Files written before settings were numbered are version 1. */

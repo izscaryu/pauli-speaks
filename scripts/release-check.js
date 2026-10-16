@@ -17,6 +17,17 @@ const path = require('node:path');
 const installerName = (version) => `Pauli-Speaks-Setup-${version}.exe`;
 const portableName = (version) => `Pauli-Speaks-Portable-${version}.exe`;
 
+/**
+ * What `npm run release -- <arg>` accepts: a bump, x.y.z, or x.y.z-beta.N.
+ * Only "beta" pre-releases: electron-updater moves a beta user on to the next
+ * regular release, but a user on another pre-release name (rc, alpha...) would
+ * only ever be offered that name again.
+ */
+const isReleaseArg = (arg) => /^(patch|minor|major|\d+\.\d+\.\d+(-beta\.\d+)?)$/.test(arg || '');
+
+/** x.y.z-beta.N is published as a GitHub pre-release: only "Get early versions" users get it. */
+const isPrerelease = (version) => String(version).includes('-');
+
 const valuesOf = (yml, key) => [...yml.matchAll(new RegExp(`^\\s*(?:- )?${key}: *(.+?)\\s*$`, 'gm'))].map((m) => m[1]);
 
 /**
@@ -67,4 +78,4 @@ if (require.main === module) {
   console.log(`✔ ${tag}: ${name}, its blockmap and latest.yml match; ${portableName(version)} is there.`);
 }
 
-module.exports = { installerName, portableName, checkRelease };
+module.exports = { installerName, portableName, checkRelease, isReleaseArg, isPrerelease };

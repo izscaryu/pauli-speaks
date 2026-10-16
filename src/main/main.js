@@ -982,6 +982,7 @@ function applySettings(data, patch) {
   if ('launchAtLogin' in patch && app.isPackaged && !portable.active) {
     app.setLoginItemSettings({ openAtLogin: !!data.launchAtLogin, args: ['--hidden'] });
   }
+  if ('betaUpdates' in patch) updater?.setPrerelease(data.betaUpdates);
   if ('showIdlePill' in patch && overlay && controller.status === 'idle') {
     if (data.showIdlePill) showOverlay();
     else overlay.hide();
@@ -1069,7 +1070,7 @@ function init() {
     updateTrayMenu();
   });
 
-  updater = new Updater({ portable: portable.active });
+  updater = new Updater({ portable: portable.active, prerelease: settings.get().betaUpdates });
   updater.on('state', (state) => {
     broadcast('update:state', state);
     updateTrayMenu();

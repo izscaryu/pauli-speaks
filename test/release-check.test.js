@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
-const { installerName, portableName, checkRelease } = require('../scripts/release-check');
+const { installerName, portableName, checkRelease, isReleaseArg, isPrerelease } = require('../scripts/release-check');
 
 const exe = Buffer.from('pretend this is an installer');
 const sha512 = crypto.createHash('sha512').update(exe).digest('base64');
@@ -61,6 +61,28 @@ test('a hash in one place of latest.yml and another elsewhere is caught', () => 
   const other = crypto.createHash('sha512').update('signed later').digest('base64');
   const mixed = latestYml().replace(/^sha512: .*$/m, `sha512: ${other}`);
   assert.match(checkRelease({ ...good, latestYml: mixed }).join(), /sha512/);
+});
+
+test('npm run release takes a bump, a version or a beta version', () => {
+  for (const ok of ['patch', 'minor', 'major', '1.2.0', '1.2.0-beta.1', '2.0.0-beta.12']) assert.equal(isReleaseArg(ok), true, ok);
+  // Only "beta": electron-updater moves a beta user on to the next regular release,
+  // but a user on another pre-release name (rc, alpha) would wait on that name.
+  for (const bad of ['', undefined, '1.2', 'v1.2.0', '1.2.0-rc.1', '1.2.0-alpha.1', '1.2.0-beta', '1.2.0-beta.x', 'prerelease', '1.2.0 && echo']) {
+    assert.equal(isReleaseArg(bad), false, String(bad));
+  }
+});
+
+test('a version with a pre-release part is published as a GitHub pre-release', () => {
+  assert.equal(isPrerelease('1.2.0-beta.1'), true);
+  assert.equal(isPrerelease('1.2.0'), false);
+});
+
+test('a beta release is checked like any other: its latest.yml must describe its installer', () => {
+  const beta = Buffer.from('a beta installer');
+  const hash = crypto.createHash('sha512').update(beta).digest('base64');
+  const yml = latestYml({ version: '1.2.0-beta.1', name: installerName('1.2.0-beta.1'), hash, size: beta.length });
+  assert.deepEqual(checkRelease({ tag: 'v1.2.0-beta.1', version: '1.2.0-beta.1', exe: beta, latestYml: yml }), []);
+  assert.equal(installerName('1.2.0-beta.1'), 'Pauli-Speaks-Setup-1.2.0-beta.1.exe');
 });
 
 test('an empty or missing latest.yml fails', () => {

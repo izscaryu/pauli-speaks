@@ -120,7 +120,7 @@ const backupOf = (file, v) => path.join(path.dirname(file), `settings.v${v}.json
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 test('migrations form an unbroken chain up to the current version', () => {
-  assert.equal(SETTINGS_VERSION, 2);
+  assert.equal(SETTINGS_VERSION, 3);
   MIGRATIONS.forEach((m, i) => {
     assert.equal(m.from, i + 1);
     assert.equal(m.to, m.from + 1);
@@ -143,6 +143,34 @@ test('v1 → v2 leaves a file that already has bindings alone', () => {
   const out = MIGRATIONS[0].run({ bindings, voiceCommands: DEFAULTS.voiceCommands });
   assert.deepEqual(out.bindings, bindings);
   assert.deepEqual(out.voiceCommands, DEFAULTS.voiceCommands);
+});
+
+test('v2 → v3 on its own: "Get early versions" arrives switched off, everything else is kept', () => {
+  const v2to3 = MIGRATIONS.find((m) => m.from === 2);
+  assert.equal(v2to3.to, 3);
+  const out = v2to3.run({ sounds: false, bindings: [{ id: 'x', action: 'dictate', keys: ['F8'], behaviour: 'hold' }] });
+  assert.equal(out.betaUpdates, false);
+  assert.equal(out.sounds, false);
+  assert.deepEqual(out.bindings, [{ id: 'x', action: 'dictate', keys: ['F8'], behaviour: 'hold' }]);
+  assert.equal(v2to3.run({ betaUpdates: true }).betaUpdates, true, 'an existing choice is kept');
+  assert.equal(v2to3.run({ betaUpdates: 'yes' }).betaUpdates, false, 'anything but true is off');
+});
+
+test('early versions are off by default', () => {
+  assert.equal(DEFAULTS.betaUpdates, false);
+  assert.equal(new Settings(tempFile(null), plain).get().betaUpdates, false);
+});
+
+test('a v2 file is backed up as settings.v2.json and saved as v3 with early versions off', () => {
+  const v2 = { settingsVersion: 2, sounds: false, bindings: [{ id: 'x', action: 'dictate', keys: ['F8'], behaviour: 'hold' }] };
+  const file = tempFile(v2);
+  const s = new Settings(file, plain);
+  assert.equal(s.get().betaUpdates, false);
+  assert.equal(s.get().sounds, false);
+  assert.deepEqual(readJson(backupOf(file, 2)), v2);
+  const saved = readJson(file);
+  assert.equal(saved.settingsVersion, 3);
+  assert.equal(saved.betaUpdates, false);
 });
 
 test('runMigrations applies each step in order, from the file\'s version to the target', () => {

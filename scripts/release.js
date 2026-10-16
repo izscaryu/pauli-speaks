@@ -2,6 +2,7 @@
 // Start a release. The build happens on GitHub, not on this PC:
 //
 //   npm run release -- 1.1.0        (or patch / minor / major)
+//   npm run release -- 1.2.0-beta.1 (a GitHub pre-release, for "Get early versions")
 //
 // Checks that the tree is clean and main is in sync with GitHub, runs the
 // tests, bumps "version" in package.json (npm version: commit "Release vX"
@@ -11,6 +12,7 @@
 
 const { execSync, spawnSync } = require('node:child_process');
 const path = require('node:path');
+const { isReleaseArg, isPrerelease } = require('./release-check');
 
 const root = path.join(__dirname, '..');
 const bump = process.argv[2];
@@ -22,7 +24,7 @@ const fail = (msg) => {
   process.exit(1);
 };
 
-if (!/^(patch|minor|major|\d+\.\d+\.\d+)$/.test(bump || '')) fail('Say which version: npm run release -- 1.1.0 (or patch, minor, major).');
+if (!isReleaseArg(bump)) fail('Say which version: npm run release -- 1.1.0 (or patch, minor, major), or 1.2.0-beta.1 for an early version.');
 if (sh('git status --porcelain')) fail('Commit your changes first (git status is not clean).');
 if (sh('git branch --show-current') !== 'main') fail('Releases are made from main. Switch to main first.');
 sh('git fetch --quiet --tags origin');
@@ -41,6 +43,8 @@ if (!run(`git push --atomic origin HEAD:main ${tag}`)) {
 }
 
 const { owner, repo } = require(path.join(root, 'package.json')).build.publish[0];
-console.log(`\n✔ ${tag} pushed. GitHub now builds and publishes it:`);
+console.log(`\n✔ ${tag} pushed. GitHub now builds and publishes it${isPrerelease(version) ? ' as a pre-release' : ''}:`);
 console.log(`  https://github.com/${owner}/${repo}/actions/workflows/release.yml`);
-console.log('Installed copies pick it up within 6 hours of the release, or straight away via About → Check for updates.');
+console.log(isPrerelease(version)
+  ? 'Only copies with About → Get early versions turned on pick it up (within 6 hours, or via Check for updates).'
+  : 'Installed copies pick it up within 6 hours of the release, or straight away via About → Check for updates.');

@@ -2,6 +2,7 @@
 #
 #   build:   tests → NSIS installer + portable exe → [signing, not yet] → latest.yml check → artifact
 #   release: GitHub release with the installer, its .blockmap, latest.yml and the portable exe
+#            (a pre-release for vX.Y.Z-beta.N tags: npm run release -- 1.2.0-beta.1)
 #
 # The installed app's updater reads latest.yml from the newest release, so a
 # release is only created when latest.yml matches the installer exactly.
@@ -98,12 +99,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           LINKS: https://github.com/${{ github.repository }}/blob/main
         run: |
+          # v1.2.0-beta.1 and the like become a pre-release. Copies without
+          # About → "Get early versions" read GitHub's latest release, which
+          # never is a pre-release, so only early-version users get it.
+          prerelease=()
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then prerelease=(--prerelease); fi
           gh release create "$GITHUB_REF_NAME" release/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "Pauli Speaks ${GITHUB_REF_NAME#v}" \
             --notes "[Code signing policy]($LINKS/docs/code-signing-policy.md) · [Privacy]($LINKS/PRIVACY.md) · [Open-source licences]($LINKS/THIRD_PARTY_NOTICES.md)" \
             --generate-notes \
-            --verify-tag
+            --verify-tag \
+            "${prerelease[@]}"
 
       - name: Check every file arrived
         env:

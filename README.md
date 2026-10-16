@@ -122,6 +122,11 @@ and then every 6 hours (`electron-updater`). It downloads new versions in the ba
 offers **Restart to update** in the tray, the main window and About. If you ignore that, the
 update installs the next time you quit.
 
+**Early versions:** turn on *About → Get early versions* to also get pre-releases
+(`x.y.z-beta.N`) before everyone else. You still get every regular release: when a newer
+regular version comes out, you move to it. Turning the option off again doesn't go back a
+version; you stay on the beta until the next regular release passes it.
+
 Releases are built by GitHub Actions, not on a developer's PC. To publish a new version, with
 everything committed and pushed on `main`:
 
@@ -134,7 +139,9 @@ npm run release -- 1.1.0
 [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds the installer
 and the portable `.exe`, checks that `latest.yml` (the file the updater reads) matches the
 installer exactly, and creates the GitHub release with the installer, its `.blockmap`,
-`latest.yml` and the portable `.exe`.
+`latest.yml` and the portable `.exe`. `npm run release -- 1.2.0-beta.1` publishes a
+**pre-release** that only *Get early versions* users receive; only `-beta.N` versions are
+accepted.
 
 Every push and pull request runs the tests in [CI](.github/workflows/ci.yml).
 

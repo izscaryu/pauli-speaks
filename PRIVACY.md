@@ -33,7 +33,8 @@ own privacy policy.
   start and then every 6 hours. Only the release information and, when there is an update, the
   installer are downloaded. Nothing about you or your use of the app is sent beyond what any web
   request contains (your IP address, for example). The portable copy makes the same check but
-  never downloads anything; About shows a link to the new version instead.
+  never downloads anything; About shows a link to the new version instead. With *About → Get
+  early versions* on, the same check also looks at GitHub pre-releases.
 - **Model downloads** from Hugging Face (`huggingface.co` and its download servers), the first
   time you use a speech or translation model. After that the model works offline.
 

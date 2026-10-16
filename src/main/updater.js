@@ -6,6 +6,11 @@
 //
 // Portable copies (portable.js) only check: the installer can't update a
 // portable exe, so they report "available" and About links to the release.
+//
+// "Get early versions" (settings.betaUpdates) also accepts GitHub
+// pre-releases (x.y.z-beta.N). A newer regular release still wins:
+// electron-updater then takes the newest release of either kind, and never
+// goes back a version when the option is turned off again.
 
 const { EventEmitter } = require('node:events');
 const { app } = require('electron');
@@ -15,10 +20,11 @@ const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
 const FIRST_CHECK_DELAY_MS = 15 * 1000;
 
 class Updater extends EventEmitter {
-  /** @param {{portable?: boolean}} [options] */
-  constructor({ portable = false } = {}) {
+  /** @param {{portable?: boolean, prerelease?: boolean}} [options] */
+  constructor({ portable = false, prerelease = false } = {}) {
     super();
     this.portable = portable;
+    this.prerelease = prerelease;
     this.state = { status: 'idle', version: null, percent: 0, error: null, current: app.getVersion() };
     this.enabled = app.isPackaged || !!process.env.PAULI_UPDATE_DEV;
     this.timer = null;
@@ -41,6 +47,8 @@ class Updater extends EventEmitter {
     autoUpdater.autoDownload = !this.portable;
     // PAULI_UPDATE_NO_INSTALL: test builds download but never install over the real app
     autoUpdater.autoInstallOnAppQuit = !this.portable && !process.env.PAULI_UPDATE_NO_INSTALL;
+    // Set explicitly: electron-updater turns it on by itself when this version is a beta.
+    autoUpdater.allowPrerelease = this.prerelease;
     if (process.env.PAULI_UPDATE_DEV) autoUpdater.forceDevUpdateConfig = true;
 
     autoUpdater.on('checking-for-update', () => this.#set({ status: 'checking', error: null }));
@@ -70,6 +78,14 @@ class Updater extends EventEmitter {
       this.#set({ status: 'error', error: err.message.split('\n')[0] });
     }
     return this.state;
+  }
+
+  /** "Get early versions": used from the next check, which starts now when it is turned on. */
+  setPrerelease(on) {
+    this.prerelease = !!on;
+    if (!this.autoUpdater) return;
+    this.autoUpdater.allowPrerelease = this.prerelease;
+    if (this.prerelease) this.check();
   }
 
   /** Quit and run the downloaded installer silently, then relaunch. */
