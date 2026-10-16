@@ -9,4 +9,5 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 - Home now warns you when Pauli Speaks can't see your shortcut, and when another dictation app is running that may use the same shortcut.
 - If a speech model is downloaded but fails to load, the error on Home has a "Download again" button that fetches it fresh.
 - A portable version (Pauli-Speaks-Portable) keeps its data in a folder next to the .exe and leaves nothing in the registry.
+- Settings has a new Backup section: export your shortcuts, voice commands, dictionary, snippets and app styles to a file and import them on another PC. API keys are never included.
 - About has "Get early versions" for trying pre-releases before everyone else. You still get every regular release.

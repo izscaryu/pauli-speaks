@@ -45,6 +45,10 @@ empty file named `portable` next to `Pauli Speaks.exe`.
 
 ## Features
 
+- **Guided setup** the first time you start: pick your languages, check your microphone, choose a
+  speech engine (it suggests one for your PC and shows what will be downloaded, and downloads
+  nothing until you confirm), check your shortcut, and try a first dictation. *Settings → Run
+  setup again* opens it again.
 - **Push-to-talk**: hold the shortcut while you speak, release to paste.
 - **Hands-free**: double-tap the shortcut (or press Ctrl + Win + Space) to keep recording,
   then press it again to finish. Up to 20 minutes per dictation.
@@ -91,6 +95,10 @@ empty file named `portable` next to `Pauli Speaks.exe`.
 - Weekly words chart and a day streak.
 - Floating status pill with a live waveform, start/stop sounds, history with copy, and
   stats (words, WPM, time saved).
+- **Settings backup**: *Settings → Backup* exports your shortcuts, voice commands, dictionary,
+  snippets and app styles to a file and imports them again. API keys are never included.
+- Home warns you if the shortcut can't be seen, if another dictation app is running, or if the
+  speech model needs downloading again, and shows what's new after an update.
 - Restores your clipboard after pasting, runs in the tray, and can start with Windows.
 
 ## Run it
@@ -102,8 +110,9 @@ npm install
 npm start
 ```
 
-On first start it downloads the Whisper Base model (~150 MB) and shows progress on the
-Home screen. Click into the **Try it here** box, hold **Ctrl + Win**, say something and release.
+On first start the guided setup opens. When you confirm the speech engine it downloads the model
+(Whisper Base is ~150 MB) and shows the progress. The last step is a box to hold **Ctrl + Win**
+in, say something and release.
 
 ## Build an installer
 
@@ -177,6 +186,9 @@ remote.js   pauli-speaks:// links and --flags, from startup argv and second-inst
 | `src/main/remote.js` | Deep links and command-line flags |
 | `src/main/last-paste.js` | What *Undo last dictation* / "scratch that" may take back |
 | `src/main/settings.js` | `settings.json`, with a `settingsVersion` and the list of migrations between versions |
+| `src/main/system-check.js` | Local checks for the guided setup: system languages, GPU, model recommendation, other dictation apps |
+| `src/main/welcome-ipc.js` | Main-side handlers for the guided setup |
+| `src/main/settings-backup.js` | What *Export settings* / *Import settings* may read and write (never API keys) |
 | `src/main/win32.js` | `SendInput` / `GetAsyncKeyState` via koffi |
 | `src/main/paster.js` | Text insertion with clipboard restore |
 | `src/main/asr/whisper-local.js` | Whisper via transformers.js + onnxruntime-node, language detection |
@@ -193,7 +205,10 @@ start-with-Windows entry that the app registered ([`build/installer.nsh`](build/
 ## Troubleshooting
 
 - **Nothing happens when I hold Ctrl + Win.** Another dictation app (e.g. Wispr Flow) might be
-  using the same shortcut. Quit it or change the shortcut on the Shortcuts page.
+  using the same shortcut. Quit it or change the shortcut on the Shortcuts page. Home says so when
+  it sees one running.
+- **Something in the setup was skipped or went wrong.** Go to *Settings → Run setup again* to go
+  through languages, microphone, speech engine and shortcut once more.
 - **Text doesn't appear in one specific app.** Windows blocks simulated input into apps running
   as administrator unless Pauli Speaks also runs as administrator. Use **Paste last transcript**,
   or copy from History.
