@@ -41,6 +41,17 @@ The *Fast* translation option uses Whisper and doesn't download NLLB-200.
 | [electron-updater](https://github.com/electron-userland/electron-builder) | Automatic updates from GitHub Releases | MIT |
 | [sharp](https://sharp.pixelplumbing.com) | Image library required by Transformers.js | Apache-2.0 |
 | [libvips](https://github.com/libvips/libvips) (`libvips-42.dll`, in `@img/sharp-win32-x64`) | Used by sharp | LGPL-3.0-or-later |
+| [Silero VAD](https://github.com/snakers4/silero-vad) v6.2.3 (`assets\models\silero_vad.onnx`, inside `app.asar`) | Finds the parts of a recording that are speech | MIT |
+
+### Silero VAD model
+
+The voice-activity model is part of the installer, so nothing is downloaded for it. It is the
+unmodified `silero_vad.onnx` from the Silero VAD release tag
+[v6.2.3](https://github.com/snakers4/silero-vad/releases/tag/v6.2.3), taken from
+`https://raw.githubusercontent.com/snakers4/silero-vad/v6.2.3/src/silero_vad/data/silero_vad.onnx`
+(SHA-256 `1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3`). Silero VAD is
+the work of the Silero Team, released under the
+[MIT License](https://github.com/snakers4/silero-vad/blob/v6.2.3/LICENSE).
 
 ### LGPL components
 

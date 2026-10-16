@@ -102,6 +102,26 @@ class LocalAsr extends EventEmitter {
     return this.#request({ type: 'translate', text, source, target });
   }
 
+  /**
+   * Speech segments of a whole recording (Silero VAD, padded and merged), in samples.
+   * @param {Float32Array} audio 16 kHz mono
+   * @returns {Promise<Array<{start: number, end: number}>>}
+   */
+  detectSpeech(audio) {
+    return this.#request({ type: 'vad', audio });
+  }
+
+  /**
+   * Live voice-activity detection: feed the recording as it arrives. A new `session`
+   * id starts from a clean state.
+   * @param {string|number} session
+   * @param {Float32Array} samples 16 kHz mono
+   * @returns {Promise<{speechFrames: number, silentMsSinceSpeech: number, heardSpeech: boolean}>}
+   */
+  vadStream(session, samples) {
+    return this.#request({ type: 'vad-stream', session, samples });
+  }
+
   dispose() {
     this.child?.kill();
     this.child = null;
