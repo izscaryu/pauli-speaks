@@ -6,7 +6,7 @@ are typed into whatever app has the cursor. Speech recognition runs **on your ow
 
 **Download:** grab the latest `Pauli-Speaks-Setup-x.y.z.exe` from
 [Releases](https://github.com/izscaryu/pauli-speaks/releases/latest). Installed copies update
-themselves.
+themselves. Can't install software on this PC? Use the [portable copy](#portable-copy).
 
 [Privacy](PRIVACY.md): what stays on your PC and what doesn't. · [Open-source licences](THIRD_PARTY_NOTICES.md) · [Code signing policy](docs/code-signing-policy.md)
 
@@ -22,6 +22,26 @@ mean a virus was found. Every installer is built from this repository's public s
 [GitHub Actions](.github/workflows/release.yml), so download it only from
 [Releases](https://github.com/izscaryu/pauli-speaks/releases). Signing the installer is planned;
 the [code signing policy](docs/code-signing-policy.md) shows its current status.
+
+### Portable copy
+
+`Pauli-Speaks-Portable-x.y.z.exe` (on the same Releases page) runs without installing, for
+example from a USB stick or on a work PC. Put it in a folder of its own and run it. It keeps
+everything (settings, history, speech models, logs) in a **`Pauli Speaks Data`** folder next to
+the `.exe`, and nothing in `%APPDATA%`. If that folder can't be written (a read-only drive), it
+falls back to `%APPDATA%\Pauli Speaks\`.
+
+Differences from the installed app:
+
+- **No automatic updates.** It checks GitHub for a new version and About offers a **Download**
+  button; replace the `.exe` with the new one and keep the `Pauli Speaks Data` folder.
+- **No `pauli-speaks://` links and no Start with Windows**, so it leaves nothing in the
+  registry. The command-line flags work with the portable `.exe`, but each call unpacks the app
+  again first, so they are slow.
+- It starts a few seconds slower, because it unpacks itself into a temp folder every time.
+
+An unpacked build folder (`dist/win-unpacked`) becomes portable the same way when you put an
+empty file named `portable` next to `Pauli Speaks.exe`.
 
 ## Features
 
@@ -91,8 +111,8 @@ Home screen. Click into the **Try it here** box, hold **Ctrl + Win**, say someth
 npm run dist
 ```
 
-This creates `dist/Pauli-Speaks-Setup-<version>.exe`. Use `npm run dist:portable` for a single
-portable `.exe`.
+This creates `dist/Pauli-Speaks-Setup-<version>.exe`. Use `npm run dist:portable` for the
+[portable](#portable-copy) `dist/Pauli-Speaks-Portable-<version>.exe`.
 
 ## Updates and releases
 
@@ -111,9 +131,10 @@ npm run release -- 1.1.0
 
 (or `patch`, `minor`, `major`). This runs the tests, sets `"version"` in `package.json`, commits
 "Release v1.1.0", tags it `v1.1.0` and pushes both. The tag starts
-[`.github/workflows/release.yml`](.github/workflows/release.yml), which builds the installer,
-checks that `latest.yml` (the file the updater reads) matches it exactly, and creates the
-GitHub release with the `.exe`, `.blockmap` and `latest.yml`.
+[`.github/workflows/release.yml`](.github/workflows/release.yml), which builds the installer
+and the portable `.exe`, checks that `latest.yml` (the file the updater reads) matches the
+installer exactly, and creates the GitHub release with the installer, its `.blockmap`,
+`latest.yml` and the portable `.exe`.
 
 Every push and pull request runs the tests in [CI](.github/workflows/ci.yml).
 
@@ -155,7 +176,8 @@ remote.js   pauli-speaks:// links and --flags, from startup argv and second-inst
 | `src/renderer/overlay.*` | Floating pill + microphone recorder |
 | `src/renderer/app.*` | Main window (Home, Shortcuts, Files, Dictionary, Settings, About) |
 
-Data lives in `%APPDATA%\Pauli Speaks\`: `settings.json`, `history.json`, `models\`, `logs\`.
+Data lives in `%APPDATA%\Pauli Speaks\` (a portable copy: `Pauli Speaks Data\` next to its
+`.exe`, see `src/main/portable.js`): `settings.json`, `history.json`, `models\`, `logs\`.
 Uninstalling asks whether to delete this folder too (the default is to keep it); updates never
 touch it. The uninstaller also removes the `pauli-speaks://` link handler and the
 start-with-Windows entry that the app registered ([`build/installer.nsh`](build/installer.nsh)).

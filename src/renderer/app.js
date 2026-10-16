@@ -575,7 +575,7 @@ api.onKeyTest((d) => {
 function renderRemoteLinks(info) {
   const exe = info.packaged ? `"${info.exePath}"` : '"Pauli Speaks.exe"';
   const lines = [
-    [`${info.protocol}://dictate/toggle`, 'Start or stop'],
+    [`${info.protocol}://dictate/toggle`, info.portable ? 'Links work only in the installed app' : 'Start or stop'],
     [`${info.protocol}://dictate/start`, 'Start hands-free'],
     [`${info.protocol}://dictate/stop`, 'Finish and paste'],
     [`${exe} --toggle`, 'Also --start, --stop, --cancel, --paste-last, --copy-last, --undo-last, --press-enter'],
@@ -941,6 +941,7 @@ function renderUpdate(u) {
     idle: 'Updates install automatically from GitHub.',
     checking: 'Checking for updates…',
     'up-to-date': "You're on the latest version.",
+    available: `Version ${u.version} is out. Portable copies don't update themselves: download the new one from GitHub.`,
     downloading: `Downloading ${u.version || 'update'}… ${u.percent || 0}%`,
     ready: `Version ${u.version} is downloaded. Restart to install it, or it installs the next time you quit.`,
     error: `Couldn't check for updates: ${u.error}`,
@@ -949,6 +950,8 @@ function renderUpdate(u) {
   $('#update-check').disabled = ['checking', 'downloading', 'disabled'].includes(u.status) || ready;
   $('#update-meter').hidden = u.status !== 'downloading';
   $('#update-meter').firstElementChild.style.width = `${u.percent || 0}%`;
+  $('#update-download').hidden = u.status !== 'available';
+  $('#update-download').onclick = () => api.openExternal(`https://github.com/izscaryu/pauli-speaks/releases/tag/v${u.version}`);
 }
 $('#update-check').addEventListener('click', () => api.checkForUpdates());
 document.querySelectorAll('[data-update-install]').forEach((b) => b.addEventListener('click', () => api.installUpdate()));
@@ -969,6 +972,10 @@ async function init() {
   $('#greeting').textContent = hour < 5 ? 'Good evening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   $('#about-version').textContent = `Version ${info.version} · free · speech by OpenAI Whisper, translation by Meta NLLB-200`;
   renderRemoteLinks(info);
+  if (info.portable) {
+    document.querySelectorAll('[data-portable]').forEach((e) => (e.hidden = false));
+    $('[data-setting="launchAtLogin"]').disabled = true;
+  }
   syncVoiceForm();
   renderAll();
   renderStats();

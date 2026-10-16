@@ -295,6 +295,8 @@ label.row { cursor: pointer; }
 .switch input:checked + span { background: var(--ok); }
 .switch input:checked + span::after { transform: translateX(18px); }
 .switch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+.switch input:disabled { cursor: default; }
+.switch input:disabled + span { opacity: 0.4; }
 
 .segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 10px; background: var(--surface-2); }
 .segmented.small { display: inline-grid; grid-template-columns: auto auto; }

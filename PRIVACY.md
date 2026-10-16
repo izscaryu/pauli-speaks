@@ -32,7 +32,8 @@ own privacy policy.
 - **Update checks** to GitHub (`github.com` and GitHub's download servers), 15 seconds after
   start and then every 6 hours. Only the release information and, when there is an update, the
   installer are downloaded. Nothing about you or your use of the app is sent beyond what any web
-  request contains (your IP address, for example).
+  request contains (your IP address, for example). The portable copy makes the same check but
+  never downloads anything; About shows a link to the new version instead.
 - **Model downloads** from Hugging Face (`huggingface.co` and its download servers), the first
   time you use a speech or translation model. After that the model works offline.
 
@@ -42,7 +43,8 @@ command-line flags only control the app on your PC.
 ## Where your data is, and how to delete it
 
 Everything is in `%APPDATA%\Pauli Speaks\` (paste that into the Explorer address bar, or use
-About → *Data folder*):
+About → *Data folder*). The portable copy keeps the same files in a `Pauli Speaks Data` folder
+next to its `.exe` instead; to delete everything, delete the `.exe` and that folder.
 
 | File or folder | Contains |
 |---|---|

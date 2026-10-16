@@ -3,6 +3,9 @@
 // Checks shortly after start and every 6 hours, downloads in the background,
 // then offers "Restart to update". Installs on quit if the user ignores it.
 // Only active in the packaged app - `npm start` never updates itself.
+//
+// Portable copies (portable.js) only check: the installer can't update a
+// portable exe, so they report "available" and About links to the release.
 
 const { EventEmitter } = require('node:events');
 const { app } = require('electron');
@@ -12,8 +15,10 @@ const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
 const FIRST_CHECK_DELAY_MS = 15 * 1000;
 
 class Updater extends EventEmitter {
-  constructor() {
+  /** @param {{portable?: boolean}} [options] */
+  constructor({ portable = false } = {}) {
     super();
+    this.portable = portable;
     this.state = { status: 'idle', version: null, percent: 0, error: null, current: app.getVersion() };
     this.enabled = app.isPackaged || !!process.env.PAULI_UPDATE_DEV;
     this.timer = null;
@@ -33,14 +38,15 @@ class Updater extends EventEmitter {
     const { autoUpdater } = require('electron-updater');
     this.autoUpdater = autoUpdater;
     autoUpdater.logger = { info: log.info, warn: log.warn, error: log.error, debug: log.debug };
-    autoUpdater.autoDownload = true;
+    autoUpdater.autoDownload = !this.portable;
     // PAULI_UPDATE_NO_INSTALL: test builds download but never install over the real app
-    autoUpdater.autoInstallOnAppQuit = !process.env.PAULI_UPDATE_NO_INSTALL;
+    autoUpdater.autoInstallOnAppQuit = !this.portable && !process.env.PAULI_UPDATE_NO_INSTALL;
     if (process.env.PAULI_UPDATE_DEV) autoUpdater.forceDevUpdateConfig = true;
 
     autoUpdater.on('checking-for-update', () => this.#set({ status: 'checking', error: null }));
     autoUpdater.on('update-not-available', () => this.#set({ status: 'up-to-date', checkedAt: Date.now() }));
-    autoUpdater.on('update-available', (info) => this.#set({ status: 'downloading', version: info.version, percent: 0 }));
+    autoUpdater.on('update-available', (info) =>
+      this.#set(this.portable ? { status: 'available', version: info.version } : { status: 'downloading', version: info.version, percent: 0 }));
     autoUpdater.on('download-progress', (p) => this.#set({ status: 'downloading', percent: Math.round(p.percent) }));
     autoUpdater.on('update-downloaded', (info) => {
       log.info(`Update ${info.version} downloaded`);

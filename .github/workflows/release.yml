@@ -1,7 +1,7 @@
 # Builds and publishes a release when a v* tag is pushed (npm run release -- x.y.z).
 #
-#   build:   tests → NSIS installer → [signing, not yet] → latest.yml check → artifact
-#   release: GitHub release with the .exe, .blockmap and latest.yml
+#   build:   tests → NSIS installer + portable exe → [signing, not yet] → latest.yml check → artifact
+#   release: GitHub release with the installer, its .blockmap, latest.yml and the portable exe
 #
 # The installed app's updater reads latest.yml from the newest release, so a
 # release is only created when latest.yml matches the installer exactly.
@@ -45,8 +45,10 @@ jobs:
       - run: npm ci
       - run: npm test
 
-      - name: Build installer (unsigned)
-        run: npx electron-builder --win nsis --publish never
+      # One build, two targets. latest.yml describes only the installer; the
+      # portable exe (Pauli-Speaks-Portable-<version>.exe) doesn't update itself.
+      - name: Build installer and portable exe (unsigned)
+        run: npx electron-builder --win nsis portable --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
@@ -75,6 +77,7 @@ jobs:
             dist/Pauli-Speaks-Setup-*.exe
             dist/Pauli-Speaks-Setup-*.exe.blockmap
             dist/latest.yml
+            dist/Pauli-Speaks-Portable-*.exe
           if-no-files-found: error
           retention-days: 7
 
@@ -102,7 +105,7 @@ jobs:
             --generate-notes \
             --verify-tag
 
-      - name: Check all three files arrived
+      - name: Check every file arrived
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

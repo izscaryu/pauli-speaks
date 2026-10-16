@@ -1,8 +1,9 @@
 'use strict';
 // Checks that a built release is consistent before it is published:
-// the tag matches package.json, and latest.yml (the file the in-app updater
-// reads) describes exactly the installer in dist/ - same name, sha512 and size.
-// If latest.yml is wrong, every installed copy rejects the update.
+// the tag matches package.json, latest.yml (the file the in-app updater
+// reads) describes exactly the installer in dist/ - same name, sha512 and size -
+// and the portable exe is there too. If latest.yml is wrong, every installed
+// copy rejects the update.
 //
 //   node scripts/release-check.js v1.1.0
 //
@@ -14,6 +15,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const installerName = (version) => `Pauli-Speaks-Setup-${version}.exe`;
+const portableName = (version) => `Pauli-Speaks-Portable-${version}.exe`;
 
 const valuesOf = (yml, key) => [...yml.matchAll(new RegExp(`^\\s*(?:- )?${key}: *(.+?)\\s*$`, 'gm'))].map((m) => m[1]);
 
@@ -58,10 +60,11 @@ if (require.main === module) {
   };
   const name = installerName(version);
   read(`${name}.blockmap`);
+  read(portableName(version));
   const problems = checkRelease({ tag, version, exe: read(name), latestYml: read('latest.yml', 'utf8') });
   for (const p of problems) console.error(`✖ ${p}`);
   if (problems.length) process.exit(1);
-  console.log(`✔ ${tag}: ${name}, its blockmap and latest.yml match.`);
+  console.log(`✔ ${tag}: ${name}, its blockmap and latest.yml match; ${portableName(version)} is there.`);
 }
 
-module.exports = { installerName, checkRelease };
+module.exports = { installerName, portableName, checkRelease };

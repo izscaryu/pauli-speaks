@@ -359,7 +359,7 @@
           <label class="row"><div class="title">Start and stop sounds</div><span class="switch"><input type="checkbox" data-setting="sounds" /><span></span></span></label>
           <label class="row"><div><div class="title">Idle bar</div><div class="desc">Small bar at the bottom of the screen; click it to dictate.</div></div><span class="switch"><input type="checkbox" data-setting="showIdlePill" /><span></span></span></label>
           <label class="row"><div class="title">Restore my clipboard after pasting</div><span class="switch"><input type="checkbox" data-setting="restoreClipboard" /><span></span></span></label>
-          <label class="row"><div class="title">Start with Windows</div><span class="switch"><input type="checkbox" data-setting="launchAtLogin" /><span></span></span></label>
+          <label class="row"><div><div class="title">Start with Windows</div><div class="desc" data-portable hidden>Only in the installed app. This portable copy starts when you open it.</div></div><span class="switch"><input type="checkbox" data-setting="launchAtLogin" /><span></span></span></label>
         </div>
       </section>
     </section>
@@ -380,6 +380,7 @@
             <div class="inline">
               <button id="update-check" class="btn">Check for updates</button>
               <button class="btn primary" data-update-install hidden>Restart to update</button>
+              <button id="update-download" class="btn primary" hidden>Download</button>
             </div>
           </div>
           <div id="update-meter" class="meter big" hidden><i></i></div>

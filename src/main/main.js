@@ -39,6 +39,10 @@ const { transcribeCloud, translateCloud } = require('./asr/cloud');
 const { MODELS, isModelDownloaded, canWhisperTranslate, buildPrompt } = require('./asr/whisper-local');
 const { NLLB_MODEL, NLLB_SIZE, NLLB_CODES } = require('./asr/translator-local');
 const { Updater } = require('./updater');
+const { setupPortable } = require('./portable');
+
+// Before anything reads userData: a portable copy keeps its data next to its exe.
+const portable = setupPortable(app);
 
 const ROOT = path.join(__dirname, '..', '..');
 const RENDERER = path.join(__dirname, '..', 'renderer');
@@ -804,6 +808,8 @@ function queueRemote(cmd) {
 }
 
 function registerProtocol() {
+  // A portable copy runs from a temp folder and leaves nothing in the registry.
+  if (portable.active) return;
   // From source (`electron .`) Windows must launch electron.exe with the app folder.
   const ok = process.defaultApp
     ? app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1] || '.')])
@@ -912,7 +918,8 @@ function registerIpc() {
     modelsDir: modelsDir(),
     logFile: log.file,
     packaged: app.isPackaged,
-    exePath: process.execPath,
+    exePath: portable.exeFile || process.execPath,
+    portable: portable.active,
     protocol: PROTOCOL,
   }));
   ipcMain.handle('app:open-path', (_e, which) => {
@@ -972,7 +979,7 @@ function registerIpc() {
 
 function applySettings(data, patch) {
   if (patch.bindings && !recorder.active && !keyTest) keyboard.setBindings(data.bindings);
-  if ('launchAtLogin' in patch && app.isPackaged) {
+  if ('launchAtLogin' in patch && app.isPackaged && !portable.active) {
     app.setLoginItemSettings({ openAtLogin: !!data.launchAtLogin, args: ['--hidden'] });
   }
   if ('showIdlePill' in patch && overlay && controller.status === 'idle') {
@@ -994,7 +1001,8 @@ function applySettings(data, patch) {
 function init() {
   app.setAppUserModelId('com.pauli.speaks');
   log.init(path.join(app.getPath('userData'), 'logs'));
-  log.info(`Pauli Speaks ${app.getVersion()} starting`);
+  log.info(`Pauli Speaks ${app.getVersion()} starting${portable.active ? ' (portable copy)' : ''}`);
+  if (portable.error) log.warn(portable.error);
 
   const canEncrypt = safeStorage.isEncryptionAvailable();
   settings = new Settings(path.join(app.getPath('userData'), 'settings.json'), {
@@ -1061,7 +1069,7 @@ function init() {
     updateTrayMenu();
   });
 
-  updater = new Updater();
+  updater = new Updater({ portable: portable.active });
   updater.on('state', (state) => {
     broadcast('update:state', state);
     updateTrayMenu();

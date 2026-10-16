@@ -78,6 +78,9 @@
       "createDesktopShortcut": true,
       "shortcutName": "Pauli Speaks",
       "include": "build/installer.nsh"
+    },
+    "portable": {
+      "artifactName": "Pauli-Speaks-Portable-${version}.${ext}"
     }
   },
   "allowScripts": {

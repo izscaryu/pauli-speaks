@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
-const { installerName, checkRelease } = require('../scripts/release-check');
+const { installerName, portableName, checkRelease } = require('../scripts/release-check');
 
 const exe = Buffer.from('pretend this is an installer');
 const sha512 = crypto.createHash('sha512').update(exe).digest('base64');
@@ -23,6 +23,13 @@ const good = { tag: 'v1.1.0', version: '1.1.0', exe, latestYml: latestYml() };
 
 test('the installer name follows the version', () => {
   assert.equal(installerName('1.1.0'), exeName);
+});
+
+test('the portable exe has its own name, so latest.yml can never point at it', () => {
+  const pkg = require('../package.json');
+  assert.equal(portableName('1.1.0'), 'Pauli-Speaks-Portable-1.1.0.exe');
+  assert.equal(pkg.build.portable.artifactName.replace('${version}', '1.1.0').replace('${ext}', 'exe'), portableName('1.1.0'));
+  assert.equal(pkg.build.nsis.artifactName.replace('${version}', '1.1.0').replace('${ext}', 'exe'), installerName('1.1.0'));
 });
 
 test('a release whose latest.yml describes the installer passes', () => {
