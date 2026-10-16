@@ -1,40 +1,37 @@
 # Code signing policy
 
-Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
-[SignPath Foundation](https://signpath.org/).
+**Status:** Pauli Speaks releases are not code-signed yet, so Windows shows a SmartScreen warning
+when you run the installer (see the [README](../README.md#windows-protected-your-pc)). This page
+will name the signing service and certificate once releases are signed.
 
-**Status:** Pauli Speaks has applied to SignPath Foundation. Until the application is approved,
-releases are not signed and Windows shows a SmartScreen warning when you run the installer.
-This page describes how signed releases will be made.
-
-## What is signed
-
-Only the Windows installer `Pauli-Speaks-Setup-<version>.exe` published on
-[GitHub Releases](https://github.com/izscaryu/pauli-speaks/releases) is signed, and only when it
-was built from this repository by the [release workflow](../.github/workflows/release.yml).
-Nothing built on a personal computer is signed, and nothing from another project is signed.
-
-## How a release is built and signed
+## How releases are built
 
 1. A maintainer tags a commit on `main` in this public repository (`v1.2.3`).
-2. GitHub Actions builds the installer from that commit, on GitHub's servers, and runs the tests.
-3. The unsigned installer is submitted to SignPath. An approver checks that the request comes
-   from the release workflow for the expected tag, and approves it by hand. Every release needs
-   its own approval.
-4. The signed installer, its `.blockmap` and `latest.yml` (regenerated for the signed file) are
-   published as a GitHub release. The in-app updater checks `latest.yml` before installing.
+2. GitHub Actions builds the installer `Pauli-Speaks-Setup-<version>.exe` from that commit, on
+   GitHub's servers, and runs the tests. Nothing built on a personal computer is published.
+3. The installer, its `.blockmap` and `latest.yml` are published as a
+   [GitHub release](https://github.com/izscaryu/pauli-speaks/releases). The in-app updater checks
+   `latest.yml` before installing.
 
-The product name in signed files is "Pauli Speaks", and the version is the version of the release.
+Download Pauli Speaks only from GitHub Releases. The product name in the installer is
+"Pauli Speaks", and the version is the version of the release.
+
+## What will be signed
+
+Once signing is in place, only the installer built from this repository by the
+[release workflow](../.github/workflows/release.yml) will be signed, after a maintainer approves
+each release, and `latest.yml` will be regenerated for the signed file. Nothing from another
+project will be signed.
 
 ## Team roles
 
 | Role | Members |
 |---|---|
 | Committers and reviewers | [Patrik Pauli (@izscaryu)](https://github.com/izscaryu) |
-| Approvers | [Patrik Pauli (@izscaryu)](https://github.com/izscaryu) |
+| Release approvers | [Patrik Pauli (@izscaryu)](https://github.com/izscaryu) |
 
 Changes from contributors outside this list are reviewed by a committer before they are merged.
-All team members use multi-factor authentication for GitHub and SignPath.
+All team members use multi-factor authentication for GitHub.
 
 ## Privacy
 
@@ -45,7 +42,6 @@ services involved, is in [PRIVACY.md](../PRIVACY.md).
 
 ## Reporting a problem
 
-If you think a signed Pauli Speaks file is malicious or was signed by mistake, open an issue at
-[github.com/izscaryu/pauli-speaks/issues](https://github.com/izscaryu/pauli-speaks/issues) or
-write to SignPath Foundation through [signpath.org](https://signpath.org/). We'll help
-investigate.
+If you think a Pauli Speaks release is malicious or was not built from this repository, open an
+issue at [github.com/izscaryu/pauli-speaks/issues](https://github.com/izscaryu/pauli-speaks/issues).
+We'll help investigate.

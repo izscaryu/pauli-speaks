@@ -20,9 +20,8 @@ This happens because the installer is not code-signed yet. Microsoft Defender Sm
 about any download that has no publisher signature or that few people have run; it does not
 mean a virus was found. Every installer is built from this repository's public source by
 [GitHub Actions](.github/workflows/release.yml), so download it only from
-[Releases](https://github.com/izscaryu/pauli-speaks/releases). Pauli Speaks has applied for free
-code signing from SignPath Foundation, which signs open-source projects; the
-[code signing policy](docs/code-signing-policy.md) describes how signed releases will be made.
+[Releases](https://github.com/izscaryu/pauli-speaks/releases). Signing the installer is planned;
+the [code signing policy](docs/code-signing-policy.md) shows its current status.
 
 ## Features
 

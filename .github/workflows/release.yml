@@ -51,14 +51,12 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       # ------------------------------------------------------------------
-      # CODE SIGNING (SignPath Foundation) - NOT ENABLED YET
+      # CODE SIGNING - NOT ENABLED YET (no signing service chosen; plan M1)
       #
-      # Added once the SignPath application is approved (plan M1). Steps:
-      #   1. Upload dist/Pauli-Speaks-Setup-<version>.exe as an artifact and
-      #      submit it with signpath/github-action-submit-signing-request
-      #      (pin it to a commit SHA). Needs a SIGNPATH_API_TOKEN repository
-      #      secret plus the organization id, project slug and signing policy
-      #      slug from SignPath.
+      # Whatever service signs the installer, the steps are:
+      #   1. Sign dist/Pauli-Speaks-Setup-<version>.exe with the service's
+      #      GitHub action or CLI (pin actions to a commit SHA; credentials in
+      #      repository secrets).
       #   2. Replace dist/Pauli-Speaks-Setup-<version>.exe with the signed file.
       #   3. Regenerate dist/latest.yml and the .blockmap for the SIGNED file
       #      (sha512 and size change when a file is signed). If this is
