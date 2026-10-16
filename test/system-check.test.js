@@ -118,3 +118,19 @@ test('baseLanguageCodes maps the Norwegian variants to no', () => {
   assert.deepEqual(baseLanguageCodes(['nb-NO', 'en-US']), ['no', 'en']);
   assert.deepEqual(baseLanguageCodes(['nn-NO', 'nb-NO', 'no']), ['no']);
 });
+
+test('redownloadPath maps a known model id to its folder under the models folder', () => {
+  const path = require('node:path');
+  const { redownloadPath } = require('../src/main/system-check');
+  assert.equal(redownloadPath('C:/m', 'onnx-community/whisper-small'), path.join('C:/m', 'onnx-community', 'whisper-small'));
+  assert.equal(redownloadPath('C:/m', BASE), path.join('C:/m', 'onnx-community', 'whisper-base'));
+});
+
+test('redownloadPath refuses anything that is not a known model id', () => {
+  const { redownloadPath } = require('../src/main/system-check');
+  for (const bad of ['../../x', '__proto__', 'constructor', 'onnx-community/whisper-small/../../x', '', undefined, null, 42, 'onnx-community/nllb']) {
+    assert.equal(redownloadPath('C:/m', bad), null, String(bad));
+  }
+  assert.equal(redownloadPath('', 'onnx-community/whisper-small'), null);
+  assert.equal(redownloadPath(undefined, 'onnx-community/whisper-small'), null);
+});

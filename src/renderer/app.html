@@ -56,7 +56,11 @@
         <div class="grow"><strong id="update-banner-title">Update ready</strong><span class="desc">Restart Pauli Speaks to finish updating. It takes a few seconds.</span></div>
         <button class="btn primary" data-update-install>Restart now</button>
       </div>
+      <div id="hook-banner" class="banner error" hidden></div>
       <div id="model-banner" class="banner" hidden></div>
+      <div id="conflict-banner" class="banner" hidden></div>
+      <div id="setup-card" class="banner setup" hidden></div>
+      <section id="whatsnew-card" class="panel whatsnew" hidden></section>
 
       <div class="keys-strip" aria-label="Shortcuts">
         <div class="kitem"><span id="ptt-chips" class="chips"></span><span>Hold to talk</span></div>
@@ -232,6 +236,7 @@
         <div class="panel-head"><h2>Shortcuts</h2></div>
         <div class="rows">
           <div class="row"><div><div class="title">Shortcuts and voice commands have their own page</div><div class="desc">Up to four shortcuts per action, hold or toggle, mouse buttons, pedals and links.</div></div><button class="btn" data-go="shortcuts">Open</button></div>
+          <div class="row"><div><div class="title">Guided setup</div><div class="desc">Languages, microphone, speech engine and shortcut, step by step.</div></div><button id="run-setup" class="btn">Run setup again</button></div>
         </div>
       </section>
 
@@ -430,5 +435,6 @@
   <script src="welcome.js"></script>
   <script src="welcome-engine.js"></script>
   <script src="welcome-shortcut.js"></script>
+  <script src="home-notices.js"></script>
 </body>
 </html>

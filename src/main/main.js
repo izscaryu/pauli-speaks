@@ -42,6 +42,7 @@ const { Updater } = require('./updater');
 const { setupPortable } = require('./portable');
 const { shouldPreloadAtStartup, shouldOfferSmallerModel, isAllowedExternalUrl } = require('./system-check');
 const { registerWelcomeIpc, runningProcessNames } = require('./welcome-ipc');
+const { readChangelog } = require('./changelog');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
 const portable = setupPortable(app);
@@ -71,6 +72,7 @@ let translatorState = { status: 'idle', percent: 0, error: null };
 let recorder = null; // ShortcutRecorder behind "+ Add" on the Shortcuts page
 let keyTest = null; // "Test a key" readout: { max }
 let lastTalkBinding = null;
+let hookError = null; // why the global keyboard hook did not start (null: it did)
 const lastPaste = new LastPaste(); // what undoLast removes
 let enterAfterPaste = false;
 let overlayReady = false;
@@ -228,7 +230,7 @@ function createMainWindow(page) {
       trayHintShown = true;
       tray.displayBalloon({
         title: 'Pauli Speaks is still running',
-        content: `${talkHint().replace(/^./, (c) => c.toUpperCase())} anywhere. Right-click the tray icon to quit.`,
+        content: `${talkHint().replace(/^./, (c) => c.toUpperCase())} anywhere. Change the shortcut on the Shortcuts page. Right-click the tray icon to quit.`,
         iconType: 'info',
       });
     }
@@ -884,6 +886,11 @@ function registerIpc() {
     gpuInfo: () => app.getGPUInfo('complete'),
     processNames: runningProcessNames,
     appVersion: () => app.getVersion(),
+    hookError: () => hookError,
+    changelog: readChangelog,
+    modelsDir,
+    getModelState: () => modelState,
+    preloadModel,
     log,
   });
   ipcMain.handle('history:list', () => history.list());
@@ -1107,6 +1114,7 @@ function init() {
     keyboard.start();
   } catch (err) {
     log.error('Could not start the global keyboard hook', err);
+    hookError = String((err && err.message) || err);
   }
 
   const startupCommand = parseCommandLine(process.argv);

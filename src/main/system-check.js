@@ -5,6 +5,8 @@
 // caller passes in app.getLocaleList-style data, app.getGPUInfo('complete')
 // and the output of `tasklist /fo csv /nh`.
 
+const { MODELS, modelDir } = require('./asr/whisper-local');
+
 // Ids from MODELS in asr/whisper-local.js (a test keeps them in sync).
 const MODEL_BASE = 'onnx-community/whisper-base';
 const MODEL_SMALL = 'onnx-community/whisper-small';
@@ -97,8 +99,18 @@ function shouldPreloadAtStartup(settings, isDownloaded) {
     && typeof isDownloaded === 'function' && isDownloaded(settings.localModel) === true;
 }
 
+/**
+ * The folder "Download again" deletes: the model's folder under `modelsDir`, only for an id in MODELS.
+ * Anything else (a path, `__proto__`, a made-up id) gives null, so nothing outside the models folder can be named.
+ */
+function redownloadPath(modelsDir, modelId) {
+  if (typeof modelsDir !== 'string' || !modelsDir || typeof modelId !== 'string') return null;
+  if (!MODELS.some((m) => m.id === modelId)) return null;
+  return modelDir(modelsDir, modelId);
+}
+
 module.exports = {
   MODEL_BASE, MODEL_SMALL, MODEL_LARGE_TURBO, KNOWN_CONFLICTS,
   baseLanguageCodes, classifyGpu, recommendModel, shouldOfferSmallerModel, parseTasklistCsv, findConflicts,
-  shouldPreloadAtStartup, isAllowedExternalUrl,
+  shouldPreloadAtStartup, isAllowedExternalUrl, redownloadPath,
 };

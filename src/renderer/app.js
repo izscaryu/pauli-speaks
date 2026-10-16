@@ -267,7 +267,7 @@ function renderBanner() {
   const side = $('#side-progress');
   if (!modelState) return;
   const jobs = [];
-  if (settings.engine === 'local') jobs.push({ name: modelLabel(), ...modelState, retry: api.loadModel });
+  if (settings.engine === 'local') jobs.push({ name: modelLabel(), ...modelState, retry: api.loadModel, again: () => HomeNotices.canRedownload() });
   const tr = modelState.translator;
   if (tr && tr.status !== 'idle' && tr.status !== 'ready') jobs.push({ name: 'Translator (NLLB-200)', ...tr, retry: api.loadTranslator });
   const job = jobs.find((j) => j.status === 'error') || jobs.find((j) => j.status === 'downloading' || j.status === 'loading');
@@ -284,7 +284,8 @@ function renderBanner() {
   if (job.status === 'error') {
     banner.replaceChildren(
       el('div', { class: 'grow' }, el('strong', {}, `Couldn't load ${job.name}`), el('span', { class: 'desc' }, job.error || '')),
-      el('button', { class: 'btn', onclick: () => job.retry() }, 'Retry'));
+      el('button', { class: 'btn', onclick: () => job.retry() }, 'Retry'),
+      job.again() ? el('button', { class: 'btn', onclick: HomeNotices.redownload }, 'Download again') : null);
     side.hidden = true;
     return;
   }
@@ -999,6 +1000,7 @@ async function init() {
   renderStats();
   loadHistory();
   if (!settings.onboarded) Welcome.start();
+  HomeNotices.start();
 }
 
 api.onSettings((s) => {

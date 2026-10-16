@@ -1,6 +1,9 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const { registerWelcomeIpc } = require('../src/main/welcome-ipc');
 
 const BASE = 'onnx-community/whisper-base';
@@ -27,9 +30,11 @@ function setup(overrides = {}) {
   return { handlers, calls };
 }
 
-test('registers the three welcome channels', () => {
+test('registers the welcome and health channels', () => {
   const { handlers } = setup();
-  assert.deepEqual(Object.keys(handlers).sort(), ['welcome:finish', 'welcome:recommend', 'welcome:system']);
+  assert.deepEqual(Object.keys(handlers).sort(), [
+    'health:state', 'model:redownload', 'welcome:finish', 'welcome:recommend', 'welcome:system', 'whatsnew:get', 'whatsnew:seen',
+  ]);
 });
 
 test('welcome:system maps locales to base language codes', async () => {
@@ -106,4 +111,128 @@ test('welcome:finish marks onboarding done and returns public settings', async (
   assert.deepEqual(calls.update, [{ onboarded: true, setupCard: false, lastSeenVersion: '1.2.0' }]);
   assert.equal(r.onboarded, true);
   assert.equal(r.lastSeenVersion, '1.2.0');
+});
+
+// ---------------------------------------------------------------- health, What's new, Download again
+
+const CHANGELOG = ['# Changelog', '', '## 1.2.0', '', '- Guided setup.', '- Health banners.', '', '## 1.1.3', '', '- Old.', ''].join('\n');
+const SECTION_1_2_0 = ['- Guided setup.', '- Health banners.'].join('\n');
+
+test('health:state reports the hook error and the running conflicting apps', async () => {
+  const { handlers } = setup({ hookError: () => 'hook failed', processNames: async () => ['wispr flow.exe', 'chrome.exe'] });
+  assert.deepEqual(await handlers['health:state']({}), { hookError: 'hook failed', conflicts: ['Wispr Flow'] });
+});
+
+test('health:state is clean when the hook started and nothing conflicts', async () => {
+  const { handlers } = setup({ hookError: () => null });
+  assert.deepEqual(await handlers['health:state']({}), { hookError: null, conflicts: [] });
+});
+
+test('health:state checks the processes again on every call', async () => {
+  const { handlers, calls } = setup();
+  await handlers['health:state']({});
+  await handlers['health:state']({});
+  assert.equal(calls.procs, 2);
+});
+
+test('whatsnew:get returns the section once for an onboarded user on a new version', () => {
+  const { handlers } = setup({ getSettings: () => ({ onboarded: true, lastSeenVersion: '1.1.3' }), changelog: () => CHANGELOG });
+  assert.deepEqual(handlers['whatsnew:get']({}), { version: '1.2.0', text: SECTION_1_2_0 });
+});
+
+test('whatsnew:get is null for a new install, a seen version or a missing section', () => {
+  const log = () => CHANGELOG;
+  const get = (settings, extra = {}) => setup({ getSettings: () => settings, changelog: log, ...extra }).handlers['whatsnew:get']({});
+  assert.equal(get({ onboarded: false, lastSeenVersion: '' }), null);
+  assert.equal(get({ onboarded: true, lastSeenVersion: '1.2.0' }), null);
+  assert.equal(get({ onboarded: true, lastSeenVersion: '' }, { appVersion: () => '9.9.9' }), null);
+  assert.equal(get({ onboarded: true, lastSeenVersion: '' }, { changelog: () => '' }), null);
+});
+
+test('whatsnew:get shows a pre-release the section of its base version', () => {
+  const { handlers } = setup({
+    getSettings: () => ({ onboarded: true, lastSeenVersion: '' }), changelog: () => CHANGELOG, appVersion: () => '1.2.0-beta.1',
+  });
+  assert.deepEqual(handlers['whatsnew:get']({}), { version: '1.2.0-beta.1', text: SECTION_1_2_0 });
+});
+
+test('whatsnew:seen stores the running app version, not what the window sends', () => {
+  const { handlers, calls } = setup();
+  handlers['whatsnew:seen']({}, '0.0.1');
+  assert.deepEqual(calls.update, [{ lastSeenVersion: '1.2.0' }]);
+});
+
+function redownloadSetup({ status = 'error', model = SMALL, localModel = SMALL, preload } = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pauli-redownload-'));
+  const modelFolder = path.join(dir, 'onnx-community', 'whisper-small');
+  fs.mkdirSync(modelFolder, { recursive: true });
+  fs.writeFileSync(path.join(modelFolder, '.pauli-ready'), 'x');
+  const outside = path.join(dir, 'keep.txt');
+  fs.writeFileSync(outside, 'keep');
+  const preloads = [];
+  const ctx = setup({
+    getSettings: () => ({ onboarded: true, localModel, engine: 'local' }),
+    modelsDir: () => dir,
+    getModelState: () => ({ model, status }),
+    preloadModel: preload || (async () => { preloads.push(1); }),
+  });
+  return { ...ctx, dir, modelFolder, outside, preloads, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) };
+}
+
+test('model:redownload removes only the failed model folder, then loads it again', async () => {
+  const t = redownloadSetup();
+  try {
+    assert.deepEqual(await t.handlers['model:redownload']({}), { ok: true });
+    assert.equal(fs.existsSync(t.modelFolder), false);
+    assert.equal(fs.existsSync(t.outside), true);
+    assert.equal(t.preloads.length, 1);
+  } finally {
+    t.cleanup();
+  }
+});
+
+test('model:redownload does nothing unless the configured model is in the error state', async () => {
+  for (const opts of [{ status: 'ready' }, { status: 'loading' }, { status: 'downloading' }, { model: BASE }]) {
+    const t = redownloadSetup(opts);
+    try {
+      assert.equal((await t.handlers['model:redownload']({})).ok, false, JSON.stringify(opts));
+      assert.equal(fs.existsSync(t.modelFolder), true);
+      assert.equal(t.preloads.length, 0);
+    } finally {
+      t.cleanup();
+    }
+  }
+});
+
+test('model:redownload never deletes for a model id that is not in the list', async () => {
+  for (const localModel of ['../..', '__proto__', 'constructor', 'onnx-community/whisper-small/../..']) {
+    const t = redownloadSetup({ localModel, model: localModel });
+    try {
+      assert.equal((await t.handlers['model:redownload']({})).ok, false, localModel);
+      assert.equal(fs.existsSync(t.dir), true);
+      assert.equal(fs.existsSync(t.modelFolder), true);
+      assert.equal(t.preloads.length, 0);
+    } finally {
+      t.cleanup();
+    }
+  }
+});
+
+test('model:redownload reports a folder that cannot be removed instead of throwing', async () => {
+  const t = redownloadSetup();
+  try {
+    const { handlers, calls } = setup({
+      getSettings: () => ({ localModel: SMALL }),
+      modelsDir: () => t.dir,
+      getModelState: () => ({ model: SMALL, status: 'error' }),
+      preloadModel: async () => {},
+      removeDir: () => { throw new Error('EBUSY'); },
+    });
+    const r = await handlers['model:redownload']({});
+    assert.equal(r.ok, false);
+    assert.match(r.error, /EBUSY/);
+    assert.ok(calls.log.length >= 1);
+  } finally {
+    t.cleanup();
+  }
 });

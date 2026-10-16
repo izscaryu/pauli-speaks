@@ -564,6 +564,14 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
   #page-welcome .we-cards { grid-template-columns: 1fr; }
 }
 
+/* ---------- Home notices (home-notices.js) */
+.banner.setup { border-color: var(--line); background: var(--surface); }
+.banner a { color: inherit; text-decoration: underline; }
+.whatsnew-body { display: flex; flex-direction: column; gap: 8px; color: var(--ink-2); }
+.whatsnew-body p { margin: 0; }
+.whatsnew-body ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 20px; text-wrap: pretty; }
+.whatsnew .panel-head { justify-content: space-between; }
+
 @media (max-width: 860px) {
   main { padding: 22px 20px 40px; }
   .row { grid-template-columns: 1fr; }
