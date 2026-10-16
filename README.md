@@ -141,7 +141,8 @@ and the portable `.exe`, checks that `latest.yml` (the file the updater reads) m
 installer exactly, and creates the GitHub release with the installer, its `.blockmap`,
 `latest.yml` and the portable `.exe`. `npm run release -- 1.2.0-beta.1` publishes a
 **pre-release** that only *Get early versions* users receive; only `-beta.N` versions are
-accepted.
+accepted. [docs/RELEASING.md](docs/RELEASING.md) is the full checklist, including the
+VirusTotal scan and what to do if Microsoft Defender flags a release.
 
 Every push and pull request runs the tests in [CI](.github/workflows/ci.yml).
 
