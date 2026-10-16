@@ -236,3 +236,119 @@ test('model:redownload reports a folder that cannot be removed instead of throwi
     t.cleanup();
   }
 });
+
+// ---------------------------------------------------------------- Settings → Backup
+
+const { registerBackupIpc } = require('../src/main/welcome-ipc');
+const { SETTINGS_VERSION } = require('../src/main/settings');
+
+function backupSetup(t, { dialog = {}, data = {}, win = {} } = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pauli-backup-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const handlers = {};
+  const ipcMain = { handle(ch, fn) { handlers[ch] = fn; } };
+  const calls = { update: [], dialogArgs: [], log: [] };
+  registerBackupIpc(ipcMain, {
+    dialog: {
+      showSaveDialog: async (...a) => { calls.dialogArgs.push(a); return dialog.save || { canceled: true }; },
+      showOpenDialog: async (...a) => { calls.dialogArgs.push(a); return dialog.open || { canceled: true }; },
+    },
+    getWindow: () => win.value || null,
+    getData: () => data,
+    updateSettings: (patch) => { calls.update.push(patch); },
+    appVersion: () => '1.2.0',
+    log: { warn: (...a) => calls.log.push(a) },
+  });
+  return { handlers, calls, dir };
+}
+
+test('registers the backup channels', (t) => {
+  const { handlers } = backupSetup(t);
+  assert.deepEqual(Object.keys(handlers).sort(), ['backup:export', 'backup:import']);
+});
+
+test('backup:export writes the portable settings and never the API key', async (t) => {
+  const probe = backupSetup(t);
+  const file = path.join(probe.dir, 'out.json');
+  const { handlers, calls } = backupSetup(t, {
+    dialog: { save: { canceled: false, filePath: file } },
+    data: { dictionary: [{ from: 'a', to: 'b' }], cloud: { apiKeyEnc: 'SECRET' }, apiKey: 'SECRET' },
+  });
+  assert.deepEqual(await handlers['backup:export'](), { ok: true });
+  const text = fs.readFileSync(file, 'utf8');
+  assert.ok(!text.includes('SECRET'));
+  const json = JSON.parse(text);
+  assert.equal(json.app, 'pauli-speaks');
+  assert.equal(json.settingsVersion, SETTINGS_VERSION);
+  assert.equal(json.appVersion, '1.2.0');
+  assert.deepEqual(json.settings, { dictionary: [{ from: 'a', to: 'b' }] });
+  assert.equal(calls.dialogArgs[0].at(-1).defaultPath, 'pauli-speaks-settings.json');
+  assert.deepEqual(calls.dialogArgs[0].at(-1).filters[0].extensions, ['json']);
+});
+
+test('backup:export passes the window to the dialog only when there is one', async (t) => {
+  const win = { id: 'win' };
+  const a = backupSetup(t, { win: { value: win } });
+  await a.handlers['backup:export']();
+  assert.equal(a.calls.dialogArgs[0].length, 2);
+  assert.equal(a.calls.dialogArgs[0][0], win);
+  const b = backupSetup(t);
+  await b.handlers['backup:export']();
+  assert.equal(b.calls.dialogArgs[0].length, 1);
+});
+
+test('a cancelled dialog changes nothing', async (t) => {
+  const { handlers, calls } = backupSetup(t);
+  assert.deepEqual(await handlers['backup:export'](), { ok: false, canceled: true });
+  assert.deepEqual(await handlers['backup:import'](), { ok: false, canceled: true });
+  assert.deepEqual(calls.update, []);
+});
+
+test('backup:export reports a file that cannot be written', async (t) => {
+  const probe = backupSetup(t);
+  const { handlers } = backupSetup(t, { dialog: { save: { canceled: false, filePath: path.join(probe.dir, 'missing-folder', 'x.json') } } });
+  const r = await handlers['backup:export']();
+  assert.equal(r.ok, false);
+  assert.equal(typeof r.error, 'string');
+});
+
+function importFrom(t, content) {
+  const probe = backupSetup(t);
+  const file = path.join(probe.dir, 'in.json');
+  fs.writeFileSync(file, content);
+  return backupSetup(t, { dialog: { open: { canceled: false, filePaths: [file] } } });
+}
+
+test('backup:import applies the patch of a valid backup', async (t) => {
+  const backup = { app: 'pauli-speaks', settingsVersion: SETTINGS_VERSION, settings: { dictionary: [{ from: 'x', to: 'y' }], onboarded: false, cloud: { apiKeyEnc: 'k' } } };
+  const { handlers, calls } = importFrom(t, JSON.stringify(backup));
+  assert.deepEqual(await handlers['backup:import'](), { ok: true });
+  assert.deepEqual(calls.update, [{ dictionary: [{ from: 'x', to: 'y' }] }]);
+});
+
+test('backup:import says so when the file is not JSON', async (t) => {
+  const { handlers, calls } = importFrom(t, 'not json {');
+  assert.deepEqual(await handlers['backup:import'](), { ok: false, error: "This isn't a Pauli Speaks backup." });
+  assert.deepEqual(calls.update, []);
+});
+
+test('backup:import passes on the reason a backup is refused', async (t) => {
+  const { handlers, calls } = importFrom(t, JSON.stringify({ app: 'pauli-speaks', settingsVersion: 99, settings: {} }));
+  assert.deepEqual(await handlers['backup:import'](), { ok: false, error: 'This backup is from a newer Pauli Speaks. Update first.' });
+  assert.deepEqual(calls.update, []);
+});
+
+test('backup:import refuses a file over 1 MB before reading it', async (t) => {
+  const { handlers, calls } = importFrom(t, ' '.repeat(1024 * 1024 + 1));
+  assert.deepEqual(await handlers['backup:import'](), { ok: false, error: 'This file is too big to be a Pauli Speaks backup.' });
+  assert.deepEqual(calls.update, []);
+});
+
+test('backup:import reports a file that cannot be read', async (t) => {
+  const probe = backupSetup(t);
+  const { handlers, calls } = backupSetup(t, { dialog: { open: { canceled: false, filePaths: [path.join(probe.dir, 'nope.json')] } } });
+  const r = await handlers['backup:import']();
+  assert.equal(r.ok, false);
+  assert.equal(typeof r.error, 'string');
+  assert.deepEqual(calls.update, []);
+});

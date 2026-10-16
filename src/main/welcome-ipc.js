@@ -12,6 +12,10 @@
 //     removeDir?: (dir) => void,           // default: recursive, forced fs.rmSync
 //     log?,
 //   }
+//
+// registerBackupIpc (Settings → Backup) takes
+//   deps = { dialog, getWindow, getData: () => settings incl. secrets (only BACKUP_KEYS are written out),
+//            updateSettings, appVersion, log? }
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -20,8 +24,12 @@ const {
   baseLanguageCodes, classifyGpu, recommendModel, findConflicts, parseTasklistCsv, redownloadPath,
 } = require('./system-check');
 const { changelogSection } = require('./changelog');
+const { exportBackup, importBackup, NOT_A_BACKUP } = require('./settings-backup');
+const { SETTINGS_VERSION } = require('./settings');
 
 const TASKLIST_TIMEOUT_MS = 5000;
+const MAX_BACKUP_BYTES = 1024 * 1024;
+const BACKUP_FILTERS = [{ name: 'Pauli Speaks backup', extensions: ['json'] }];
 const NO_GPU = Object.freeze({ usable: false, vendor: null });
 
 /** Lower-cased image names of the running processes (Windows `tasklist`); [] on any error. */
@@ -131,4 +139,56 @@ function registerWelcomeIpc(ipcMain, deps) {
   });
 }
 
-module.exports = { registerWelcomeIpc, runningProcessNames };
+/** Settings → Backup: save the portable settings to a .json file, or load them back from one. */
+function registerBackupIpc(ipcMain, deps) {
+  const { dialog, getWindow, getData, updateSettings, appVersion } = deps;
+  const log = deps.log || { warn() {} };
+  // dialog.show*Dialog(win, options) when there is a window, dialog.show*Dialog(options) when not.
+  const withWindow = (options) => {
+    const win = getWindow && getWindow();
+    return win ? [win, options] : [options];
+  };
+
+  ipcMain.handle('backup:export', async () => {
+    try {
+      const { canceled, filePath } = await dialog.showSaveDialog(...withWindow({
+        defaultPath: 'pauli-speaks-settings.json',
+        filters: BACKUP_FILTERS,
+      }));
+      if (canceled || !filePath) return { ok: false, canceled: true };
+      const backup = exportBackup(getData(), SETTINGS_VERSION, appVersion());
+      await fs.promises.writeFile(filePath, JSON.stringify(backup, null, 2), 'utf8');
+      return { ok: true };
+    } catch (err) {
+      log.warn('backup: export failed:', err && err.code);
+      return { ok: false, error: "Couldn't save the file." };
+    }
+  });
+
+  ipcMain.handle('backup:import', async () => {
+    try {
+      const { canceled, filePaths } = await dialog.showOpenDialog(...withWindow({
+        properties: ['openFile'],
+        filters: BACKUP_FILTERS,
+      }));
+      if (canceled || !filePaths || !filePaths[0]) return { ok: false, canceled: true };
+      const file = filePaths[0];
+      if ((await fs.promises.stat(file)).size > MAX_BACKUP_BYTES) return { ok: false, error: 'This file is too big to be a Pauli Speaks backup.' };
+      let json;
+      try {
+        json = JSON.parse(await fs.promises.readFile(file, 'utf8'));
+      } catch {
+        return { ok: false, error: NOT_A_BACKUP };
+      }
+      const r = importBackup(json, SETTINGS_VERSION);
+      if (!r.ok) return r;
+      updateSettings(r.patch);
+      return { ok: true };
+    } catch (err) {
+      log.warn('backup: import failed:', err && err.code);
+      return { ok: false, error: "Couldn't read the file." };
+    }
+  });
+}
+
+module.exports = { registerWelcomeIpc, registerBackupIpc, runningProcessNames };

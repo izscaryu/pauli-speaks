@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld('pauli', {
   getWhatsNew: () => ipcRenderer.invoke('whatsnew:get'),
   whatsNewSeen: () => ipcRenderer.invoke('whatsnew:seen'),
   redownloadModel: () => ipcRenderer.invoke('model:redownload'),
+  exportSettings: () => ipcRenderer.invoke('backup:export'),
+  importSettings: () => ipcRenderer.invoke('backup:import'),
 
   listHistory: () => ipcRenderer.invoke('history:list'),
   deleteHistory: (id) => ipcRenderer.invoke('history:delete', id),

@@ -381,6 +381,14 @@
           <label class="row"><div><div class="title">Start with Windows</div><div class="desc" data-portable hidden>Only in the installed app. This portable copy starts when you open it.</div></div><span class="switch"><input type="checkbox" data-setting="launchAtLogin" /><span></span></span></label>
         </div>
       </section>
+
+      <section class="panel">
+        <h2>Backup</h2>
+        <div class="rows">
+          <div class="row"><div><div class="title">Export settings</div><div class="desc">Saves your shortcuts, voice commands, dictionary, snippets and app styles to a file. API keys are never included.</div></div><button id="export-settings" class="btn">Export settings</button></div>
+          <div class="row"><div><div class="title">Import settings</div><div class="desc">Loads those settings from a backup file. They replace the ones you have now.</div></div><button id="import-settings" class="btn">Import settings</button></div>
+        </div>
+      </section>
     </section>
 
     <!-- ABOUT -->
@@ -436,5 +444,6 @@
   <script src="welcome-engine.js"></script>
   <script src="welcome-shortcut.js"></script>
   <script src="home-notices.js"></script>
+  <script src="backup.js"></script>
 </body>
 </html>

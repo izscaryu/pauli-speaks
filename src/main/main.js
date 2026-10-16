@@ -41,7 +41,7 @@ const { NLLB_MODEL, NLLB_SIZE, NLLB_CODES } = require('./asr/translator-local');
 const { Updater } = require('./updater');
 const { setupPortable } = require('./portable');
 const { shouldPreloadAtStartup, shouldOfferSmallerModel, isAllowedExternalUrl } = require('./system-check');
-const { registerWelcomeIpc, runningProcessNames } = require('./welcome-ipc');
+const { registerWelcomeIpc, registerBackupIpc, runningProcessNames } = require('./welcome-ipc');
 const { readChangelog } = require('./changelog');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
@@ -891,6 +891,14 @@ function registerIpc() {
     modelsDir,
     getModelState: () => modelState,
     preloadModel,
+    log,
+  });
+  registerBackupIpc(ipcMain, {
+    dialog,
+    getWindow: () => mainWindow,
+    getData: () => settings.get(),
+    updateSettings: (patch) => settings.update(patch),
+    appVersion: () => app.getVersion(),
     log,
   });
   ipcMain.handle('history:list', () => history.list());
