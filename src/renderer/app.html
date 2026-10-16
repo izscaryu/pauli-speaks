@@ -28,6 +28,19 @@
   </aside>
 
   <main>
+    <!-- WELCOME (first run; steps are built by welcome.js) -->
+    <section class="page" id="page-welcome" hidden aria-labelledby="welcome-title">
+      <header class="welcome-top">
+        <ol id="welcome-dots" class="welcome-dots"></ol>
+        <button id="welcome-later" class="btn quiet">Finish later</button>
+      </header>
+      <section id="welcome-step" class="panel welcome-step"></section>
+      <footer class="welcome-actions">
+        <button id="welcome-skip" class="btn quiet">Skip</button>
+        <span id="welcome-step-actions" class="inline"></span>
+      </footer>
+    </section>
+
     <!-- TRANSCRIPTS -->
     <section class="page" id="page-home">
       <header class="topbar">
@@ -413,5 +426,6 @@
 
   <div id="toast" class="toast" hidden></div>
   <script src="app.js"></script>
+  <script src="welcome.js"></script>
 </body>
 </html>

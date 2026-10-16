@@ -980,7 +980,7 @@ async function init() {
   renderAll();
   renderStats();
   loadHistory();
-  if (!settings.onboarded) $('#try-box').focus();
+  if (!settings.onboarded) Welcome.start();
 }
 
 api.onSettings((s) => {
@@ -1005,4 +1005,5 @@ api.onDictationStatus((d) => {
 });
 api.onError(({ message }) => toast(message.length > 90 ? `${message.slice(0, 90)}…` : message));
 
-init();
+// After every script on the page (welcome.js) has run: IPC replies can arrive between script tags.
+document.addEventListener('DOMContentLoaded', init);

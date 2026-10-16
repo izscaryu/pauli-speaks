@@ -76,6 +76,14 @@ function findConflicts(processNames) {
   return KNOWN_CONFLICTS.filter((c) => c.exe.some((exe) => running.has(exe))).map((c) => c.name);
 }
 
+// The one Windows Settings page the welcome flow links to (microphone blocked by privacy settings).
+const MIC_PRIVACY_URL = 'ms-settings:privacy-microphone';
+
+/** URLs the window may hand to shell.openExternal: https links, plus exactly the microphone privacy page. */
+function isAllowedExternalUrl(url) {
+  return typeof url === 'string' && (url.startsWith('https://') || url === MIC_PRIVACY_URL);
+}
+
 /** The model loads when the app starts only once the welcome flow is done and the local engine is chosen. */
 function shouldPreloadAtStartup(settings) {
   return !!settings && settings.onboarded === true && settings.engine === 'local';
@@ -84,5 +92,5 @@ function shouldPreloadAtStartup(settings) {
 module.exports = {
   MODEL_BASE, MODEL_SMALL, MODEL_LARGE_TURBO, KNOWN_CONFLICTS,
   baseLanguageCodes, classifyGpu, recommendModel, shouldOfferSmallerModel, parseTasklistCsv, findConflicts,
-  shouldPreloadAtStartup,
+  shouldPreloadAtStartup, isAllowedExternalUrl,
 };

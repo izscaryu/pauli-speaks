@@ -518,6 +518,23 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 .vc-form select { width: 100%; min-width: 0; }
 .vc-form.off, .vc-list:has(+ .vc-form.off) { opacity: 0.55; }
 
+/* ---------- welcome flow (first run; the sidebar is hidden while it shows) */
+#page-welcome { max-width: 680px; padding-top: 12px; }
+#page-welcome .welcome-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+#page-welcome .welcome-dots { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
+#page-welcome .welcome-dots li { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition-property: background-color, width; transition-duration: 150ms; }
+#page-welcome .welcome-dots li.done { background: var(--ink-3); }
+#page-welcome .welcome-dots li.current { width: 22px; border-radius: 999px; background: var(--ink); }
+#page-welcome .welcome-step { gap: 14px; min-height: 260px; padding: 26px 28px; }
+#page-welcome .welcome-step h1:focus { outline: none; }
+#page-welcome .welcome-step .sub { margin: -6px 0 4px; }
+#page-welcome .welcome-step select { align-self: flex-start; min-width: 280px; max-width: 100%; }
+#page-welcome .welcome-step .meter.big { margin: 2px 0; }
+#page-welcome .wm-status { margin: 0; color: var(--ink-2); font-weight: 600; }
+#page-welcome .wm-status.good { color: var(--ok); }
+#page-welcome .wm-status.bad { color: var(--signal); }
+#page-welcome .welcome-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+
 @media (max-width: 860px) {
   main { padding: 22px 20px 40px; }
   .row { grid-template-columns: 1fr; }

@@ -40,7 +40,7 @@ const { MODELS, isModelDownloaded, canWhisperTranslate, buildPrompt } = require(
 const { NLLB_MODEL, NLLB_SIZE, NLLB_CODES } = require('./asr/translator-local');
 const { Updater } = require('./updater');
 const { setupPortable } = require('./portable');
-const { shouldPreloadAtStartup } = require('./system-check');
+const { shouldPreloadAtStartup, isAllowedExternalUrl } = require('./system-check');
 const { registerWelcomeIpc, runningProcessNames } = require('./welcome-ipc');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
@@ -940,7 +940,7 @@ function registerIpc() {
     return shell.openPath(target);
   });
   ipcMain.handle('app:open-external', (_e, url) => {
-    if (typeof url === 'string' && url.startsWith('https://')) return shell.openExternal(url);
+    if (isAllowedExternalUrl(url)) return shell.openExternal(url);
   });
   ipcMain.handle('dictation:status', () => ({ status: controller.status, locked: controller.locked }));
   ipcMain.handle('update:state', () => updater.state);

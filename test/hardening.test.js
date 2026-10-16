@@ -11,6 +11,7 @@ const { validateShortcut, normalizeBindings, maxBindings } = require('../src/mai
 const { ShortcutRecorder } = require('../src/main/shortcut-recorder');
 const { normalizeVoiceCommands } = require('../src/main/voice-commands');
 const { Settings, DEFAULTS } = require('../src/main/settings');
+const { isAllowedExternalUrl } = require('../src/main/system-check');
 
 const plain = { encrypt: (s) => `plain:${s}`, decrypt: (s) => s.slice(6) };
 const BUILTINS = ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf'];
@@ -63,4 +64,19 @@ test('voice-command phrases and inserted text have sane lengths', () => {
     { phrases: ['fine'], action: 'insert', arg: 'y'.repeat(2000) },
   ]);
   assert.deepEqual(list.map((c) => c.phrases), [['ok phrase'], ['fine']]);
+});
+
+test('the window may open https links and the Windows microphone privacy page, nothing else', () => {
+  assert.equal(isAllowedExternalUrl('https://github.com/izscaryu/pauli-speaks'), true);
+  assert.equal(isAllowedExternalUrl('ms-settings:privacy-microphone'), true);
+  for (const url of [
+    'ms-settings:', 'ms-settings:privacy-webcam', 'ms-settings:privacy-microphone2', 'ms-settings:privacy-microphone?x=1',
+    ' ms-settings:privacy-microphone', 'MS-SETTINGS:privacy-microphone', 'ms-settings:windowsupdate',
+    'file:///C:/Windows/System32/cmd.exe', 'javascript:alert(1)', 'http://example.com', 'HTTPS://example.com', '',
+  ]) {
+    assert.equal(isAllowedExternalUrl(url), false, url);
+  }
+  for (const value of [undefined, null, 42, {}, ['https://x'], { toString: () => 'https://x' }]) {
+    assert.equal(isAllowedExternalUrl(value), false, String(value));
+  }
 });
