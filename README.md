@@ -10,6 +10,26 @@ themselves. Can't install software on this PC? Use the [portable copy](#portable
 
 [Privacy](PRIVACY.md): what stays on your PC and what doesn't. · [Open-source licences](THIRD_PARTY_NOTICES.md) · [Code signing policy](docs/code-signing-policy.md)
 
+## Screenshots
+
+![The main window: your shortcuts, words per day and the history of what you dictated](docs/images/transcripts.png)
+
+While you talk, a small pill at the bottom of the screen shows that it's listening (and, if you
+turn on *Live preview*, the words so far):
+
+![The dictation pill with a live preview](docs/images/dictation-pill.png)
+
+On first start, a short guided setup asks which languages you speak, checks your microphone,
+suggests a speech engine for your PC and tests your shortcut:
+
+| Your languages | Your speech engine |
+|---|---|
+| ![Guided setup: choose the languages you speak](docs/images/setup-languages.png) | ![Guided setup: the recommended speech engine for this PC](docs/images/setup-speech-engine.png) |
+
+| Shortcuts | Dark mode |
+|---|---|
+| ![The Shortcuts page](docs/images/shortcuts.png) | ![The main window in dark mode](docs/images/transcripts-dark.png) |
+
 ### "Windows protected your PC"
 
 When you run the installer, Windows may show a blue **"Windows protected your PC"** screen
