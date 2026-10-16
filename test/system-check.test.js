@@ -64,6 +64,11 @@ test('shouldOfferSmallerModel only for Large Turbo running on the CPU', () => {
   assert.equal(shouldOfferSmallerModel({ model: BIG, status: 'ready', device: 'dml' }), false);
   assert.equal(shouldOfferSmallerModel({ model: BIG, status: 'loading', device: null }), false);
   assert.equal(shouldOfferSmallerModel({ model: SMALL, status: 'ready', device: 'cpu' }), false);
+  assert.equal(shouldOfferSmallerModel({ model: BIG, acceleration: 'auto', status: 'ready', device: 'cpu' }), true);
+});
+
+test('shouldOfferSmallerModel stays quiet when the user chose the CPU', () => {
+  assert.equal(shouldOfferSmallerModel({ model: BIG, acceleration: 'cpu', status: 'ready', device: 'cpu' }), false);
 });
 
 test('parseTasklistCsv and findConflicts', () => {

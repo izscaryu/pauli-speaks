@@ -59,9 +59,12 @@ function recommendModel({ languages, gpu }) {
   return { model: MODEL_SMALL, reason: 'other-languages' };
 }
 
-/** True when Large v3 Turbo finished loading but runs on the CPU, where a smaller model is the better pick. */
-function shouldOfferSmallerModel({ model, status, device }) {
-  return model === MODEL_LARGE_TURBO && status === 'ready' && device !== 'dml';
+/**
+ * True when Large v3 Turbo finished loading but fell back to the CPU, where a smaller model is the better pick.
+ * Not when the user chose the CPU on purpose.
+ */
+function shouldOfferSmallerModel({ model, acceleration, status, device }) {
+  return model === MODEL_LARGE_TURBO && acceleration !== 'cpu' && status === 'ready' && device !== 'dml';
 }
 
 /** `tasklist /fo csv /nh` output -> lower-cased image names (the first CSV column). */

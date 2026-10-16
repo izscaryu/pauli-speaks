@@ -247,6 +247,7 @@ $('#clear-history').addEventListener('click', async () => {
   if (confirm('Delete all transcripts? This cannot be undone.')) await api.clearHistory();
 });
 
+let slowNoteDismissed = false; // the "Large v3 Turbo is slow" note, hidden for this session
 /** Home notes when no model job runs: the chosen model isn't on disk yet, or Large v3 Turbo fell back to the CPU. */
 function modelNote() {
   if (settings.engine !== 'local') return null;
@@ -255,9 +256,10 @@ function modelNote() {
     return [el('div', { class: 'grow' }, el('strong', {}, 'The speech model is not downloaded yet.'), el('span', { class: 'desc' }, 'One-time download. After this it runs offline.')),
       el('button', { class: 'btn primary', onclick: () => api.loadModel() }, `Download Whisper ${m.label} (${m.size})`)];
   }
-  if (modelState.offerSmaller && modelState.model === settings.localModel) {
+  if (modelState.offerSmaller && modelState.model === settings.localModel && !slowNoteDismissed) {
     return [el('div', { class: 'grow' }, el('strong', {}, 'Your graphics card couldn\'t be used, so Whisper Large v3 Turbo is slow on this PC.')),
-      el('button', { class: 'btn', onclick: () => save({ localModel: 'onnx-community/whisper-small' }, 'Switched to Whisper Small') }, 'Use Whisper Small')];
+      el('button', { class: 'btn', onclick: () => save({ localModel: 'onnx-community/whisper-small' }, 'Switched to Whisper Small') }, 'Use Whisper Small'),
+      el('button', { class: 'btn', onclick: () => { slowNoteDismissed = true; renderBanner(); } }, 'Dismiss')];
   }
   return null;
 }
@@ -296,7 +298,7 @@ function renderBanner() {
       el('strong', {}, downloading ? `Downloading ${job.name}` : `Loading ${job.name}…`),
       downloading ? el('span', { class: 'desc' }, 'One-time download. After this it runs offline.') : null,
       downloading ? meter : null),
-    downloading ? el('b', {}, `${job.percent}%`) : null);
+    ...(downloading ? [el('b', {}, `${job.percent}%`)] : []));
   side.hidden = !downloading;
   side.firstElementChild.style.width = `${job.percent || 0}%`;
 }
@@ -583,7 +585,7 @@ tester.addEventListener('focus', () => api.setKeyTest(true));
 tester.addEventListener('blur', () => api.setKeyTest(false));
 window.addEventListener('blur', () => document.activeElement === tester && tester.blur());
 api.onKeyTest((d) => {
-  $('#tester-keys').replaceChildren(...keyChips(d.keys), d.doubleTap ? el('span', { class: 'tap' }, '×2') : null);
+  $('#tester-keys').replaceChildren(...keyChips(d.keys), ...(d.doubleTap ? [el('span', { class: 'tap' }, '×2')] : []));
   const what = `${keyText(d.keys)}${d.doubleTap ? ' double-tap' : ''}`;
   const beh = d.behaviour ? ` (${BEHAVIOURS.find(([v]) => v === d.behaviour)[1].toLowerCase()})` : '';
   $('#tester-out').textContent = d.action ? `${what} → ${ACTION_TITLE[d.action] || d.action}${beh}` : `${what} → not used by Pauli Speaks`;
