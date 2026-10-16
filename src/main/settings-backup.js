@@ -4,6 +4,7 @@
 // Pure functions; the dialogs and file access are in welcome-ipc.js.
 
 const { runMigrations, MIGRATIONS } = require('./settings');
+const { normalizeBindings } = require('./shortcut-rules');
 
 const BACKUP_KEYS = Object.freeze(['bindings', 'voiceCommands', 'voiceCommandsEnabled', 'dictionary', 'snippets', 'appStyles']);
 
@@ -12,14 +13,33 @@ const TOO_NEW = 'This backup is from a newer Pauli Speaks. Update first.';
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
-/** What each backup key must be at the top level. */
-const TYPE_OK = {
-  bindings: Array.isArray,
-  voiceCommands: Array.isArray,
-  voiceCommandsEnabled: (v) => typeof v === 'boolean',
-  dictionary: Array.isArray,
-  snippets: Array.isArray,
-  appStyles: isPlainObject,
+const hasStrings = (v, ...keys) => isPlainObject(v) && keys.every((k) => Object.hasOwn(v, k) && typeof v[k] === 'string');
+
+/**
+ * Each backup key's value as it may be applied, or undefined to leave the current setting alone.
+ * Malformed list elements are dropped: one bad entry must not break dictation or the Settings page.
+ */
+const CLEAN = {
+  // Shortcuts are cleaned by settings.update(); a list that cleans up to nothing would wipe every
+  // shortcut, so then the current ones stay.
+  bindings: (v) => {
+    if (!Array.isArray(v)) return undefined;
+    const clean = normalizeBindings(v);
+    return v.length && !clean.length ? undefined : clean;
+  },
+  // The commands themselves are checked by normalizeVoiceCommands() in settings.update().
+  voiceCommands: (v) => (Array.isArray(v) ? v.filter(isPlainObject) : undefined),
+  voiceCommandsEnabled: (v) => (typeof v === 'boolean' ? v : undefined),
+  dictionary: (v) => (Array.isArray(v) ? v.filter((e) => hasStrings(e, 'from', 'to')) : undefined),
+  snippets: (v) => (Array.isArray(v) ? v.filter((e) => hasStrings(e, 'trigger', 'text')) : undefined),
+  // appStyles is merged field by field, so a bad field is left out and the current one stays.
+  appStyles: (v) => {
+    if (!isPlainObject(v)) return undefined;
+    const out = {};
+    if (Object.hasOwn(v, 'enabled') && typeof v.enabled === 'boolean') out.enabled = v.enabled;
+    if (Object.hasOwn(v, 'rules') && Array.isArray(v.rules)) out.rules = v.rules.filter((r) => hasStrings(r, 'app', 'style'));
+    return Object.keys(out).length ? out : undefined;
+  },
 };
 
 /** The backup file's content for the given settings data (a copy of own BACKUP_KEYS only). */
@@ -46,7 +66,9 @@ function importBackup(json, currentVersion) {
   }
   const patch = {};
   for (const key of BACKUP_KEYS) {
-    if (Object.hasOwn(migrated, key) && TYPE_OK[key](migrated[key])) patch[key] = migrated[key];
+    if (!Object.hasOwn(migrated, key)) continue;
+    const value = CLEAN[key](migrated[key]);
+    if (value !== undefined) patch[key] = value;
   }
   return { ok: true, patch };
 }

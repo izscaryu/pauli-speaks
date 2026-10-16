@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { BACKUP_KEYS, exportBackup, importBackup } = require('../src/main/settings-backup');
 const { SETTINGS_VERSION } = require('../src/main/settings');
+const { normalizeBindings } = require('../src/main/shortcut-rules');
 
 const NOT_A_BACKUP = "This isn't a Pauli Speaks backup.";
 
@@ -116,4 +117,66 @@ test('an exported backup imports back to the same values', () => {
   const data = { dictionary: [{ from: 'x', to: 'y' }], snippets: [], voiceCommandsEnabled: true, cloud: { apiKeyEnc: 'secret' } };
   const r = importBackup(JSON.parse(JSON.stringify(exportBackup(data, SETTINGS_VERSION, '1.2.0'))), SETTINGS_VERSION);
   assert.deepEqual(r, { ok: true, patch: { dictionary: data.dictionary, snippets: [], voiceCommandsEnabled: true } });
+});
+
+const backup = (settings) => ({ app: 'pauli-speaks', settingsVersion: 4, settings });
+
+test('importBackup drops malformed elements instead of reporting a broken backup as fine', () => {
+  // The confirmed example: every element is malformed, so nothing of it may reach the settings.
+  const r = importBackup(backup({
+    dictionary: [null, { from: 'x' }], snippets: [null], appStyles: { rules: 'x', enabled: 'yes' },
+  }), 4);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.patch, { dictionary: [], snippets: [] });
+});
+
+test('importBackup keeps dictionary entries only with string from and to', () => {
+  const r = importBackup(backup({
+    dictionary: [{ from: 'a', to: 'b' }, null, 'x', 7, [], { from: 'x' }, { to: 'y' }, { from: 1, to: 'y' }, { from: 'c', to: null },
+      Object.create({ from: 'p', to: 'q' }), { from: 'd', to: '' }],
+  }), 4);
+  assert.deepEqual(r.patch.dictionary, [{ from: 'a', to: 'b' }, { from: 'd', to: '' }]);
+});
+
+test('importBackup keeps snippets only with string trigger and text', () => {
+  const r = importBackup(backup({
+    snippets: [{ trigger: 'my email', text: 'me@example.test' }, null, [], { trigger: 'x' }, { text: 'y' }, { trigger: 2, text: 'y' }],
+  }), 4);
+  assert.deepEqual(r.patch.snippets, [{ trigger: 'my email', text: 'me@example.test' }]);
+});
+
+test('importBackup keeps a boolean appStyles.enabled and well-formed rules only', () => {
+  const rules = [{ app: 'code.exe', style: 'code' }, null, 'slack.exe', { app: 'x.exe' }, { style: 'casual' }, { app: 1, style: 'code' }];
+  assert.deepEqual(importBackup(backup({ appStyles: { enabled: false, rules } }), 4).patch,
+    { appStyles: { enabled: false, rules: [{ app: 'code.exe', style: 'code' }] } });
+  // A bad field is left out, so the current value of that field stays.
+  assert.deepEqual(importBackup(backup({ appStyles: { enabled: 'yes', rules: [] } }), 4).patch, { appStyles: { rules: [] } });
+  assert.deepEqual(importBackup(backup({ appStyles: { enabled: true, rules: 'x' } }), 4).patch, { appStyles: { enabled: true } });
+  assert.deepEqual(importBackup(backup({ appStyles: { rules: 'x', enabled: 'yes' } }), 4).patch, {});
+});
+
+test('importBackup drops voice commands that are not objects and leaves the rest to normalizeVoiceCommands', () => {
+  const cmd = { phrases: ['new line'], action: 'insert', arg: '\n' };
+  const r = importBackup(backup({ voiceCommands: [null, 'x', 3, [], cmd] }), 4);
+  assert.deepEqual(r.patch.voiceCommands, [cmd]);
+});
+
+test('importBackup keeps the current shortcuts when the imported ones are all invalid', () => {
+  assert.deepEqual(importBackup(backup({ bindings: [null] }), 4).patch, {});
+  assert.deepEqual(importBackup(backup({ bindings: [{ action: 'nope', keys: ['Ctrl'] }, { action: 'dictate', keys: [] }] }), 4).patch, {});
+  // An empty list on purpose is still imported.
+  assert.deepEqual(importBackup(backup({ bindings: [] }), 4).patch, { bindings: [] });
+  const good = { id: 'dictate-1', action: 'dictate', keys: ['Ctrl', 'Meta'] };
+  assert.deepEqual(importBackup(backup({ bindings: [null, good] }), 4).patch.bindings, normalizeBindings([good]));
+});
+
+test('after a malformed import the cleanup and style code do not throw', () => {
+  const { cleanTranscript } = require('../src/main/text-cleanup');
+  const { resolveStyle } = require('../src/main/app-styles');
+  const r = importBackup(backup({
+    dictionary: [null, { from: 'x' }], snippets: [null], appStyles: { rules: 'x', enabled: 'yes' },
+  }), 4);
+  const settings = { dictionary: [], snippets: [], appStyles: { enabled: true, rules: [] }, ...r.patch };
+  assert.doesNotThrow(() => cleanTranscript('x marks the spot', { dictionary: settings.dictionary, snippets: settings.snippets }));
+  assert.equal(resolveStyle('code.exe', { ...settings.appStyles }), 'normal');
 });
