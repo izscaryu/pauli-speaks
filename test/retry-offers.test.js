@@ -345,3 +345,24 @@ test('failed: onFailed gets the History entry and the audio (so a recording can 
   assert.equal(seen[0][0], history.list()[0]);
   assert.equal(seen[0][1], a);
 });
+
+test('C2: a held Undo does not evict failed recordings kept for Retry', () => {
+  const { history, pending, offers } = setup({ maxItems: 1 });
+  offers.failed(audio(), meta, 'boom');
+  const failed = history.list()[0];
+  const action = offers.holdForUndo(() => {}).offer(audio(), meta);
+  assert.ok(pending.get(failed.audioId), 'still retryable');
+  assert.equal(offers.canRetry(failed), true);
+  assert.equal(offers.take(action.id).kind, 'undo');
+});
+
+test('C7: clear forgets every recording in memory and ends a held Undo', () => {
+  const { pending, offers } = setup();
+  offers.failed(audio(), meta, 'boom');
+  let expired = 0;
+  const action = offers.holdForUndo(() => expired++).offer(audio(), meta);
+  offers.clear();
+  assert.equal(pending.size, 0);
+  assert.equal(expired, 1, 'the cancelled dictation\'s crash file goes too');
+  assert.equal(offers.take(action.id), null);
+});

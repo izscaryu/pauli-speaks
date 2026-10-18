@@ -94,3 +94,30 @@ test('ids are unique across runs (failed History entries from an earlier run mus
   const second = createPendingAudio().put(seconds(1));
   assert.notEqual(first, second);
 });
+
+test('an uncapped recording (a held Undo) never evicts the others and is never evicted', () => {
+  const evicted = [];
+  const store = createPendingAudio({ maxItems: 1, maxSeconds: 5, onEvict: (id) => evicted.push(id) });
+  const failed = store.put(seconds(4));
+  const held = store.put(seconds(4), {}, { capped: false });
+  assert.ok(store.get(failed), 'the failed recording stays');
+  assert.ok(store.get(held));
+  const next = store.put(seconds(4)); // a capped one: the older capped one goes, the held one stays
+  assert.deepEqual(evicted, [failed]);
+  assert.ok(store.get(held));
+  assert.ok(store.get(next));
+  store.take(held);
+  assert.equal(store.size, 1);
+});
+
+test('clear forgets everything, capped or not', () => {
+  const store = createPendingAudio();
+  const a = store.put(seconds(1));
+  const b = store.put(seconds(1), {}, { capped: false });
+  store.clear();
+  assert.equal(store.size, 0);
+  assert.equal(store.get(a), null);
+  assert.equal(store.get(b), null);
+  const c = store.put(seconds(1));
+  assert.ok(store.get(c), 'usable after clear');
+});

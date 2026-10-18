@@ -130,7 +130,7 @@ function createRetryOffers({ pending, history, onFailed = () => {}, undoMs = UND
         /** @returns {{id, label}|null} null when a new dictation already took over */
         offer(audio, meta) {
           if (held.expired) return null;
-          held.audioId = pending.put(audio, meta);
+          held.audioId = pending.put(audio, meta, { capped: false }); // never pushes out a recording kept for Retry
           held.timer = timers.setTimeout(() => endUndo(held), undoMs);
           return show('undo', held.audioId);
         },
@@ -179,6 +179,13 @@ function createRetryOffers({ pending, history, onFailed = () => {}, undoMs = UND
 
     forgetAll() {
       for (const i of history.list()) if (i.status === 'failed') pending.drop(i.audioId);
+    },
+
+    /** Delete all my data: every recording in memory goes, a held Undo ends (its crash file goes) and the pill's button is stale. */
+    clear() {
+      if (undo) endUndo(undo);
+      offer = null;
+      pending.clear();
     },
   };
 }
