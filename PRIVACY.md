@@ -13,7 +13,8 @@ the app says so next to that option.
   If the app crashes or is closed while you dictate, the copy stays in that folder. The next time
   Pauli Speaks starts, Home asks whether to recover it (it is transcribed and copied to your
   clipboard) or discard it, and the copy is deleted after either choice. A leftover copy shorter than
-  half a second is deleted at start without asking. A dictation you start before choosing replaces
+  half a second is deleted at start without asking, and with crash recovery off nothing is written and any leftover
+  copy is deleted at start. A dictation you start before choosing replaces
   the leftover copy.
 - **Retry and Undo.** If a dictation can't be transcribed (for example the cloud service is
   unreachable), its audio is kept in memory, not on disk, so you can retry it from the pill or from
