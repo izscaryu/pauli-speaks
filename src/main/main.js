@@ -33,6 +33,8 @@ const { speechLevel, splitAtPauses, SAMPLE_RATE } = require('./audio-utils');
 const { gateSpeech, reportOncePerMessage, SILENCE_LEVEL } = require('./speech-gate');
 const { createRecoveryFile } = require('./recovery-file');
 const { createListeningSession } = require('./listening-session');
+const { createPendingAudio } = require('./pending-audio');
+const { createRetryOffers, UNDO_MS } = require('./retry-offers');
 const { pasteText, pressKey, getSelectedText } = require('./paster');
 const { shouldRunFollowUps } = require('./paste-plan');
 const { PROTOCOL, parseCommandLine } = require('./remote');
@@ -86,6 +88,8 @@ let previewTimer = null;
 let previewBusy = false;
 let recovery = null; // crash-recovery file of the dictation in progress
 let listening = null; // tap + crash file + live VAD of the dictation in progress
+let retry = null; // Retry / Undo: audio kept in memory (retry-offers.js)
+let recorded = false; // the dictation being processed is in History: a later error must not offer Retry
 let reading = false;
 let fileBusy = false;
 let updater = null;
@@ -190,9 +194,10 @@ function sendOverlayState(state) {
 
 let flashTimer = null;
 
-function flash(text, kind = 'info', ms = 2600) {
+/** @param {{id: string, label: string}|null} [action]  a button on the pill (Retry / Undo) */
+function flash(text, kind = 'info', ms = 2600, action = null) {
   showOverlay();
-  sendOverlayState({ state: 'message', text, kind, ms });
+  sendOverlayState({ state: 'message', text, kind, ms, action });
   clearTimeout(flashTimer);
   flashTimer = setTimeout(hideOverlayIfIdle, ms + 300);
 }
@@ -305,6 +310,7 @@ function listeningState(extra = {}) {
 
 function startRecording() {
   if (reading) stopReading();
+  retry.expireUndo(); // before the new crash file begins: the cancelled one's is deleted now
   enterAfterPaste = false;
   sessionApp = win32.foregroundApp();
   showOverlay();
@@ -354,7 +360,8 @@ function requestAudio(kind, extra = {}) {
   });
 }
 
-async function stopRecording(discard) {
+/** @param {boolean} discard  @param {object} [session]  @param {boolean} [cancelled]  kept for Undo: the cancel sound plays */
+async function stopRecording(discard, session = listening, cancelled = false) {
   stopPreview();
   const sounds = settings.get().sounds;
   if (discard) {
@@ -362,10 +369,10 @@ async function stopRecording(discard) {
     send(overlay, 'recorder:stop', { id: 0, discard: true, sounds });
     return new Float32Array(0);
   }
-  const tapStopped = listening?.stop(); // its last pull runs while the recorder flushes
-  const audio = await requestAudio('stop', { discard: false, sounds });
+  const tapStopped = session?.stop(); // its last pull runs while the recorder flushes
+  const audio = await requestAudio('stop', { discard: false, cancelled, sounds });
   await tapStopped;
-  listening?.complete(audio);
+  session?.complete(audio);
   return audio;
 }
 
@@ -554,14 +561,26 @@ async function transcribeDictation(reason) {
   const t0 = Date.now();
   sendOverlayState({ state: 'processing', mode: controller.command ? 'command' : 'dictate' });
   const audio = await stopRecording(false);
-  const seconds = audio.length / SAMPLE_RATE;
-  log.info(`Dictation stopped (${reason}), ${seconds.toFixed(1)}s of audio`);
+  log.info(`Dictation stopped (${reason}), ${(audio.length / SAMPLE_RATE).toFixed(1)}s of audio`);
+  await processDictation(audio, t0);
+}
 
+const speechGate = (audio) => gateSpeech(audio, { enabled: settings.get().silenceDetection, detect: (a) => asr.detectSpeech(a), level: speechLevel, onError: reportDetectorError });
+
+/** What Retry / Undo need to run a kept recording again the way it was meant. */
+const keptMeta = (seconds) => ({
+  durationMs: Math.round(seconds * 1000), engine: controller.command ? settings.get().command.model : engineLabel(),
+  command: controller.command, translate: controller.translate, app: sessionApp,
+});
+
+/** Gate -> transcribe -> paste. If that fails the audio is kept, so the pill and History can retry it. @param {object} [job] a retry or undo */
+async function processDictation(audio, t0, job = null) {
+  const seconds = audio.length / SAMPLE_RATE;
   if (seconds < MIN_AUDIO_SECONDS) {
     flash('No speech detected');
     return;
   }
-  const gate = await gateSpeech(audio, { enabled: settings.get().silenceDetection, detect: (a) => asr.detectSpeech(a), level: speechLevel, onError: reportDetectorError });
+  const gate = await speechGate(audio);
   if (gate.skip) {
     log.info(`Speech gate: ${gate.skip}`);
     if (gate.skip === 'no-sound') flash('No sound. Is your mic muted?', 'error');
@@ -570,14 +589,17 @@ async function transcribeDictation(reason) {
   }
   if (gate.trimmed) log.info(`Speech gate: ${seconds.toFixed(1)}s -> ${(gate.audio.length / SAMPLE_RATE).toFixed(1)}s of speech`);
 
+  recorded = false;
   try {
-    if (controller.command) await runCommand(gate.audio, seconds);
-    else await runDictation(gate.audio, seconds, t0);
+    if (controller.command) await runCommand(gate.audio, seconds, job?.historyId);
+    else await runDictation(gate.audio, seconds, t0, job?.historyId);
+    if (job?.kind === 'retry' && !controller.cancelled) retry.settled(job);
   } catch (err) {
-    // Task 7: keep the crash file here (Retry needs the audio) instead of finishing it with the rest
     log.error('Dictation failed', err);
-    flash(err.message.length > 80 ? 'Something went wrong - see Pauli Speaks for details' : err.message, 'error', 4500);
     broadcast('app:error', { message: err.message });
+    if (recorded) flash(err.message.length > 80 ? 'Something went wrong - see Pauli Speaks for details' : err.message, 'error', 4500);
+    // the audio is safe in memory for this session, so the crash file can go as usual
+    else flash("Couldn't transcribe.", 'error', 6000, job?.kind === 'retry' ? retry.failedAgain(job.audioId) : retry.failed(audio, keptMeta(seconds), err.message));
   } finally {
     enterAfterPaste = false;
   }
@@ -594,7 +616,28 @@ function dictationText(result, style) {
   return { text, before: result.before || [], after };
 }
 
-async function runDictation(audio, seconds, t0) {
+/** A transcript for History; `historyId` fills in a failed entry instead of adding one. */
+function record(entry, historyId) {
+  recorded = true;
+  return (historyId && history.resolve(historyId, entry)) || history.add(entry);
+}
+
+function dictationEntry(result, text, seconds, style, app) {
+  return {
+    text: text.trim(),
+    rawText: result.text,
+    original: result.original || null,
+    durationMs: Math.round(seconds * 1000),
+    words: countWords(text),
+    engine: engineLabel(),
+    language: result.language || null,
+    translatedTo: result.translatedTo || null,
+    app: app ? app.exe : null,
+    style,
+  };
+}
+
+async function runDictation(audio, seconds, t0, historyId = null) {
   const result = await transcribe(audio, { translate: translatingNow() });
   if (controller.cancelled) return sendOverlayState({ state: 'idle' });
 
@@ -615,25 +658,14 @@ async function runDictation(audio, seconds, t0) {
     return;
   }
 
-  history.add({
-    text: text.trim(),
-    rawText: result.text,
-    original: result.original || null,
-    durationMs: Math.round(seconds * 1000),
-    words: countWords(text),
-    engine: engineLabel(),
-    language: result.language || null,
-    translatedTo: result.translatedTo || null,
-    app: sessionApp ? sessionApp.exe : null,
-    style,
-  });
+  record(dictationEntry(result, text, seconds, style, sessionApp), historyId);
   if (!shouldRunFollowUps(await paste(text))) return; // enterAfterPaste is reset by the caller
   for (const c of after) await runVoiceAction(c, false);
   if (enterAfterPaste && !after.some((c) => c.arg === 'Enter')) await pressEnterNow();
 }
 
 /** Command mode: the speech is an instruction for the selected text (or a request to write something). */
-async function runCommand(audio, seconds) {
+async function runCommand(audio, seconds, historyId = null) {
   const s = settings.get();
   sendOverlayState({ state: 'processing', mode: 'command', text: 'Listening to your instruction…' });
   const r = await recognise(audio, 'transcribe');
@@ -648,7 +680,7 @@ async function runCommand(audio, seconds) {
   if (controller.cancelled) return sendOverlayState({ state: 'idle' });
   if (!output) return flash('The AI returned nothing - try rephrasing', 'error');
   log.info(`Command (${instruction.length} chars) on ${selection.length} chars -> ${output.length} chars`);
-  history.add({
+  record({
     kind: 'command',
     text: output,
     instruction,
@@ -659,9 +691,60 @@ async function runCommand(audio, seconds) {
     engine: s.command.model,
     language: r.language || null,
     app: sessionApp ? sessionApp.exe : null,
-  });
+  }, historyId);
   sendOverlayState({ state: 'idle' });
   if (shouldRunFollowUps(await paste(output)) && enterAfterPaste) await pressEnterNow();
+}
+
+// ----- Retry and Undo (retry-offers.js): a recording kept in memory goes the normal way again
+
+/** Esc while listening: "Cancelled. Undo" for 4 s; after that the audio and the crash file go. */
+async function offerUndo() {
+  const session = listening;
+  listening = null;
+  const meta = keptMeta(0);
+  const hold = retry.holdForUndo(() => session?.end());
+  flash('Cancelled.'); // at once; the Undo button follows with the audio
+  const audio = await stopRecording(false, session, true);
+  const seconds = audio.length / SAMPLE_RATE;
+  if (seconds < MIN_AUDIO_SECONDS) return hold.cancel();
+  const action = hold.offer(audio, { ...meta, durationMs: Math.round(seconds * 1000) });
+  if (action) flash('Cancelled.', 'info', UNDO_MS, action);
+}
+
+/** The pill's Retry / Undo: pasted into the app in front now (the pill never takes the focus). */
+async function runPillAction(actionId) {
+  const job = retry.take(actionId);
+  if (!job) return controller.status === 'idle' && flash('That recording is no longer available');
+  try {
+    await controller.process(async () => {
+      sessionApp = win32.foregroundApp();
+      sendOverlayState({ state: 'processing', mode: controller.command ? 'command' : 'dictate' });
+      await processDictation(job.audio, Date.now(), job);
+    }, job.meta);
+  } finally {
+    job.done?.(); // undo: the crash file goes now
+  }
+}
+
+/** History's Retry, the speech part: the kept audio as a History entry (voice commands aren't run), null if nothing was said. */
+async function transcribeKept({ audio, meta }) {
+  const gate = await speechGate(audio);
+  if (gate.skip) return null;
+  const result = await transcribe(gate.audio, { translate: translatingNow() });
+  const style = resolveStyle(meta.app && meta.app.exe, settings.get().appStyles);
+  const { text, after } = dictationText(result, style);
+  if (!text.trim() || after.some((c) => c.action === 'undo')) return null;
+  return dictationEntry(result, text, audio.length / SAMPLE_RATE, style, meta.app);
+}
+
+async function retryFromHistory(id) {
+  const out = await retry.retryInHistory(id, {
+    process: (run, mode) => controller.process(run, mode), transcribe: transcribeKept,
+    isCancelled: () => controller.cancelled, copy: (text) => clipboard.writeText(text), onError: (err) => log.error('Retry failed', err),
+  });
+  if (controller.status === 'idle') sendOverlayState({ state: 'idle' }); // a local model may have shown "Loading speech model…"
+  return out;
 }
 
 function engineLabel() {
@@ -958,9 +1041,16 @@ function registerIpc() {
     appVersion: () => app.getVersion(),
     log,
   });
-  ipcMain.handle('history:list', () => history.list());
-  ipcMain.handle('history:delete', (_e, id) => history.remove(id));
-  ipcMain.handle('history:clear', () => history.clear());
+  ipcMain.handle('history:list', () => history.list().map((i) => (i.status === 'failed' ? { ...i, canRetry: retry.canRetry(i) } : i)));
+  ipcMain.handle('history:delete', (_e, id) => {
+    retry.forget(id);
+    history.remove(id);
+  });
+  ipcMain.handle('history:clear', () => {
+    retry.forgetAll();
+    history.clear();
+  });
+  ipcMain.handle('history:retry', (_e, id) => retryFromHistory(String(id)));
   ipcMain.handle('stats:get', () => history.stats());
   ipcMain.handle('clipboard:copy', (_e, text) => clipboard.writeText(String(text)));
   ipcMain.handle('shortcut:record-start', (_e, opts) => startShortcutRecording(opts));
@@ -1034,6 +1124,7 @@ function registerIpc() {
 
   ipcMain.on('dictation:toggle', () => controller.toggle());
   ipcMain.on('dictation:cancel', () => (reading ? stopReading() : controller.cancel()));
+  ipcMain.on('overlay:action', (_e, id) => runPillAction(String(id)).catch((err) => log.error('Pill action failed', err)));
   ipcMain.on('overlay:hover', (_e, inside) => {
     if (overlay) overlay.setIgnoreMouseEvents(!inside, { forward: true });
   });
@@ -1092,6 +1183,7 @@ function init() {
     decrypt: (s) => (s.startsWith('plain:') ? s.slice(6) : safeStorage.decryptString(Buffer.from(s, 'base64'))),
   });
   history = new History(path.join(app.getPath('userData'), 'history.json'));
+  retry = createRetryOffers({ history, pending: createPendingAudio({ onEvict: () => broadcast('history:changed') }) });
   recovery = createRecoveryFile(path.join(app.getPath('userData'), 'recovery'));
   asr = new LocalAsr(modelsDir());
   asr.on('progress', (p) => {
@@ -1118,6 +1210,7 @@ function init() {
     finish: finishDictation,
     dismiss: (reason) => {
       log.info(`Dictation dismissed (${reason})`);
+      if (reason === 'cancel') return offerUndo().catch((err) => log.warn(`Undo: ${err.message}`));
       stopRecording(true);
       if (reason === 'tap') {
         const keys = lastTalkBinding && lastTalkBinding.keys ? lastTalkBinding.keys : holdKeys();

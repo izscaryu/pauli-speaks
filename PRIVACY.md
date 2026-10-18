@@ -9,10 +9,17 @@ the app says so next to that option.
 - **Audio.** The microphone is recorded only while you dictate. So that a crash doesn't lose what
   you said, a copy of the recording in progress is written to the `recovery\` folder while you
   dictate. It is the raw audio and is not encrypted. It is deleted when the dictation ends: after the
-  text is pasted, when you cancel, or when no speech was heard. If the app crashes or is closed while
-  you dictate, the copy stays in that folder until your next dictation replaces it.
+  text is pasted, 4 seconds after you cancel (while you can still undo), or when no speech was heard.
+  If the app crashes or is closed while you dictate, the copy stays in that folder until your next
+  dictation replaces it.
+- **Retry and Undo.** If a dictation can't be transcribed (for example the cloud service is
+  unreachable), its audio is kept in memory, not on disk, so you can retry it from the pill or from
+  History until you quit Pauli Speaks. At most the last 5 such recordings or 10 minutes of audio are
+  kept; deleting the entry in History deletes its audio. A cancelled dictation is kept in memory the
+  same way for 4 seconds, so you can undo the cancel.
 - **Transcripts.** Your last 500 dictations are kept in History so you can copy or paste them
-  again. Clear them any time with *Clear* on the Transcripts page.
+  again. A dictation that couldn't be transcribed is listed there too, with the error and without
+  text. Clear them any time with *Clear* on the Transcripts page.
 - **Your dictionary, snippets, voice commands and settings.**
 - **Logs.** For troubleshooting, the app logs timings, the detected language, the name of the app
   you dictated into (for example `chrome.exe`), which voice commands ran, and errors. It doesn't

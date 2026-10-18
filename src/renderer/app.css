@@ -450,6 +450,11 @@ label.row { cursor: pointer; }
 .tag.app { font-family: var(--mono); }
 .tag.ai { background: color-mix(in srgb, #8b6cff 18%, transparent); color: #7c5cff; }
 .item .instr { margin-bottom: 4px; color: var(--ink-2); font-size: 13px; }
+/* a dictation that couldn't be transcribed (history-failed.js) */
+.item.failed p { color: var(--ink-2); }
+.item.failed .err { max-width: 420px; overflow: hidden; color: var(--signal); text-overflow: ellipsis; white-space: nowrap; }
+.item.failed .retry-row { margin-top: 8px; }
+.item.failed .retry-row .desc { color: var(--ink-3); font-size: 12px; }
 input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(--ink); background: none; border: 0; box-shadow: none; }
 
 /* ---------- shortcuts page */

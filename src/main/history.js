@@ -1,5 +1,7 @@
 'use strict';
-// Transcript history, kept in a local JSON file.
+// Transcript history, kept in a local JSON file. A dictation that couldn't be transcribed
+// is listed too (status 'failed', no text) so it can be retried; it never counts as a
+// dictation (stats, Paste last) until resolve() fills it in.
 
 const fs = require('node:fs');
 const crypto = require('node:crypto');
@@ -13,6 +15,7 @@ class History extends EventEmitter {
     super();
     this.file = file;
     this.items = [];
+    this.sessionOnly = new Set(); // ids kept in memory only, never saved
     try {
       const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
       if (Array.isArray(saved)) this.items = saved;
@@ -25,8 +28,9 @@ class History extends EventEmitter {
     return this.items;
   }
 
+  /** The latest transcript (failed items have no text to paste). */
   last() {
-    return this.items[0] || null;
+    return this.items.find((i) => i.status !== 'failed') || null;
   }
 
   /** @param {{text: string, rawText: string, durationMs: number, words: number, engine: string, language: string|null}} entry */
@@ -38,6 +42,28 @@ class History extends EventEmitter {
     return item;
   }
 
+  /**
+   * A dictation that couldn't be transcribed; its audio is kept elsewhere under `audioId`.
+   * @param {{audioId: string, durationMs: number, engine: string, error: string}} failed
+   * @param {{persist?: boolean}} [opts]  false: this session only (transcript history off)
+   */
+  addFailed({ audioId, durationMs, engine, error }, { persist = true } = {}) {
+    const item = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), status: 'failed', audioId, durationMs, words: 0, engine, error };
+    if (!persist) this.sessionOnly.add(item.id);
+    return this.add(item);
+  }
+
+  /** A failed item was transcribed after all: it becomes `entry`, with the same id, time and place. */
+  resolve(id, entry) {
+    const at = this.items.findIndex((i) => i.id === id);
+    if (at < 0) return null;
+    const item = { ...entry, id, createdAt: this.items[at].createdAt };
+    this.items[at] = item;
+    this.sessionOnly.delete(id);
+    this.#save();
+    return item;
+  }
+
   remove(id) {
     this.items = this.items.filter((i) => i.id !== id);
     this.#save();
@@ -45,33 +71,35 @@ class History extends EventEmitter {
 
   clear() {
     this.items = [];
+    this.sessionOnly.clear();
     this.#save();
   }
 
   stats() {
     const today = new Date().toDateString();
+    const done = this.items.filter((i) => i.status !== 'failed');
     let words = 0;
     let ms = 0;
     let wordsToday = 0;
-    for (const i of this.items) {
+    for (const i of done) {
       words += i.words || 0;
       ms += i.durationMs || 0;
       if (new Date(i.createdAt).toDateString() === today) wordsToday += i.words || 0;
     }
     const minutes = ms / 60000;
     return {
-      dictations: this.items.length,
+      dictations: done.length,
       words,
       wordsToday,
       wpm: minutes > 0 ? Math.round(words / minutes) : 0,
       minutesSaved: Math.max(0, Math.round(words / TYPING_WPM - minutes)),
-      ...dailyStats(this.items),
+      ...dailyStats(done),
     };
   }
 
   #save() {
     const tmp = `${this.file}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(this.items));
+    fs.writeFileSync(tmp, JSON.stringify(this.items.filter((i) => !this.sessionOnly.has(i.id))));
     fs.renameSync(tmp, this.file);
     this.emit('change');
   }

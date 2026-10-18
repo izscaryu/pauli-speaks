@@ -184,6 +184,7 @@ async function loadHistory() {
 }
 
 function historyItem(item) {
+  if (item.status === 'failed') return FailedHistory.item(item); // history-failed.js
   const d = new Date(item.createdAt);
   const secs = Math.max(1, Math.round((item.durationMs || 0) / 1000));
   const meta = el('div', { class: 'meta' },
@@ -219,7 +220,7 @@ function renderHistory() {
   const box = $('#history');
   const q = $('#history-search').value.trim().toLowerCase();
   const items = q
-    ? historyItems.filter((i) => i.text.toLowerCase().includes(q) || (i.original || '').toLowerCase().includes(q))
+    ? historyItems.filter((i) => (i.text || '').toLowerCase().includes(q) || (i.original || '').toLowerCase().includes(q))
     : historyItems;
   if (!items.length) {
     box.replaceChildren(el('div', { class: 'empty' }, q ? 'No transcripts match.' : 'Nothing yet. Hold your talk shortcut and say something.'));

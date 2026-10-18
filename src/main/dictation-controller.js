@@ -10,7 +10,8 @@
 //   Hands-free down idle                 -> start locked
 //   Hands-free down while holding PTT    -> convert to locked
 //   Hands-free down locked               -> stop (or dismiss if < 500ms)
-//   Cancel                               -> dismiss, discard audio
+//   Cancel                               -> dismiss (main keeps the audio 4 s for Undo)
+//   process(run) idle                    -> processing kept audio (Retry / Undo), then idle
 //   Other chord within 1s of PTT start   -> dismiss (user meant another shortcut)
 //   Translate down                       -> like PTT, but the session is translated
 //                                           (adding it to a held PTT upgrades the session)
@@ -191,6 +192,31 @@ class DictationController extends EventEmitter {
     this.locked = false;
     this.#set('idle');
     this.deps.dismiss(reason);
+  }
+
+  /**
+   * Retry / Undo: transcribe audio kept from an earlier dictation, like a stop does, in the
+   * mode it was recorded in. Only from idle; Cancel works on it as on any processing.
+   * @param {() => Promise<void>} run
+   * @param {{translate?: boolean, command?: boolean}} [mode]
+   * @returns {Promise<boolean>} false when busy (nothing ran)
+   */
+  async process(run, { translate = false, command = false } = {}) {
+    if (this.status !== 'idle') {
+      this.#busy();
+      return false;
+    }
+    this.translate = !!translate && !command;
+    this.command = !!command;
+    this.cancelled = false;
+    this.#set('processing');
+    try {
+      await run();
+    } finally {
+      this.locked = false;
+      this.#set('idle');
+    }
+    return true;
   }
 
   async stop(reason) {

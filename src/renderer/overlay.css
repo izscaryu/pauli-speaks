@@ -148,6 +148,27 @@ html, body {
 .pill.message.error { border-color: rgba(255, 107, 122, 0.6); }
 .pill.message.error .label { color: #ffd0d5; }
 
+/* Retry / Undo after a message */
+.pill-action {
+  display: none;
+  height: 24px;
+  margin-left: -4px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text);
+  font: 600 12px/1 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  cursor: pointer;
+  transition-property: background-color, transform;
+  transition-duration: 120ms;
+}
+.pill-action:hover { background: rgba(255, 255, 255, 0.24); }
+.pill-action:active { transform: scale(0.95); }
+.pill-action:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.pill.message .pill-action:not([hidden]) { display: block; }
+.pill.message:has(.pill-action:not([hidden])) { padding: 0 7px 0 10px; }
+
 /* listening, but the microphone delivers no sound: amber hint next to the usual controls */
 .pill.listening.warn { border-color: rgba(224, 163, 71, 0.65); }
 .pill.listening.warn .label { display: block; color: var(--warn); }

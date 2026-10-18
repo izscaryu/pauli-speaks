@@ -10,6 +10,7 @@ const tip = document.getElementById('tip');
 const badge = document.getElementById('badge');
 const timer = document.getElementById('timer');
 const previewEl = document.getElementById('preview');
+const actionBtn = document.getElementById('action');
 const BARS = 13;
 const bars = [];
 for (let i = 0; i < BARS; i++) {
@@ -51,7 +52,14 @@ function render(state) {
   if (state.state === 'reading') label.textContent = 'Reading aloud';
   if (state.state === 'message') {
     label.textContent = state.text;
-    messageTimer = setTimeout(() => render({ ...ui, state: 'idle', kind: null }), state.ms || 2600);
+    messageTimer = setTimeout(() => render({ ...ui, state: 'idle', kind: null, action: null }), state.ms || 2600);
+  }
+  // Retry / Undo: clicking it doesn't take the focus (the pill window can't have it), so the text goes to the app in front
+  const action = state.state === 'message' && state.action ? state.action : null;
+  actionBtn.hidden = !action;
+  if (action) {
+    actionBtn.textContent = action.label;
+    actionBtn.setAttribute('aria-label', action.label === 'Undo' ? 'Undo the cancel and transcribe' : 'Retry the transcription');
   }
   if (state.state !== 'idle') tip.hidden = true;
 
@@ -95,11 +103,16 @@ pill.addEventListener('mouseleave', () => {
   tip.hidden = true;
 });
 pill.addEventListener('click', (e) => {
-  if (e.target.closest('.icon-btn')) return;
+  if (e.target.closest('.icon-btn, .pill-action')) return;
   if (ui.state === 'idle') window.pauli.toggleDictation();
 });
 document.getElementById('stop').addEventListener('click', () => window.pauli.toggleDictation());
 document.getElementById('cancel').addEventListener('click', () => window.pauli.cancelDictation());
+actionBtn.addEventListener('click', () => {
+  if (!ui.action) return;
+  window.pauli.pillAction(ui.action.id);
+  render({ ...ui, action: null }); // once: main answers with the next state
+});
 
 function animate() {
   if (ui.state === 'listening') {
@@ -321,11 +334,12 @@ window.pauli.onRecorderVadFallback(() => {
   vadAutoStop = false;
 });
 
-window.pauli.onRecorderStop(async ({ id, discard, sounds: playSounds }) => {
+// cancelled: kept for Undo, so the audio comes back, but it sounds like a cancel
+window.pauli.onRecorderStop(async ({ id, discard, cancelled, sounds: playSounds }) => {
   const my = session;
   active = false;
   heardSound = true; // the flush below must not raise the warning for a dictation that is ending
-  if (playSounds) (discard ? sounds.cancel : sounds.stop)();
+  if (playSounds) (discard || cancelled ? sounds.cancel : sounds.stop)();
   if (node) {
     // capture the last ~150 ms the user spoke while releasing the keys
     await new Promise((r) => setTimeout(r, 150));

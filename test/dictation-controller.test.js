@@ -270,3 +270,45 @@ test('max duration auto-stops', async () => {
   await settle();
   assert.deepEqual(calls, ['start', 'finish:max-duration']);
 });
+
+test('process runs kept audio like a stop: processing, in the mode it was recorded in, then idle', async () => {
+  const { controller } = setup();
+  const statuses = [];
+  controller.on('status', ({ status }) => statuses.push(status));
+  let release;
+  let seen = null;
+  const done = controller.process(() => {
+    seen = { status: controller.status, translate: controller.translate, command: controller.command, cancelled: controller.cancelled };
+    return new Promise((r) => (release = r));
+  }, { translate: true, command: false });
+  assert.deepEqual(seen, { status: 'processing', translate: true, command: false, cancelled: false });
+  release();
+  assert.equal(await done, true);
+  assert.equal(controller.status, 'idle');
+  assert.deepEqual(statuses, ['processing', 'idle']);
+});
+
+test('process while listening or processing is busy and does not run', async () => {
+  const { controller, advance } = setup();
+  let busy = 0;
+  let ran = 0;
+  controller.on('busy', () => busy++);
+  controller.handsFreeDown();
+  assert.equal(await controller.process(() => ran++), false);
+  advance(1000);
+  controller.stop('hands-free');
+  assert.equal(await controller.process(() => ran++), false);
+  assert.equal(busy, 2);
+  assert.equal(ran, 0);
+});
+
+test('cancel during process marks it cancelled; a throwing run still ends idle', async () => {
+  const { controller } = setup();
+  const done = controller.process(async () => {
+    controller.cancel();
+    assert.equal(controller.cancelled, true);
+    throw new Error('boom');
+  }, { command: true });
+  await assert.rejects(done, /boom/);
+  assert.equal(controller.status, 'idle');
+});
