@@ -72,7 +72,24 @@ empty file named `portable` next to `Pauli Speaks.exe`.
 - **Push-to-talk**: hold the shortcut while you speak, release to paste.
 - **Hands-free**: double-tap the shortcut (or press Ctrl + Win + Space) to keep recording,
   then press it again to finish. Up to 20 minutes per dictation.
-- **Esc** cancels, **Shift + Alt + Z** pastes the last transcript again.
+- **Esc** cancels, **Shift + Alt + Z** pastes the last transcript again. A cancelled dictation
+  shows **Cancelled. Undo** on the pill for 4 seconds, in case you pressed Esc by mistake.
+- **Silence detection**: a small voice-detection model (Silero VAD) runs on your PC, so only the
+  parts where you speak go to the speech engine. If you say nothing, nothing is typed and the pill
+  says **No speech detected**; if the microphone delivers no sound at all, it says **No sound. Is
+  your mic muted?** (and warns you after 2 seconds, while you are still recording). Hands-free
+  auto-stop also listens for speech instead of loudness, so background noise doesn't keep it
+  running. Turn it off with *Settings → Dictation → Silence detection* if words get cut.
+- **Nothing gets lost**: if a dictation can't be transcribed (the cloud service is unreachable, say),
+  the pill and the entry in History offer **Retry**. If Pauli Speaks crashes while you dictate,
+  Home asks **Recover your last dictation?** the next time you start it.
+- **Administrator windows**: Windows blocks pasting into an app that runs as administrator, so the
+  text is left on the clipboard instead and the pill says **Copied. Press Ctrl+V (this app runs as
+  administrator)**. The text you dictate is kept out of Windows clipboard history (Win+V).
+- **Privacy controls** in *Settings → Privacy*: keep your transcript history, delete it after
+  24 hours or don't keep it; optionally keep the recording of each dictation for 24 hours (play it
+  back or transcribe it again from History); switch crash recovery off; **Delete all my data** and
+  **Delete downloaded models**. [PRIVACY.md](PRIVACY.md) lists every file and connection.
 - **Your own shortcuts** on the Shortcuts page: up to four per action, each set to *Hold*,
   *Toggle* or *Both* (hold, or double-tap to lock). 1–3 keys, a single F-key (F13–F24 for pedals
   and Stream Deck), a right-side modifier, a mouse button, or a **double-tap** of Ctrl, Alt or
@@ -89,7 +106,8 @@ empty file named `portable` next to `Pauli Speaks.exe`.
 - Optional **cloud mode** with any OpenAI-compatible API (Groq's free tier by default), with
   your key encrypted by Windows.
 - Multi-language: pick the languages you speak (English, Croatian, …) and it detects which one
-  you used.
+  you used, within your list, also with the cloud engine. If you keep speaking a language that
+  isn't on your list, Home asks "Sounds like <language>. Add it to your languages?" once.
 - **Speak one language, paste another**: turn on *Always translate*, or hold **Ctrl + Win + Shift**
   (adding Shift to a held Ctrl + Win also works mid-sentence) to dictate in Croatian and paste
   English. *Fast* uses Whisper's built-in translator (English only, no extra download). *Best*
@@ -217,7 +235,8 @@ remote.js   pauli-speaks:// links and --flags, from startup argv and second-inst
 | `src/renderer/app.*` | Main window (Home, Shortcuts, Files, Dictionary, Settings, About) |
 
 Data lives in `%APPDATA%\Pauli Speaks\` (a portable copy: `Pauli Speaks Data\` next to its
-`.exe`, see `src/main/portable.js`): `settings.json`, `history.json`, `models\`, `logs\`.
+`.exe`, see `src/main/portable.js`): `settings.json`, `history.json`, `models\`, `logs\`, and
+only when needed `audio\` (recordings you chose to keep) and `recovery\` (the dictation in progress).
 Uninstalling asks whether to delete this folder too (the default is to keep it); updates never
 touch it. The uninstaller also removes the `pauli-speaks://` link handler and the
 start-with-Windows entry that the app registered ([`build/installer.nsh`](build/installer.nsh)).
@@ -236,8 +255,19 @@ start-with-Windows entry that the app registered ([`build/installer.nsh`](build/
 - **Something in the setup was skipped or went wrong.** Go to *Settings → Run setup again* to go
   through languages, microphone, speech engine and shortcut once more.
 - **Text doesn't appear in one specific app.** Windows blocks simulated input into apps running
-  as administrator unless Pauli Speaks also runs as administrator. Use **Paste last transcript**,
-  or copy from History.
+  as administrator unless Pauli Speaks also runs as administrator. When the app in front runs as
+  administrator, Pauli Speaks leaves the text on the clipboard and the pill says to press Ctrl+V.
+  If that didn't happen, use **Paste last transcript**, or copy from History.
+- **"No sound. Is your mic muted?"** The microphone delivered nothing but silence. Check that it
+  isn't muted (a hardware mute switch or key, or the mute in Windows sound settings), that
+  *Settings → Microphone* is set to the microphone you are using, and that Windows lets desktop
+  apps use it (see "Microphone blocked" below). *Settings → Run setup again* tests the microphone.
+- **"No speech detected" although I spoke.** Silence detection thought it heard no speech, for
+  example in a very quiet recording or with a distant microphone. Speak closer to the microphone, or
+  turn off *Settings → Dictation → Silence detection* to go back to the simple loudness check.
+- **"Couldn't transcribe. Retry".** The speech engine failed or the cloud service couldn't be
+  reached. Click **Retry** on the pill (it stays for a few seconds) or on the entry in History;
+  the recording is kept in memory until you quit Pauli Speaks.
 - **"Microphone blocked".** Turn on *Windows Settings → Privacy & security → Microphone → Let
   desktop apps access your microphone*.
 - **Slow transcription.** Use Whisper Base or Tiny, pick a single language, or switch to cloud

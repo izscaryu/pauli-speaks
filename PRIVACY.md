@@ -6,7 +6,9 @@ the app says so next to that option.
 
 ## What stays on your PC
 
-- **Audio.** The microphone is recorded only while you dictate. So that a crash doesn't lose what
+- **Audio.** The microphone is recorded only while you dictate. *Silence detection* (Settings →
+  Dictation) finds the speech in it with a small model that ships with the app and runs on your PC;
+  it downloads nothing and sends nothing. So that a crash doesn't lose what
   you said, a copy of the recording in progress is written to the `recovery\` folder while you
   dictate. It is the raw audio and is not encrypted. It is deleted when the dictation ends: after the
   text is pasted, 4 seconds after you cancel (while you can still undo), or when no speech was heard.
@@ -43,7 +45,11 @@ the app says so next to that option.
 - **Clipboard history.** To paste, Pauli Speaks briefly puts your text on the clipboard. That
   temporary text is marked so that Windows clipboard history (Win+V) and cloud clipboard sync don't
   record it, and clipboard managers that respect the marking skip it. Your own clipboard content is
-  put back afterwards unless you turned that off.
+  put back afterwards unless you turned that off. When the app in front runs as administrator,
+  Windows doesn't allow the paste: the text then stays on the clipboard (still marked, and your earlier
+  clipboard content is not put back) so you can press Ctrl+V yourself. What you copy yourself
+  (*Copy last*, *Copy* in History, and the copy after *Retry* in History) is an ordinary copy, which
+  Windows clipboard history may keep.
 - **Your dictionary, snippets, voice commands and settings.**
 - **Logs.** For troubleshooting, the app logs timings, the detected language, the name of the app
   you dictated into (for example `chrome.exe`), which voice commands ran, and errors. It doesn't
