@@ -1,6 +1,6 @@
 'use strict';
-// The notices on Home: the shortcut-hook and conflicting-app banners, the setup card for people who
-// were already using the app, the What's new card, and the "Run setup again" button in Settings.
+// The notices on Home: the shortcut-hook and conflicting-app banners, the "Recover your last dictation?"
+// banner after a crash, the setup card for people who were already using the app, the What's new card, and the "Run setup again" button in Settings.
 // Loaded after app.js and welcome.js; uses these app.js globals: api, $, el, save, settings, modelState, toast.
 //
 // Everything is built with `el` (never innerHTML): the What's new text comes from CHANGELOG.md.
@@ -43,6 +43,48 @@ const HomeNotices = (() => {
       return;
     }
     drawHealth();
+  }
+
+  // ---------------------------------------------------------------- crash recovery
+
+  /** The recording left behind when the app closed mid-dictation: transcribe it or throw it away. */
+  async function drawRecovery() {
+    const box = $('#recovery-banner');
+    let offer = null;
+    try {
+      offer = await api.recoveryState();
+    } catch (err) {
+      console.error('recovery check failed', err);
+    }
+    box.hidden = !offer;
+    if (!offer) return;
+    const secs = Math.max(1, Math.round(offer.seconds));
+    const when = offer.startedAt ? ` from ${new Date(offer.startedAt).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : '';
+    const recover = el('button', { class: 'btn primary' }, 'Recover');
+    const discard = el('button', { class: 'btn quiet' }, 'Discard');
+    const busy = (on) => {
+      recover.disabled = on;
+      discard.disabled = on;
+      recover.textContent = on ? 'Transcribing…' : 'Recover';
+    };
+    recover.addEventListener('click', async () => {
+      busy(true);
+      const r = await api.recoverDictation();
+      if (r.copied) toast('Copied');
+      else if (r.failed) toast("Couldn't transcribe. You can retry it from History.");
+      else toast(r.error);
+      busy(false);
+      drawRecovery(); // gone once the file is handled; still there when the app was busy
+    });
+    discard.addEventListener('click', async () => {
+      busy(true);
+      await api.discardRecovery();
+      drawRecovery();
+    });
+    box.replaceChildren(
+      el('div', { class: 'grow' }, el('strong', {}, 'Recover your last dictation?'),
+        el('span', { class: 'desc' }, `A ${secs}-second recording${when} was left when Pauli Speaks closed. Recovering it copies the text to your clipboard.`)),
+      recover, discard);
   }
 
   // ---------------------------------------------------------------- setup card
@@ -118,6 +160,7 @@ const HomeNotices = (() => {
     lastBindings = JSON.stringify(settings.bindings);
     drawSetupCard();
     refreshHealth();
+    drawRecovery();
     showWhatsNew();
   }
 

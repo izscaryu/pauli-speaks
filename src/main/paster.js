@@ -204,4 +204,4 @@ async function getSelectedText() {
   return text;
 }
 
-module.exports = { pasteText, pressKey, getSelectedText, waitForModifiersReleased, snapshot, restore };
+module.exports = { pasteText, pressKey, getSelectedText, waitForModifiersReleased, snapshot, restore, writeExcluded };

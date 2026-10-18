@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('pauli', {
   getWhatsNew: () => ipcRenderer.invoke('whatsnew:get'),
   whatsNewSeen: () => ipcRenderer.invoke('whatsnew:seen'),
   redownloadModel: () => ipcRenderer.invoke('model:redownload'),
+  recoveryState: () => ipcRenderer.invoke('recovery:state'),
+  recoverDictation: () => ipcRenderer.invoke('recovery:recover'),
+  discardRecovery: () => ipcRenderer.invoke('recovery:discard'),
   exportSettings: () => ipcRenderer.invoke('backup:export'),
   importSettings: () => ipcRenderer.invoke('backup:import'),
 

@@ -35,7 +35,7 @@ const { createRecoveryFile } = require('./recovery-file');
 const { createListeningSession } = require('./listening-session');
 const { createPendingAudio } = require('./pending-audio');
 const { createRetryOffers, UNDO_MS } = require('./retry-offers');
-const { pasteText, pressKey, getSelectedText } = require('./paster');
+const { pasteText, pressKey, getSelectedText, writeExcluded } = require('./paster');
 const { shouldRunFollowUps } = require('./paste-plan');
 const { PROTOCOL, parseCommandLine } = require('./remote');
 const { resolveStyle } = require('./app-styles');
@@ -48,6 +48,7 @@ const { Updater } = require('./updater');
 const { setupPortable } = require('./portable');
 const { shouldPreloadAtStartup, shouldOfferSmallerModel, isAllowedExternalUrl } = require('./system-check');
 const { registerWelcomeIpc, registerBackupIpc, runningProcessNames } = require('./welcome-ipc');
+const { registerRecoveryIpc } = require('./recovery-ipc');
 const { readChangelog } = require('./changelog');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
@@ -1033,6 +1034,12 @@ function registerIpc() {
     preloadModel,
     log,
   });
+  registerRecoveryIpc(ipcMain, {
+    recovery, crashRecoveryOn: () => settings.get().crashRecovery, dictationActive: () => controller.status !== 'idle',
+    process: (run, mode) => controller.process(run, mode), transcribe: transcribeKept, isCancelled: () => controller.cancelled,
+    addEntry: (entry) => history.add(entry), copy: writeExcluded, keep: (audio, meta, error) => retry.failed(audio, meta, error),
+    flash, engineLabel, settle: () => { if (controller.status === 'idle') sendOverlayState({ state: 'idle' }); }, log,
+  }).check(); // before the first dictation can replace the leftover file
   registerBackupIpc(ipcMain, {
     dialog,
     getWindow: () => mainWindow,
