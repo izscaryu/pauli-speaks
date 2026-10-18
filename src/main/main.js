@@ -21,6 +21,9 @@ const log = require('./logger');
 const win32 = require('./win32');
 const { Settings, DEFAULTS } = require('./settings');
 const { History } = require('./history');
+const { createAudioHistory } = require('./audio-history');
+const { createPrivacy, deleteAllData } = require('./privacy');
+const { registerPrivacyIpc } = require('./privacy-ipc');
 const { KeyboardService } = require('./keyboard');
 const { DictationController } = require('./dictation-controller');
 const { isTalkAction } = require('./shortcut-rules');
@@ -88,6 +91,9 @@ let sessionApp = null;
 let previewTimer = null;
 let previewBusy = false;
 let recovery = null; // crash-recovery file of the dictation in progress
+let recoveryIpc = null; // Home's "Recover your last dictation?"
+let audioHistory = null; // recordings kept for 24 hours (Settings → Privacy)
+let privacy = null; // retention, hourly sweep, saved recordings
 let listening = null; // tap + crash file + live VAD of the dictation in progress
 let retry = null; // Retry / Undo: audio kept in memory (retry-offers.js)
 let recorded = false; // the dictation being processed is in History: a later error must not offer Retry
@@ -593,7 +599,7 @@ async function processDictation(audio, t0, job = null) {
   recorded = false;
   try {
     if (controller.command) await runCommand(gate.audio, seconds, job?.historyId);
-    else await runDictation(gate.audio, seconds, t0, job?.historyId);
+    else await runDictation(gate.audio, seconds, t0, job?.historyId, audio);
     if (job?.kind === 'retry' && !controller.cancelled) retry.settled(job);
   } catch (err) {
     log.error('Dictation failed', err);
@@ -617,10 +623,12 @@ function dictationText(result, style) {
   return { text, before: result.before || [], after };
 }
 
-/** A transcript for History; `historyId` fills in a failed entry instead of adding one. */
-function record(entry, historyId) {
+/** A transcript for History; `historyId` fills in a failed entry instead of adding one. `audio`: the recording, kept when Privacy says so. */
+function record(entry, historyId, audio) {
   recorded = true;
-  return (historyId && history.resolve(historyId, entry)) || history.add(entry);
+  const item = (historyId && history.resolve(historyId, entry)) || history.add(entry);
+  if (audio) privacy.saveRecording(item.id, audio);
+  return item;
 }
 
 function dictationEntry(result, text, seconds, style, app) {
@@ -638,7 +646,7 @@ function dictationEntry(result, text, seconds, style, app) {
   };
 }
 
-async function runDictation(audio, seconds, t0, historyId = null) {
+async function runDictation(audio, seconds, t0, historyId = null, recording = null) {
   const result = await transcribe(audio, { translate: translatingNow() });
   if (controller.cancelled) return sendOverlayState({ state: 'idle' });
 
@@ -659,7 +667,7 @@ async function runDictation(audio, seconds, t0, historyId = null) {
     return;
   }
 
-  record(dictationEntry(result, text, seconds, style, sessionApp), historyId);
+  record(dictationEntry(result, text, seconds, style, sessionApp), historyId, recording);
   if (!shouldRunFollowUps(await paste(text))) return; // enterAfterPaste is reset by the caller
   for (const c of after) await runVoiceAction(c, false);
   if (enterAfterPaste && !after.some((c) => c.arg === 'Enter')) await pressEnterNow();
@@ -741,7 +749,7 @@ async function transcribeKept({ audio, meta }) {
 
 async function retryFromHistory(id) {
   const out = await retry.retryInHistory(id, {
-    process: (run, mode) => controller.process(run, mode), transcribe: transcribeKept,
+    process: (run, mode) => controller.process(run, mode), transcribe: transcribeKept, saved: (hid) => privacy.savedRecording(hid),
     isCancelled: () => controller.cancelled, copy: (text) => clipboard.writeText(text), onError: (err) => log.error('Retry failed', err),
   });
   if (controller.status === 'idle') sendOverlayState({ state: 'idle' }); // a local model may have shown "Loading speech model…"
@@ -1034,12 +1042,30 @@ function registerIpc() {
     preloadModel,
     log,
   });
-  registerRecoveryIpc(ipcMain, {
+  recoveryIpc = registerRecoveryIpc(ipcMain, {
     recovery, crashRecoveryOn: () => settings.get().crashRecovery, dictationActive: () => controller.status !== 'idle',
     process: (run, mode) => controller.process(run, mode), transcribe: transcribeKept, isCancelled: () => controller.cancelled,
-    addEntry: (entry) => history.add(entry), copy: writeExcluded, keep: (audio, meta, error) => retry.failed(audio, meta, error),
+    addEntry: (entry, audio) => privacy.saveRecording(history.add(entry).id, audio), copy: writeExcluded, keep: (audio, meta, error) => retry.failed(audio, meta, error),
     flash, engineLabel, settle: () => { if (controller.status === 'idle') sendOverlayState({ state: 'idle' }); }, log,
-  }).check(); // before the first dictation can replace the leftover file
+  });
+  recoveryIpc.check(); // before the first dictation can replace the leftover file
+  registerPrivacyIpc(ipcMain, {
+    catalog: () => [...MODELS.map((m) => ({ id: m.id, label: `Whisper ${m.label}`, kind: 'speech' })), { id: NLLB_MODEL, label: 'Offline translator', kind: 'translator' }],
+    modelsDir,
+    dictationActive: () => controller.status !== 'idle',
+    unloadModels: () => asr.stop(),
+    afterModelsDeleted: () => {
+      modelState = { model: null, acceleration: null, status: 'idle', percent: 0, error: null, device: null };
+      translatorState = { status: 'idle', percent: 0, error: null };
+      broadcast('model:state', publicModelState());
+    },
+    deleteAll: () => deleteAllData({
+      history, audioHistory, settings, recoveryFile: recovery,
+      forgetInMemory: () => { retry.forgetAll(); lastPaste.forget(); recoveryIpc.forget(); },
+    }),
+    audioBytes: (id) => audioHistory.read(id),
+    log,
+  });
   registerBackupIpc(ipcMain, {
     dialog,
     getWindow: () => mainWindow,
@@ -1048,13 +1074,22 @@ function registerIpc() {
     appVersion: () => app.getVersion(),
     log,
   });
-  ipcMain.handle('history:list', () => history.list().map((i) => (i.status === 'failed' ? { ...i, canRetry: retry.canRetry(i) } : i)));
+  ipcMain.handle('history:list', () => {
+    const recorded = audioHistory.ids(); // items whose recording is saved can be played and retried
+    return history.list().map((i) => {
+      const hasAudio = recorded.has(i.id);
+      if (i.status === 'failed') return { ...i, canRetry: retry.canRetry(i) || hasAudio, hasAudio };
+      return hasAudio ? { ...i, hasAudio } : i;
+    });
+  });
   ipcMain.handle('history:delete', (_e, id) => {
     retry.forget(id);
+    audioHistory.remove(id);
     history.remove(id);
   });
   ipcMain.handle('history:clear', () => {
     retry.forgetAll();
+    audioHistory.clear();
     history.clear();
   });
   ipcMain.handle('history:retry', (_e, id) => retryFromHistory(String(id)));
@@ -1162,6 +1197,8 @@ function applySettings(data, patch) {
     app.setLoginItemSettings({ openAtLogin: !!data.launchAtLogin, args: ['--hidden'] });
   }
   if ('betaUpdates' in patch) updater?.setPrerelease(data.betaUpdates);
+  privacy.apply(patch);
+  if ('crashRecovery' in patch) recoveryIpc.crashRecoveryChanged(); // before the window hears about it
   if ('showIdlePill' in patch && overlay && controller.status === 'idle') {
     if (data.showIdlePill) showOverlay();
     else overlay.hide();
@@ -1190,7 +1227,12 @@ function init() {
     decrypt: (s) => (s.startsWith('plain:') ? s.slice(6) : safeStorage.decryptString(Buffer.from(s, 'base64'))),
   });
   history = new History(path.join(app.getPath('userData'), 'history.json'));
-  retry = createRetryOffers({ history, pending: createPendingAudio({ onEvict: () => broadcast('history:changed') }) });
+  audioHistory = createAudioHistory(path.join(app.getPath('userData'), 'audio'));
+  privacy = createPrivacy({ history, audioHistory, getSettings: () => settings.get(), log });
+  retry = createRetryOffers({
+    history, pending: createPendingAudio({ onEvict: () => broadcast('history:changed') }),
+    onFailed: (item, audio) => privacy.saveRecording(item.id, audio),
+  });
   recovery = createRecoveryFile(path.join(app.getPath('userData'), 'recovery'));
   asr = new LocalAsr(modelsDir());
   asr.on('progress', (p) => {
@@ -1267,6 +1309,7 @@ function init() {
   });
 
   registerIpc();
+  privacy.start(); // the History and recordings settings apply now, then every hour
   registerProtocol();
   createOverlay();
   createTray();

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:" />
   <title>Pauli Speaks</title>
   <link rel="stylesheet" href="app.css" />
 </head>
@@ -384,6 +384,26 @@
         </div>
       </section>
 
+      <section class="panel" id="privacy">
+        <h2>Privacy</h2>
+        <p class="desc">What Pauli Speaks keeps on this PC. Nothing here is sent anywhere. <a href="https://github.com/izscaryu/pauli-speaks/blob/main/PRIVACY.md" target="_blank">Read the details</a></p>
+        <div class="rows">
+          <div class="row">
+            <div><div class="title">Transcript history</div><div id="retention-desc" class="desc"></div></div>
+            <select id="history-retention" aria-label="Transcript history">
+              <option value="keep">Keep</option>
+              <option value="24h">Delete after 24 hours</option>
+              <option value="off">Don't keep</option>
+            </select>
+          </div>
+          <label class="row"><div><div class="title">Keep recordings for 24 hours</div><div class="desc">Saves the audio of each dictation on this PC, unencrypted, so you can play it back or transcribe it again from History. Deleted after 24 hours.</div></div><span class="switch"><input type="checkbox" id="audio-history" /><span></span></span></label>
+          <label class="row"><div><div class="title">Recover dictation after a crash</div><div class="desc">Keeps a copy of the recording while you dictate, so a crash doesn't lose it. Deleted as soon as the text is pasted.</div></div><span class="switch"><input type="checkbox" data-setting="crashRecovery" /><span></span></span></label>
+          <div class="row"><div><div class="title">Downloaded models</div><div id="models-desc" class="desc"></div></div><button id="delete-models" class="btn">Delete downloaded models</button></div>
+          <div class="row"><div><div class="title">Delete all my data</div><div class="desc">Your history, recordings, dictionary, snippets and settings. Downloaded models are kept.</div></div><button id="delete-all" class="btn danger">Delete all my data</button></div>
+        </div>
+        <div id="privacy-confirm" class="confirm" hidden></div>
+      </section>
+
       <section class="panel">
         <h2>Backup</h2>
         <div class="rows">
@@ -448,5 +468,7 @@
   <script src="home-notices.js"></script>
   <script src="history-failed.js"></script>
   <script src="backup.js"></script>
+  <script src="history-audio.js"></script>
+  <script src="privacy.js"></script>
 </body>
 </html>

@@ -2,10 +2,13 @@
 // Transcript history, kept in a local JSON file. A dictation that couldn't be transcribed
 // is listed too (status 'failed', no text) so it can be retried; it never counts as a
 // dictation (stats, Paste last) until resolve() fills it in.
+// Retention (Settings → Privacy): 'keep', '24h' or 'off'. With 'off' every new item stays in memory
+// only (sessionOnly), so Paste last and Undo last still work until Pauli Speaks closes.
 
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const { EventEmitter } = require('node:events');
+const { sweepHistory, RETENTIONS } = require('./privacy');
 
 const LIMIT = 500;
 const TYPING_WPM = 40;
@@ -16,6 +19,7 @@ class History extends EventEmitter {
     this.file = file;
     this.items = [];
     this.sessionOnly = new Set(); // ids kept in memory only, never saved
+    this.retention = 'keep';
     try {
       const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
       if (Array.isArray(saved)) this.items = saved;
@@ -36,6 +40,7 @@ class History extends EventEmitter {
   /** @param {{text: string, rawText: string, durationMs: number, words: number, engine: string, language: string|null}} entry */
   add(entry) {
     const item = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), ...entry };
+    if (this.retention === 'off') this.sessionOnly.add(item.id);
     this.items.unshift(item);
     if (this.items.length > LIMIT) this.items.length = LIMIT;
     this.#save();
@@ -59,14 +64,45 @@ class History extends EventEmitter {
     if (at < 0) return null;
     const item = { ...entry, id, createdAt: this.items[at].createdAt };
     this.items[at] = item;
-    this.sessionOnly.delete(id);
+    if (this.retention !== 'off') this.sessionOnly.delete(id);
     this.#save();
     return item;
   }
 
   remove(id) {
     this.items = this.items.filter((i) => i.id !== id);
+    this.sessionOnly.delete(id);
     this.#save();
+  }
+
+  /**
+   * How long transcripts are kept. Applies at once: 'off' deletes what was saved (from the file and the
+   * list), '24h' drops what is older than a day.
+   * @param {'keep'|'24h'|'off'} retention
+   */
+  setRetention(retention, now = Date.now()) {
+    this.retention = RETENTIONS.includes(retention) ? retention : 'keep';
+    this.#enforce(now);
+    this.#save();
+  }
+
+  /** The hourly sweep for '24h' (saves and announces only when something went). */
+  sweep(now = Date.now()) {
+    if (this.#enforce(now)) this.#save();
+  }
+
+  /** @returns {boolean} an item was dropped */
+  #enforce(now) {
+    const saved = this.items.filter((i) => !this.sessionOnly.has(i.id));
+    const inMemory = this.items.filter((i) => this.sessionOnly.has(i.id));
+    const kept = new Set([
+      ...sweepHistory(saved, this.retention, now),
+      ...(this.retention === '24h' ? sweepHistory(inMemory, '24h', now) : inMemory),
+    ]);
+    const before = this.items.length;
+    this.items = this.items.filter((i) => kept.has(i));
+    for (const id of this.sessionOnly) if (!this.items.some((i) => i.id === id)) this.sessionOnly.delete(id);
+    return this.items.length !== before;
   }
 
   clear() {

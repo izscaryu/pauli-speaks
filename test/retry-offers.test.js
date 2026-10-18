@@ -283,3 +283,65 @@ test('retryInHistory: cancelled (Esc) or busy keeps everything for later', async
   assert.ok(pending.get(failed.audioId));
   assert.deepEqual([...cancelled.calls.copied, ...busy.calls.copied], []);
 });
+
+// ---- a recording saved on disk (Settings → Privacy → Keep recordings for 24 hours)
+
+const savedFor = (calls = []) => (id) => {
+  calls.push(id);
+  return { audio: audio(2), meta: { ...meta, app: { exe: 'notepad.exe' } } };
+};
+
+test('retryInHistory: a normal entry with a saved recording gets its text replaced and copied', async () => {
+  const { history, offers } = setup();
+  history.add({ text: 'older', words: 1, durationMs: 1 });
+  const item = history.add({ text: 'misheard', words: 1, durationMs: 1000 });
+  history.add({ text: 'newer', words: 1, durationMs: 1 });
+  const asked = [];
+  const { deps, calls } = historyDeps({ saved: savedFor(asked) });
+  assert.deepEqual(await offers.retryInHistory(item.id, deps), { copied: true });
+  assert.deepEqual(asked, [item.id]);
+  assert.deepEqual(history.list().map((i) => i.text), ['newer', 'what I said', 'older']);
+  assert.equal(history.list()[1].id, item.id);
+  assert.deepEqual(calls.copied, ['what I said']);
+  assert.equal(calls.modes[0].app.exe, 'notepad.exe', 'runs the way it was recorded');
+});
+
+test('retryInHistory: nothing said in a saved recording leaves the entry as it is', async () => {
+  const { history, offers } = setup();
+  const item = history.add({ text: 'keep me', words: 2, durationMs: 1000 });
+  const { deps, calls } = historyDeps({ saved: savedFor(), transcribe: async () => null });
+  assert.deepEqual(await offers.retryInHistory(item.id, deps), { error: 'No speech detected' });
+  assert.deepEqual(history.list().map((i) => i.text), ['keep me']);
+  assert.deepEqual(calls.copied, []);
+});
+
+test('retryInHistory: no saved recording and no memory copy is "no longer available"', async () => {
+  const { history, offers } = setup();
+  const item = history.add({ text: 'x', words: 1, durationMs: 1 });
+  const { deps } = historyDeps({ saved: () => null });
+  assert.deepEqual(await offers.retryInHistory(item.id, deps), { error: 'That recording is no longer available' });
+});
+
+test('retryInHistory: a failed entry whose memory copy is gone is retried from the saved recording', async () => {
+  const { history, pending, offers } = setup();
+  offers.failed(audio(), meta, 'boom');
+  const failed = history.list()[0];
+  pending.drop(failed.audioId);
+  const { deps } = historyDeps({ saved: savedFor() });
+  assert.deepEqual(await offers.retryInHistory(failed.id, deps), { copied: true });
+  assert.equal(history.list()[0].text, 'what I said');
+  assert.equal(history.list()[0].status, undefined);
+});
+
+test('failed: onFailed gets the History entry and the audio (so a recording can be saved)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pauli-retry-'));
+  test.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const history = new History(path.join(dir, 'history.json'));
+  const seen = [];
+  const offers = createRetryOffers({ pending: createPendingAudio(), history, onFailed: (item, a) => seen.push([item, a]) });
+  const a = audio();
+  offers.failed(a, meta, 'boom');
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0][0], history.list()[0]);
+  assert.equal(seen[0][1], a);
+});

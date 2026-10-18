@@ -122,6 +122,17 @@ class LocalAsr extends EventEmitter {
     return this.#request({ type: 'vad-stream', session, samples });
   }
 
+  /** Stops the worker and waits until it has exited, so it no longer holds the model files open. A later request starts a fresh one. */
+  async stop(timeoutMs = 5000) {
+    const child = this.child;
+    if (!child) return;
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, timeoutMs);
+      child.once('exit', () => { clearTimeout(timer); resolve(); });
+      child.kill();
+    });
+  }
+
   dispose() {
     this.child?.kill();
     this.child = null;

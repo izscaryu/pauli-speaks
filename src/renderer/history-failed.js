@@ -1,8 +1,9 @@
 'use strict';
 // A dictation that couldn't be transcribed, in the History list: what went wrong and a Retry
 // button. Retry transcribes the recording Pauli Speaks kept in memory, fills in the entry and
-// copies the text (it isn't typed anywhere). After a restart the recording is gone.
-// Loaded after app.js; uses these app.js globals: api, el, toast, ICONS.
+// copies the text (it isn't typed anywhere). Without a saved recording it is gone after a restart.
+// With "Keep recordings for 24 hours" on the recording is also saved on disk: it can be played and retried after a restart.
+// Loaded after app.js; uses these app.js globals: api, el, toast, ICONS, and HistoryAudio.
 
 const FailedHistory = (() => {
   async function retry(entry, button) {
@@ -28,7 +29,8 @@ const FailedHistory = (() => {
           el('span', { class: 'err', title: entry.error }, entry.error),
           `${secs}s · ${entry.engine}`),
         el('div', { class: 'retry-row' },
-          retryBtn || el('span', { class: 'desc' }, 'The recording is no longer available (it is only kept until Pauli Speaks closes).'))),
+          retryBtn || el('span', { class: 'desc' }, 'The recording is no longer available (it is only kept until Pauli Speaks closes).'),
+          HistoryAudio.playButton(entry, { class: 'icon-btn' }))),
       el('div', { class: 'actions' },
         el('button', { class: 'icon-btn danger', title: 'Delete', 'aria-label': 'Delete this failed dictation', html: ICONS.trash, onclick: () => api.deleteHistory(entry.id) })));
   }

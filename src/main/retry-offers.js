@@ -12,8 +12,9 @@ const UNDO_MS = 4000;
  * @param {object} o
  * @param {ReturnType<import('./pending-audio').createPendingAudio>} o.pending
  * @param {import('./history').History} o.history
+ * @param {(item: object, audio: Float32Array) => void} [o.onFailed]  a failed entry was added (main saves its recording when those are kept)
  */
-function createRetryOffers({ pending, history, undoMs = UNDO_MS, timers = { setTimeout, clearTimeout } }) {
+function createRetryOffers({ pending, history, onFailed = () => {}, undoMs = UNDO_MS, timers = { setTimeout, clearTimeout } }) {
   let offer = null; // what the pill's button does now: { id, kind: 'retry'|'undo', audioId }
   let undo = null; // the cancelled dictation held for Undo: { onExpire, audioId, timer, expired }
   let nextId = 1;
@@ -29,6 +30,13 @@ function createRetryOffers({ pending, history, undoMs = UNDO_MS, timers = { setT
   function retryJob(audioId, historyId) {
     const kept = pending.get(audioId);
     return kept ? { kind: 'retry', audioId, historyId, audio: kept.audio, meta: kept.meta } : null;
+  }
+
+  /** A recording kept on disk (Privacy → recordings): the History entry is `historyId`, failed or not. */
+  function savedJob(historyId, saved) {
+    if (!history.list().some((i) => i.id === historyId)) return null;
+    const kept = saved(historyId);
+    return kept ? { kind: 'retry', audioId: null, historyId, audio: kept.audio, meta: kept.meta } : null;
   }
 
   /** The held undo ends: its audio goes (unless it was taken) and onExpire runs, once. */
@@ -65,12 +73,13 @@ function createRetryOffers({ pending, history, undoMs = UNDO_MS, timers = { setT
      * @param {(run: () => Promise<void>, mode: object) => Promise<boolean>} d.process  the controller's: false when busy
      * @param {(job) => Promise<object|null>} d.transcribe  the History entry, null when nothing was said
      * @param {() => boolean} d.isCancelled
+     * @param {(historyId: string) => ({audio: Float32Array, meta: object}|null)} [d.saved]  the recording saved on disk, when the one in memory is gone or the entry is a normal one
      * @param {(text: string) => void} d.copy
      * @param {(err: Error) => void} [d.onError]
      * @returns {Promise<{copied: true} | {error: string}>}
      */
-    async retryInHistory(historyId, { process, transcribe, isCancelled, copy, onError = () => {} }) {
-      const job = forHistory(historyId);
+    async retryInHistory(historyId, { process, transcribe, isCancelled, copy, saved = () => null, onError = () => {} }) {
+      const job = forHistory(historyId) || savedJob(historyId, saved);
       if (!job) return { error: 'That recording is no longer available' };
       let out = { error: 'Cancelled' };
       const ran = await process(async () => {
@@ -99,7 +108,7 @@ function createRetryOffers({ pending, history, undoMs = UNDO_MS, timers = { setT
      */
     failed(audio, meta, error) {
       const audioId = pending.put(audio, meta);
-      history.addFailed({ audioId, durationMs: meta.durationMs, engine: meta.engine, error });
+      onFailed(history.addFailed({ audioId, durationMs: meta.durationMs, engine: meta.engine, error }), audio);
       return show('retry', audioId);
     },
 

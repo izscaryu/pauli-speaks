@@ -74,6 +74,9 @@ const DEFAULTS = Object.freeze({
   languageHints: { shown: [] },
 });
 
+// reset() leaves these out of the change it announces: the model they name would start downloading.
+const RESET_QUIET = ['engine', 'localModel', 'acceleration', 'translation'];
+
 const NESTED = ['cloud', 'translation', 'appStyles', 'command', 'readAloud', 'languageHints'];
 
 /** Known settings only - never inherited names like "__proto__" or "constructor" from a file or the window. */
@@ -257,6 +260,23 @@ class Settings extends EventEmitter {
     }
     this.data = next;
     this.#save();
+    this.emit('change', this.data, patch);
+    return this.data;
+  }
+
+  /**
+   * "Delete all my data": every setting back to its default (onboarded false, so the welcome flow runs
+   * again), the API key gone, and the older copies kept at upgrades (settings.v<N>.json) deleted.
+   * The change is announced without the speech and translation model keys, so nothing starts downloading.
+   */
+  reset() {
+    this.data = structuredClone(DEFAULTS);
+    this.#save();
+    const dir = path.dirname(this.file);
+    for (const name of fs.readdirSync(dir)) {
+      if (/^settings\.v\d+\.json$/.test(name)) fs.rmSync(path.join(dir, name), { force: true });
+    }
+    const patch = Object.fromEntries(Object.keys(DEFAULTS).filter((k) => !RESET_QUIET.includes(k)).map((k) => [k, structuredClone(DEFAULTS[k])]));
     this.emit('change', this.data, patch);
     return this.data;
   }

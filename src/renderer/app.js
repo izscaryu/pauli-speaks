@@ -212,6 +212,7 @@ function historyItem(item) {
     el('time', { datetime: item.createdAt }, d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })),
     body,
     el('div', { class: 'actions' },
+      ...HistoryAudio.buttons(item), // history-audio.js
       el('button', { class: 'icon-btn', title: 'Copy', 'aria-label': 'Copy transcript', html: ICONS.copy, onclick: async () => { await api.copy(item.text); toast('Copied'); } }),
       el('button', { class: 'icon-btn danger', title: 'Delete', 'aria-label': 'Delete transcript', html: ICONS.trash, onclick: () => api.deleteHistory(item.id) })));
 }
@@ -1004,6 +1005,7 @@ async function init() {
   loadHistory();
   if (!settings.onboarded) Welcome.start();
   HomeNotices.start();
+  Privacy.start();
 }
 
 api.onSettings((s) => {

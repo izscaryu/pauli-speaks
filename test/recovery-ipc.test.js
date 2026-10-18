@@ -20,7 +20,7 @@ function setup({ file = { meta: { startedAt: 1000, mode: 'dictate' }, audio: sec
       return { text: 'hello there', durationMs: 2000, engine: 'whisper-base' };
     },
     isCancelled: () => false,
-    addEntry: (entry) => { calls.added.push(entry); },
+    addEntry: (entry, audio) => { calls.added.push(entry); calls.addedAudio = audio; },
     copy: async (text) => { calls.copied.push(text); },
     keep: (audio, meta, error) => { calls.kept.push({ audio, meta, error }); return { id: 'retry-1', label: 'Retry' }; },
     flash: (...a) => { calls.flashed.push(a); },
@@ -62,6 +62,50 @@ test('with crash recovery off any leftover file is deleted and nothing is offere
   ipc.check();
   assert.equal(handlers['recovery:state'](), null);
   assert.equal(calls.finish, 1);
+});
+
+test('turning crash recovery off deletes the leftover file at once and takes the banner away', () => {
+  let on = true;
+  const { handlers, ipc, calls } = setup({ crashRecoveryOn: () => on });
+  ipc.check();
+  assert.ok(handlers['recovery:state']());
+  on = false;
+  ipc.crashRecoveryChanged();
+  assert.equal(handlers['recovery:state'](), null);
+  assert.equal(calls.finish, 1);
+});
+
+test('turning crash recovery off during a dictation leaves the file to that dictation, but the banner goes', () => {
+  let on = true;
+  let active = false;
+  const { handlers, ipc, calls } = setup({ crashRecoveryOn: () => on, dictationActive: () => active });
+  ipc.check();
+  active = true;
+  on = false;
+  ipc.crashRecoveryChanged();
+  assert.equal(handlers['recovery:state'](), null);
+  assert.equal(calls.finish, 0, 'the file belongs to the running dictation');
+});
+
+test('forget (Delete all my data) drops the offer and deletes the file even with crash recovery on', () => {
+  const { handlers, ipc, calls } = setup();
+  ipc.check();
+  ipc.forget();
+  assert.equal(handlers['recovery:state'](), null);
+  assert.equal(calls.finish, 1);
+});
+
+test('turning crash recovery on changes nothing', () => {
+  const { ipc, calls } = setup();
+  ipc.crashRecoveryChanged();
+  assert.equal(calls.finish, 0);
+});
+
+test('a recovered dictation is handed to History together with its audio', async () => {
+  const { handlers, ipc, calls } = setup();
+  ipc.check();
+  await handlers['recovery:recover']();
+  assert.equal(calls.addedAudio.length, 2 * RATE);
 });
 
 test('the state has no startedAt when the meta file was lost', () => {

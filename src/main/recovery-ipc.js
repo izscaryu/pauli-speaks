@@ -12,7 +12,7 @@
 //     process: (run, mode) => Promise<boolean>,       // the controller's: false when busy
 //     transcribe: ({ audio, meta }) => Promise<entry|null>,   // gate + transcribe; null when nothing was said
 //     isCancelled: () => boolean,
-//     addEntry: (entry) => void,             // History
+//     addEntry: (entry, audio) => void,      // History (and the recording, when those are kept)
 //     copy: (text) => Promise<void>,         // clipboard, kept out of clipboard history
 //     keep: (audio, meta, error) => action,  // pending audio + failed History entry; the pill's Retry action
 //     flash: (text, kind, ms, action) => void,
@@ -53,6 +53,12 @@ function registerRecoveryIpc(ipcMain, deps) {
     } catch (err) {
       log.warn('recovery: deleting the file failed:', err && err.message);
     }
+  }
+
+  /** "Recover dictation after a crash" was switched off: a leftover goes now (a running dictation's own file stays its own). */
+  function crashRecoveryChanged() {
+    if (deps.crashRecoveryOn()) return;
+    done();
   }
 
   ipcMain.handle('recovery:state', () => {
@@ -103,7 +109,7 @@ function registerRecoveryIpc(ipcMain, deps) {
           out = { error: 'No speech detected' };
           return;
         }
-        deps.addEntry(entry);
+        deps.addEntry(entry, audio);
         try {
           await deps.copy(entry.text);
           out = { copied: true };
@@ -121,7 +127,8 @@ function registerRecoveryIpc(ipcMain, deps) {
     }
   });
 
-  return { check };
+  /** forget: "Delete all my data" - the offer and the file go (a running dictation keeps its own file). */
+  return { check, crashRecoveryChanged, forget: done };
 }
 
 module.exports = { registerRecoveryIpc, MIN_RECOVER_SECONDS };

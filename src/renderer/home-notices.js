@@ -188,5 +188,5 @@ const HomeNotices = (() => {
 
   $('#run-setup').addEventListener('click', () => Welcome.start());
 
-  return { start, redownload, canRedownload, TROUBLESHOOTING_URL };
+  return { start, redownload, canRedownload, refreshRecovery: drawRecovery, TROUBLESHOOTING_URL };
 })();
