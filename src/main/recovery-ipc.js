@@ -80,10 +80,10 @@ function registerRecoveryIpc(ipcMain, deps) {
       let out = { error: 'Cancelled' };
 
       /** Nothing is lost: the audio goes to the kept recordings, History lists it as failed, the pill offers Retry. */
-      const keepForRetry = (error, announce) => {
+      const keepForRetry = (error, announce, cancelled = false) => {
         const action = deps.keep(audio, meta, error);
         if (announce) deps.flash("Couldn't transcribe.", 'error', 6000, action);
-        return { failed: true, error };
+        return { failed: true, cancelled, error };
       };
 
       const ran = await deps.process(async () => {
@@ -96,7 +96,7 @@ function registerRecoveryIpc(ipcMain, deps) {
           return;
         }
         if (deps.isCancelled()) {
-          out = keepForRetry('Cancelled', false);
+          out = keepForRetry('Cancelled', false, true);
           return;
         }
         if (!entry) {

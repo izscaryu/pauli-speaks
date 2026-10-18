@@ -69,17 +69,31 @@ const HomeNotices = (() => {
     };
     recover.addEventListener('click', async () => {
       busy(true);
-      const r = await api.recoverDictation();
-      if (r.copied) toast('Copied');
-      else if (r.failed) toast("Couldn't transcribe. You can retry it from History.");
-      else toast(r.error);
-      busy(false);
-      drawRecovery(); // gone once the file is handled; still there when the app was busy
+      try {
+        const r = await api.recoverDictation();
+        if (r.copied) toast('Copied');
+        else if (r.cancelled) toast('Cancelled. You can retry it from History.');
+        else if (r.failed) toast("Couldn't transcribe. You can retry it from History.");
+        else toast(r.error);
+      } catch (err) {
+        console.error('recovery failed', err);
+        toast("Couldn't recover the dictation. Try again.");
+      } finally {
+        busy(false);
+        drawRecovery(); // gone once the file is handled; still there when the app was busy
+      }
     });
     discard.addEventListener('click', async () => {
       busy(true);
-      await api.discardRecovery();
-      drawRecovery();
+      try {
+        await api.discardRecovery();
+      } catch (err) {
+        console.error('discarding the recovery failed', err);
+        toast("Couldn't discard the recording. Try again.");
+      } finally {
+        busy(false);
+        drawRecovery();
+      }
     });
     box.replaceChildren(
       el('div', { class: 'grow' }, el('strong', {}, 'Recover your last dictation?'),

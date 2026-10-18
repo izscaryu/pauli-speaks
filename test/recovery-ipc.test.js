@@ -135,6 +135,7 @@ test('cancelling the transcription keeps the audio for Retry', async () => {
   ipc.check();
   const r = await handlers['recovery:recover']();
   assert.equal(r.failed, true);
+  assert.equal(r.cancelled, true);
   assert.equal(calls.kept.length, 1);
   assert.equal(calls.added.length, 0);
   assert.equal(calls.finish, 1);

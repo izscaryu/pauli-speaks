@@ -10,8 +10,11 @@ the app says so next to that option.
   you said, a copy of the recording in progress is written to the `recovery\` folder while you
   dictate. It is the raw audio and is not encrypted. It is deleted when the dictation ends: after the
   text is pasted, 4 seconds after you cancel (while you can still undo), or when no speech was heard.
-  If the app crashes or is closed while you dictate, the copy stays in that folder until your next
-  dictation replaces it.
+  If the app crashes or is closed while you dictate, the copy stays in that folder. The next time
+  Pauli Speaks starts, Home asks whether to recover it (it is transcribed and copied to your
+  clipboard) or discard it, and the copy is deleted after either choice. A leftover copy shorter than
+  half a second is deleted at start without asking. A dictation you start before choosing replaces
+  the leftover copy.
 - **Retry and Undo.** If a dictation can't be transcribed (for example the cloud service is
   unreachable), its audio is kept in memory, not on disk, so you can retry it from the pill or from
   History until you quit Pauli Speaks. At most the last 5 such recordings or 10 minutes of audio are
@@ -63,7 +66,7 @@ next to its `.exe` instead; to delete everything, delete the `.exe` and that fol
 | `history.json` | Your last 500 transcripts |
 | `models\` | Downloaded speech and translation models (can be several GB) |
 | `logs\` | Log files |
-| `recovery\` | Unencrypted audio of the dictation in progress (`current.pcm`, and `current.json` with its start time and mode). Deleted when the dictation ends; after a crash or a quit mid-dictation it stays until you choose Recover or Discard on the next start (or until the next dictation replaces it) |
+| `recovery\` | Unencrypted audio of the dictation in progress (`current.pcm`, and `current.json` with its start time and mode). Deleted when the dictation ends; after a crash or a quit mid-dictation it stays until you choose Recover or Discard on the next start (or until a new dictation replaces it). A copy under half a second is deleted at start |
 
 To delete everything: quit Pauli Speaks (tray icon → *Quit Pauli Speaks*), uninstall it from
 Windows Settings → Apps, then delete the `%APPDATA%\Pauli Speaks` folder.
