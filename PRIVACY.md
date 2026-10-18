@@ -29,7 +29,7 @@ the app says so next to that option.
   switch off. A dictation that couldn't be transcribed is saved the same way, so Retry works after a
   restart.
 - **Retry and Undo.** If a dictation can't be transcribed (for example the cloud service is
-  unreachable), its audio is kept in memory, not on disk, so you can retry it from the pill or from
+  unreachable), its audio is kept in memory, not on disk (unless *Keep recordings for 24 hours* is on), so you can retry it from the pill or from
   History until you quit Pauli Speaks. At most the last 5 such recordings or 10 minutes of audio are
   kept; deleting the entry in History deletes its audio. A cancelled dictation is kept in memory the
   same way for 4 seconds, so you can undo the cancel.
@@ -43,7 +43,7 @@ the app says so next to that option.
   last*, *Copy last* and *Undo last dictation* still work for the current session. Clear them any
   time with *Clear* on the Transcripts page.
 - **Clipboard history.** To paste, Pauli Speaks briefly puts your text on the clipboard. That
-  temporary text is marked so that Windows clipboard history (Win+V) and cloud clipboard sync don't
+  temporary text is marked, whenever Windows allows it (in the rare case it doesn't, a plain copy is made and the log says so), so that Windows clipboard history (Win+V) and cloud clipboard sync don't
   record it, and clipboard managers that respect the marking skip it. Your own clipboard content is
   put back afterwards unless you turned that off. When the app in front runs as administrator,
   Windows doesn't allow the paste: the text then stays on the clipboard (still marked, and your earlier
@@ -59,7 +59,7 @@ the app says so next to that option.
 
 | You turn on | What is sent | To |
 |---|---|---|
-| **Cloud API** speech recognition (Settings → Speech recognition) | The audio of each dictation, and of files you transcribe | The provider you set up (Groq by default: `api.groq.com`) |
+| **Cloud API** speech recognition (Settings → Speech recognition) | The audio of each dictation, and of files you transcribe, plus your dictionary words as a hint for the recognition (while *Use dictionary words as hints* is on) | The provider you set up (Groq by default: `api.groq.com`) |
 | **Command mode** (select text, hold the command shortcut, speak) | The selected text and your spoken instruction (as text) | The same provider |
 
 With Cloud API recognition and several languages chosen, a dictation that comes back in a language outside your list is sent once more to the same provider, with your first language as the language to use. Files you transcribe are not sent twice.

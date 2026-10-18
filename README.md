@@ -267,7 +267,7 @@ start-with-Windows entry that the app registered ([`build/installer.nsh`](build/
   turn off *Settings → Dictation → Silence detection* to go back to the simple loudness check.
 - **"Couldn't transcribe. Retry".** The speech engine failed or the cloud service couldn't be
   reached. Click **Retry** on the pill (it stays for a few seconds) or on the entry in History;
-  the recording is kept in memory until you quit Pauli Speaks.
+  the recording is kept in memory until you quit Pauli Speaks (the last 5 recordings or 10 minutes of audio).
 - **"Microphone blocked".** Turn on *Windows Settings → Privacy & security → Microphone → Let
   desktop apps access your microphone*.
 - **Slow transcription.** Use Whisper Base or Tiny, pick a single language, or switch to cloud
