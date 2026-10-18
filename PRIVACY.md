@@ -63,7 +63,7 @@ next to its `.exe` instead; to delete everything, delete the `.exe` and that fol
 | `history.json` | Your last 500 transcripts |
 | `models\` | Downloaded speech and translation models (can be several GB) |
 | `logs\` | Log files |
-| `recovery\` | Unencrypted audio of the dictation in progress (`current.pcm`, and `current.json` with its start time and mode). Deleted when the dictation ends; after a crash or a quit mid-dictation it stays until the next dictation replaces it |
+| `recovery\` | Unencrypted audio of the dictation in progress (`current.pcm`, and `current.json` with its start time and mode). Deleted when the dictation ends; after a crash or a quit mid-dictation it stays until you choose Recover or Discard on the next start (or until the next dictation replaces it) |
 
 To delete everything: quit Pauli Speaks (tray icon → *Quit Pauli Speaks*), uninstall it from
 Windows Settings → Apps, then delete the `%APPDATA%\Pauli Speaks` folder.
