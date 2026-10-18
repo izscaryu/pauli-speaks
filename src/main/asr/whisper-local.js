@@ -42,6 +42,25 @@ function buildPrompt(dictionary) {
   return words.length ? `${words.join(', ')}.` : '';
 }
 
+/**
+ * The most likely language token among `candidates` (empty = all) and, from the same scores, among all of them.
+ * @param {ArrayLike<number>} scores the decoder's logits; the last step starts at `base`
+ * @param {Record<string, number>} langToId Whisper's "<|en|>" -> token id
+ * @returns {{language: string, likely: string}}
+ */
+function pickLanguage(scores, base, langToId, candidates) {
+  let best = null;
+  let any = null;
+  for (const [token, id] of Object.entries(langToId)) {
+    const code = token.slice(2, -2);
+    const score = scores[base + id];
+    if (!any || score > any.score) any = { code, score };
+    if (candidates.length && !candidates.includes(code)) continue;
+    if (!best || score > best.score) best = { code, score };
+  }
+  return { language: best ? best.code : 'en', likely: any ? any.code : 'en' };
+}
+
 function createLocalWhisper({ cacheDir, onProgress = () => {} }) {
   let transformers = null;
   let pipe = null;
@@ -103,6 +122,7 @@ function createLocalWhisper({ cacheDir, onProgress = () => {} }) {
    * transformers.js falls back to English when no language is given, so we
    * detect it ourselves: one decoder step after <|startoftranscript|> and pick
    * the most likely language token, limited to the user's languages.
+   * @returns {Promise<{language: string, likely: string}>} `likely` is the best of all languages, from the same scores
    */
   async function detectLanguage(input_features, candidates) {
     const { Tensor } = await lib();
@@ -110,15 +130,7 @@ function createLocalWhisper({ cacheDir, onProgress = () => {} }) {
     const sot = new Tensor('int64', BigInt64Array.from([BigInt(gc.decoder_start_token_id)]), [1, 1]);
     const { logits } = await pipe.model({ input_features, decoder_input_ids: sot });
     const vocab = logits.dims.at(-1);
-    const base = logits.data.length - vocab;
-    let best = null;
-    for (const [token, id] of Object.entries(gc.lang_to_id)) {
-      const code = token.slice(2, -2);
-      if (candidates.length && !candidates.includes(code)) continue;
-      const score = logits.data[base + id];
-      if (!best || score > best.score) best = { code, score };
-    }
-    return best ? best.code : 'en';
+    return pickLanguage(logits.data, logits.data.length - vocab, gc.lang_to_id, candidates);
   }
 
   /** Single-window decode with a vocabulary prompt (transformers.js has no prompt_ids yet). */
@@ -149,7 +161,10 @@ function createLocalWhisper({ cacheDir, onProgress = () => {} }) {
     const { device } = await load(model, acceleration);
     const seconds = audio.length / 16000;
     const { input_features } = await pipe.processor(audio.subarray(0, 16000 * 30));
-    const language = languages.length === 1 ? languages[0] : await detectLanguage(input_features, languages);
+    // One chosen language goes straight to Whisper (nothing to detect, nothing to suggest).
+    const { language, likely: likelyLanguage } = languages.length === 1
+      ? { language: languages[0], likely: null }
+      : await detectLanguage(input_features, languages);
     const task = opts.task === 'translate' && language !== 'en' ? 'translate' : 'transcribe';
 
     let text;
@@ -173,12 +188,12 @@ function createLocalWhisper({ cacheDir, onProgress = () => {} }) {
         }));
       }
     }
-    return { text: (text || '').trim(), language, translatedTo: task === 'translate' ? 'en' : null, chunks, device };
+    return { text: (text || '').trim(), language, likelyLanguage, translatedTo: task === 'translate' ? 'en' : null, chunks, device };
   }
 
   return { load, transcribe };
 }
 
 module.exports = {
-  MODELS, DEFAULT_MODEL, READY_MARKER, createLocalWhisper, isModelDownloaded, modelDir, canWhisperTranslate, buildPrompt,
+  MODELS, DEFAULT_MODEL, READY_MARKER, createLocalWhisper, isModelDownloaded, modelDir, canWhisperTranslate, buildPrompt, pickLanguage,
 };

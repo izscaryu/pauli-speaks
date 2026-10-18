@@ -1,7 +1,7 @@
 'use strict';
 // The notices on Home: the shortcut-hook and conflicting-app banners, the "Recover your last dictation?"
 // banner after a crash, the setup card for people who were already using the app, the What's new card, and the "Run setup again" button in Settings.
-// Loaded after app.js and welcome.js; uses these app.js globals: api, $, el, save, settings, modelState, toast.
+// Loaded after app.js and welcome.js; uses these app.js globals: api, $, el, save, settings, modelState, toast, LANG_NAME.
 //
 // Everything is built with `el` (never innerHTML): the What's new text comes from CHANGELOG.md.
 
@@ -101,6 +101,41 @@ const HomeNotices = (() => {
       recover, discard);
   }
 
+  // ---------------------------------------------------------------- language hint
+
+  /** After repeated dictations in a language that isn't in the list: add it, or not (asked once per language). @param {string|null} code */
+  function drawLanguageHint(code) {
+    const box = $('#language-banner');
+    if (code && !Object.hasOwn(LANG_NAME, code)) { // not a language the app supports: nothing to offer
+      api.dismissLanguageHint(code).catch((err) => console.error('dismissing the language hint failed', err));
+      code = null;
+    }
+    box.hidden = !code;
+    if (!code) return;
+    const done = (call) => async () => {
+      box.hidden = true;
+      try {
+        await call(code);
+      } catch (err) {
+        console.error('answering the language hint failed', err);
+        toast("Couldn't save that. Try again.");
+        refreshLanguageHint();
+      }
+    };
+    box.replaceChildren(
+      el('div', { class: 'grow' }, el('strong', {}, `Sounds like ${LANG_NAME[code]}. Add it to your languages?`)),
+      el('button', { class: 'btn primary', onclick: done(api.addHintedLanguage) }, 'Add'),
+      el('button', { class: 'btn quiet', onclick: done(api.dismissLanguageHint) }, 'No thanks'));
+  }
+
+  async function refreshLanguageHint() {
+    try {
+      drawLanguageHint(await api.languageHint());
+    } catch (err) {
+      console.error('language hint check failed', err);
+    }
+  }
+
   // ---------------------------------------------------------------- setup card
 
   function drawSetupCard() {
@@ -175,6 +210,7 @@ const HomeNotices = (() => {
     drawSetupCard();
     refreshHealth();
     drawRecovery();
+    refreshLanguageHint();
     showWhatsNew();
   }
 
@@ -185,6 +221,8 @@ const HomeNotices = (() => {
     if (lastBindings !== null && now !== lastBindings) refreshHealth();
     lastBindings = now;
   });
+
+  api.onLanguageHint(drawLanguageHint);
 
   $('#run-setup').addEventListener('click', () => Welcome.start());
 

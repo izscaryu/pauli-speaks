@@ -6,33 +6,53 @@
 const { encodeWav } = require('../audio-utils');
 
 /**
+ * With several chosen languages, a returned language outside them is wrong for this user: the audio is
+ * sent once more with the first chosen language. One chosen language is sent with the request already,
+ * and with none chosen the provider's detection is accepted.
+ */
+function needsCloudRetry(chosen, returned) {
+  return chosen.length > 1 && !!returned && !chosen.includes(returned);
+}
+
+/**
  * @param {Float32Array} audio mono 16 kHz
  * @param {{baseUrl: string, apiKey: string, model: string, languages: string[]}} opts
  */
 async function transcribeCloud(audio, { baseUrl, apiKey, model, languages = [], prompt = '' }) {
   if (!apiKey) throw new Error('Add an API key in Settings > Transcription to use cloud mode.');
-  const form = new FormData();
-  form.append('file', new Blob([encodeWav(audio)], { type: 'audio/wav' }), 'speech.wav');
-  form.append('model', model);
-  form.append('response_format', 'verbose_json');
-  form.append('temperature', '0');
-  if (languages.length === 1) form.append('language', languages[0]);
-  if (prompt) form.append('prompt', prompt);
+  const request = async (language) => {
+    const form = new FormData();
+    form.append('file', new Blob([encodeWav(audio)], { type: 'audio/wav' }), 'speech.wav');
+    form.append('model', model);
+    form.append('response_format', 'verbose_json');
+    form.append('temperature', '0');
+    if (language) form.append('language', language);
+    if (prompt) form.append('prompt', prompt);
 
-  const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/audio/transcriptions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: form,
-    signal: AbortSignal.timeout(60000),
-  });
-  if (!res.ok) {
-    const body = (await res.text()).slice(0, 300);
-    throw new Error(`Cloud transcription failed (HTTP ${res.status}): ${body}`);
+    const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/audio/transcriptions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 300);
+      throw new Error(`Cloud transcription failed (HTTP ${res.status}): ${body}`);
+    }
+    return res.json();
+  };
+
+  let json = await request(languages.length === 1 ? languages[0] : '');
+  const returned = languageCode(json.language);
+  let language = returned || languages[0] || null;
+  if (needsCloudRetry(languages, returned)) {
+    json = await request(languages[0]); // at most one more request, to the same provider
+    language = languages[0];
   }
-  const json = await res.json();
   return {
     text: String(json.text || '').trim(),
-    language: languageCode(json.language) || languages[0] || null,
+    language,
+    likelyLanguage: languages.length > 1 ? returned : null, // what the provider heard, before any retry
     translatedTo: null,
     chunks: Array.isArray(json.segments)
       ? json.segments.map((s) => ({ start: s.start, end: s.end, text: String(s.text || '').trim() }))
@@ -83,4 +103,4 @@ async function translateCloud(audio, { baseUrl, apiKey, model }) {
   return { text: String(json.text || '').trim(), language: null, translatedTo: 'en' };
 }
 
-module.exports = { transcribeCloud, translateCloud, languageCode };
+module.exports = { transcribeCloud, translateCloud, languageCode, needsCloudRetry };

@@ -52,6 +52,7 @@ const { setupPortable } = require('./portable');
 const { shouldPreloadAtStartup, shouldOfferSmallerModel, isAllowedExternalUrl } = require('./system-check');
 const { registerWelcomeIpc, registerBackupIpc, runningProcessNames } = require('./welcome-ipc');
 const { registerRecoveryIpc } = require('./recovery-ipc');
+const { createLanguageHints } = require('./language-hints');
 const { readChangelog } = require('./changelog');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
@@ -92,6 +93,7 @@ let previewTimer = null;
 let previewBusy = false;
 let recovery = null; // crash-recovery file of the dictation in progress
 let recoveryIpc = null; // Home's "Recover your last dictation?"
+let languageHints = null; // Home's "Sounds like <Language>. Add it to your languages?"
 let audioHistory = null; // recordings kept for 24 hours (Settings → Privacy)
 let privacy = null; // retention, hourly sweep, saved recordings
 let listening = null; // tap + crash file + live VAD of the dictation in progress
@@ -668,6 +670,7 @@ async function runDictation(audio, seconds, t0, historyId = null, recording = nu
   }
 
   record(dictationEntry(result, text, seconds, style, sessionApp), historyId, recording);
+  languageHints.feed({ chosen: s.languages, likely: result.likelyLanguage ?? result.language });
   if (!shouldRunFollowUps(await paste(text))) return; // enterAfterPaste is reset by the caller
   for (const c of after) await runVoiceAction(c, false);
   if (enterAfterPaste && !after.some((c) => c.arg === 'Enter')) await pressEnterNow();
@@ -1049,6 +1052,8 @@ function registerIpc() {
     flash, engineLabel, settle: () => { if (controller.status === 'idle') sendOverlayState({ state: 'idle' }); }, log,
   });
   recoveryIpc.check(); // before the first dictation can replace the leftover file
+  languageHints = createLanguageHints({ getSettings: () => settings.get(), updateSettings: (patch) => settings.update(patch), broadcast, log });
+  languageHints.registerIpc(ipcMain);
   registerPrivacyIpc(ipcMain, {
     catalog: () => [...MODELS.map((m) => ({ id: m.id, label: `Whisper ${m.label}`, kind: 'speech' })), { id: NLLB_MODEL, label: 'Offline translator', kind: 'translator' }],
     modelsDir,
@@ -1061,7 +1066,7 @@ function registerIpc() {
     },
     deleteAll: () => deleteAllData({
       history, audioHistory, settings, recoveryFile: recovery,
-      forgetInMemory: () => { retry.forgetAll(); lastPaste.forget(); recoveryIpc.forget(); },
+      forgetInMemory: () => { retry.forgetAll(); lastPaste.forget(); recoveryIpc.forget(); languageHints.forget(); },
     }),
     audioBytes: (id) => audioHistory.read(id),
     log,

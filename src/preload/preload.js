@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld('pauli', {
   recoveryState: () => ipcRenderer.invoke('recovery:state'),
   recoverDictation: () => ipcRenderer.invoke('recovery:recover'),
   discardRecovery: () => ipcRenderer.invoke('recovery:discard'),
+  languageHint: () => ipcRenderer.invoke('language-hint:state'),
+  addHintedLanguage: (code) => ipcRenderer.invoke('language-hint:add', code),
+  dismissLanguageHint: (code) => ipcRenderer.invoke('language-hint:dismiss', code),
+  onLanguageHint: on('language-hint:changed'),
   exportSettings: () => ipcRenderer.invoke('backup:export'),
   importSettings: () => ipcRenderer.invoke('backup:import'),
 

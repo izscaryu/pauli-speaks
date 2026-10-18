@@ -56,6 +56,8 @@ the app says so next to that option.
 | **Cloud API** speech recognition (Settings → Speech recognition) | The audio of each dictation, and of files you transcribe | The provider you set up (Groq by default: `api.groq.com`) |
 | **Command mode** (select text, hold the command shortcut, speak) | The selected text and your spoken instruction (as text) | The same provider |
 
+With Cloud API recognition and several languages chosen, a dictation that comes back in a language outside your list is sent once more to the same provider, with your first language as the language to use.
+
 These options need an API key that you get from the provider yourself. The key is encrypted
 with Windows (DPAPI) and stored in your settings file. On a PC where Windows encryption isn't
 available, it is stored unencrypted. What the provider does with your data is governed by its
