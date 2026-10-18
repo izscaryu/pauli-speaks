@@ -16,9 +16,11 @@ function needsCloudRetry(chosen, returned) {
 
 /**
  * @param {Float32Array} audio mono 16 kHz
- * @param {{baseUrl: string, apiKey: string, model: string, languages: string[]}} opts
+ * @param {{baseUrl: string, apiKey: string, model: string, languages: string[], retryOutsideList?: boolean}} opts
+ *   retryOutsideList (default true): the extra request for a language outside the list. Dictation wants it;
+ *   file transcription (many pieces, any language) does not.
  */
-async function transcribeCloud(audio, { baseUrl, apiKey, model, languages = [], prompt = '' }) {
+async function transcribeCloud(audio, { baseUrl, apiKey, model, languages = [], prompt = '', retryOutsideList = true, log = require('../logger') }) {
   if (!apiKey) throw new Error('Add an API key in Settings > Transcription to use cloud mode.');
   const request = async (language) => {
     const form = new FormData();
@@ -45,9 +47,14 @@ async function transcribeCloud(audio, { baseUrl, apiKey, model, languages = [], 
   let json = await request(languages.length === 1 ? languages[0] : '');
   const returned = languageCode(json.language);
   let language = returned || languages[0] || null;
-  if (needsCloudRetry(languages, returned)) {
-    json = await request(languages[0]); // at most one more request, to the same provider
-    language = languages[0];
+  if (retryOutsideList && needsCloudRetry(languages, returned)) {
+    try {
+      json = await request(languages[0]); // at most one more request, to the same provider
+      language = languages[0];
+    } catch (err) {
+      // the first answer is still usable: keep it, with the language it came back in
+      log.warn(`Cloud language retry failed, keeping the first result: ${err.message}`);
+    }
   }
   return {
     text: String(json.text || '').trim(),

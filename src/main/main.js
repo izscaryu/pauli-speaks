@@ -899,7 +899,7 @@ async function transcribeFile(audio, { translate = false } = {}) {
       if (speechLevel(samples) < SILENCE_LEVEL) continue;
       let r;
       if (s.engine === 'cloud') {
-        r = fast ? await translateCloud(samples, cloudOpts()) : await transcribeCloud(samples, { ...cloudOpts(), prompt: '' });
+        r = fast ? await translateCloud(samples, cloudOpts()) : await transcribeCloud(samples, { ...cloudOpts(), prompt: '', retryOutsideList: false });
       } else {
         await preloadModel();
         if (modelState.status === 'error') throw new Error(`Speech model failed to load: ${modelState.error}`);

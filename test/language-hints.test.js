@@ -212,6 +212,7 @@ async function withProvider(replies, fn) {
   globalThis.fetch = async (_url, init) => {
     sent.push(init.body.get('language'));
     const reply = replies.shift();
+    if (reply instanceof Error) return { ok: false, status: 429, text: async () => 'rate limited' };
     return { ok: true, json: async () => reply };
   };
   try {
@@ -220,7 +221,8 @@ async function withProvider(replies, fn) {
     globalThis.fetch = real;
   }
 }
-const cloud = (languages) => ({ baseUrl: 'https://example.test/v1', apiKey: 'k', model: 'm', languages });
+const logged = [];
+const cloud = (languages, more = {}) => ({ baseUrl: 'https://example.test/v1', apiKey: 'k', model: 'm', languages, log: { warn: (m) => logged.push(m) }, ...more });
 const audio = new Float32Array(1600);
 
 test('cloud, several languages, answer outside them: one more request with the first language', async () => {
@@ -248,4 +250,39 @@ test('cloud, one or no language: never a second request', async () => {
   const none = await withProvider([{ text: 'x', language: 'german' }], () => transcribeCloud(audio, cloud([])));
   assert.deepEqual(none.sent, [null]);
   assert.equal(none.result.language, 'de');
+});
+
+test('cloud, file transcription (retryOutsideList false): one request even when the language is outside the list', async () => {
+  const { result, sent } = await withProvider(
+    [{ text: 'guten Tag', language: 'german' }],
+    () => transcribeCloud(audio, cloud(['en', 'hr'], { retryOutsideList: false })),
+  );
+  assert.deepEqual(sent, [null]);
+  assert.equal(result.text, 'guten Tag');
+  assert.equal(result.language, 'de');
+});
+
+test('cloud, the retry fails: the first result is kept with its own language and the failure is logged without text', async () => {
+  logged.length = 0;
+  const { result, sent } = await withProvider(
+    [{ text: 'guten Tag', language: 'german' }, new Error('HTTP 429')],
+    () => transcribeCloud(audio, cloud(['en', 'hr'])),
+  );
+  assert.deepEqual(sent, [null, 'en']);
+  assert.equal(result.text, 'guten Tag');
+  assert.equal(result.language, 'de');
+  assert.equal(result.likelyLanguage, 'de');
+  assert.equal(logged.length, 1);
+  assert.match(logged[0], /429/);
+  assert.doesNotMatch(logged[0], /guten/);
+});
+
+test('cloud, the retry answers outside the list again: exactly two requests, language is the first chosen one', async () => {
+  const { result, sent } = await withProvider(
+    [{ text: 'guten Tag', language: 'german' }, { text: 'bonjour', language: 'french' }, { text: 'never asked', language: 'english' }],
+    () => transcribeCloud(audio, cloud(['en', 'hr'])),
+  );
+  assert.deepEqual(sent, [null, 'en']);
+  assert.equal(result.text, 'bonjour');
+  assert.equal(result.language, 'en');
 });
