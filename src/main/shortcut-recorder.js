@@ -5,13 +5,13 @@
 //   * keyboard shortcuts save when every key is released; mouse buttons on press
 //   * Esc alone cancels (except when recording Cancel), Backspace alone clears
 //   * a single modifier waits DOUBLE_TAP_MS for a second tap -> double-tap binding
-//   * hard errors (shortcut-rules) are shown and recording goes on
+//   * hard errors (shortcut-rules: { code, params }, said by the window) are shown and recording goes on
 //   * common app shortcuts wait for "Use anyway" (confirm) or "Try another" (retry)
 // Pure apart from the callbacks, so it can be unit tested.
 
 const { validateShortcut, shortcutWarning, newBindingId, isAction, isTalkAction } = require('./shortcut-rules');
 const { DOUBLE_TAP_MS } = require('./shortcut-engine');
-const { formatShortcut, sortKeys, MODIFIERS, MOUSE_NAMES } = require('./keys');
+const { sortKeys, MODIFIERS, MOUSE_NAMES } = require('./keys');
 
 class ShortcutRecorder {
   /**
@@ -93,8 +93,8 @@ class ShortcutRecorder {
     const bindings = this.getBindings();
     let error = validateShortcut(keys, r.action, bindings, { trigger, ignoreId: r.replaceId });
     if (error) {
-      if (!trigger && keys.length === 1 && MODIFIERS.has(keys[0]) && !/already|Windows|up to/.test(error)) {
-        error = `${formatShortcut(keys)} alone isn't a shortcut. Add a key - or tap it twice quickly for a double-tap.`;
+      if (!trigger && keys.length === 1 && MODIFIERS.has(keys[0]) && !['taken', 'reserved', 'tooMany'].includes(error.code)) {
+        error = { code: 'modifierAlone', params: { keys: [...keys] } };
       }
       r.max = [];
       return this.#update({ error, keys });

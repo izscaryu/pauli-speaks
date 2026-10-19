@@ -7,6 +7,8 @@ const { DEFAULTS } = require('../src/main/settings');
 
 const bindings = DEFAULTS.bindings;
 const check = (keys, action, opts) => validateShortcut(keys, action, bindings, opts);
+/** The message code a rule returns ({ code, params }), or null. */
+const codeOf = (m) => (m ? m.code : null);
 
 test('defaults are valid', () => {
   for (const b of bindings) {
@@ -15,37 +17,43 @@ test('defaults are valid', () => {
 });
 
 test('rules', () => {
-  assert.match(check(['A'], 'dictate'), /Include/);
-  assert.match(check(['Ctrl'], 'dictate'), /Include/);
+  assert.deepEqual(check(['A'], 'dictate'), { code: 'needsModifier', params: {} });
+  assert.equal(codeOf(check(['Ctrl'], 'dictate')), 'needsModifier');
   assert.equal(check(['AltRight'], 'dictate'), null);
   assert.equal(check(['F8'], 'dictate'), null);
   assert.equal(check(['F13'], 'pressEnter'), null);
   assert.equal(check(['Mouse4'], 'dictate'), null);
   assert.equal(check(['Ctrl', 'Shift', 'D'], 'dictate'), null);
-  assert.match(check(['Ctrl', 'Shift', 'Alt', 'D'], 'dictate'), /3 keys/);
-  assert.match(check(['Ctrl', 'CtrlRight'], 'dictate'), /left and right/);
+  assert.equal(codeOf(check(['Ctrl', 'Shift', 'Alt', 'D'], 'dictate')), 'tooManyKeys');
+  assert.equal(codeOf(check(['Ctrl', 'CtrlRight'], 'dictate')), 'leftRight');
   assert.equal(check(['F9'], 'cancel', { ignoreId: 'cancel-1' }), null);
-  assert.match(check(['Escape'], 'dictate'), /Include/, 'Esc alone is only for Cancel');
+  assert.equal(codeOf(check(['Escape'], 'dictate')), 'needsModifier', 'Esc alone is only for Cancel');
+  assert.equal(codeOf(check(['F9'], 'nope')), 'unknownAction');
+  assert.equal(codeOf(check([], 'dictate')), 'noKeys');
 });
 
 test('duplicates are hard errors, within an action or across actions', () => {
-  assert.match(check(['Ctrl', 'Meta', 'Space'], 'translate'), /already used for Dictate/);
-  assert.match(check(['Meta', 'Ctrl'], 'dictate'), /already used for Dictate/);
+  assert.deepEqual(check(['Ctrl', 'Meta', 'Space'], 'translate'), { code: 'taken', params: { keys: ['Ctrl', 'Meta', 'Space'], action: 'dictate' } });
+  assert.deepEqual(check(['Meta', 'Ctrl'], 'dictate').params.action, 'dictate');
   assert.equal(check(['Ctrl', 'Meta'], 'dictate', { ignoreId: 'dictate-1' }), null, 'replacing a binding with itself is fine');
 });
 
 test('Windows-reserved combinations are hard errors', () => {
   for (const keys of [['Meta', 'L'], ['Meta', 'D'], ['Meta', 'E'], ['Meta', 'Tab'], ['Meta', 'R'], ['Meta', 'I'], ['Alt', 'F4'], ['MetaRight', 'L'], ['AltRight', 'F4']]) {
-    assert.match(check(keys, 'dictate') || '', /Windows keeps/, formatShortcut(keys));
+    assert.equal(codeOf(check(keys, 'dictate')), 'reserved', formatShortcut(keys));
   }
   assert.equal(check(['Meta', 'Shift', 'L'], 'dictate'), null);
+  assert.deepEqual(check(['Meta', 'L'], 'dictate'), { code: 'reserved', params: { keys: ['Meta', 'L'], reason: 'lock' } });
+  assert.equal(check(['Alt', 'F4'], 'dictate').params.reason, 'closeWindow');
 });
 
 test('common app shortcuts are warnings, not errors', () => {
   for (const keys of [['Ctrl', 'C'], ['Ctrl', 'V'], ['Ctrl', 'X'], ['Ctrl', 'Z'], ['Ctrl', 'S'], ['Ctrl', 'A'], ['Ctrl', 'F'], ['Ctrl', 'T'], ['Ctrl', 'W'], ['CtrlRight', 'C']]) {
     assert.equal(check(keys, 'pasteLast'), null, formatShortcut(keys));
-    assert.match(shortcutWarning(keys) || '', /in most apps/, formatShortcut(keys));
+    assert.equal(codeOf(shortcutWarning(keys)), 'common', formatShortcut(keys));
   }
+  assert.deepEqual(shortcutWarning(['Ctrl', 'C']), { code: 'common', params: { keys: ['Ctrl', 'C'], what: 'copy' } });
+  assert.equal(shortcutWarning(['Alt', 'Tab']).params.what, 'switchWindows');
   assert.equal(shortcutWarning(['Ctrl', 'Shift', 'C']), null);
   assert.equal(shortcutWarning(['Ctrl', 'Meta']), null);
 });
@@ -54,19 +62,19 @@ test('up to four shortcuts per action, one for Cancel', () => {
   assert.equal(maxBindings('dictate'), 4);
   assert.equal(maxBindings('cancel'), 1);
   const full = [...bindings, { id: 'x1', action: 'dictate', keys: ['F7'] }, { id: 'x2', action: 'dictate', keys: ['F8'] }];
-  assert.match(validateShortcut(['F9'], 'dictate', full), /up to 4/);
-  assert.match(check(['F9'], 'cancel'), /up to 1/);
+  assert.deepEqual(validateShortcut(['F9'], 'dictate', full), { code: 'tooMany', params: { action: 'dictate', count: 4 } });
+  assert.deepEqual(check(['F9'], 'cancel'), { code: 'tooMany', params: { action: 'cancel', count: 1 } });
   assert.equal(validateShortcut(['F9'], 'dictate', full, { ignoreId: 'x2' }), null, 'replacing does not add one');
 });
 
 test('double-tap needs one Ctrl, Alt or Shift key', () => {
   assert.equal(check(['CtrlRight'], 'dictate', { trigger: 'doubleTap' }), null);
   assert.equal(check(['Shift'], 'pressEnter', { trigger: 'doubleTap' }), null, 'left modifiers work as a double-tap');
-  assert.match(check(['Meta'], 'dictate', { trigger: 'doubleTap' }), /Start menu/);
-  assert.match(check(['F8'], 'dictate', { trigger: 'doubleTap' }), /Double-tap/);
-  assert.match(check(['Ctrl', 'Shift'], 'dictate', { trigger: 'doubleTap' }), /Double-tap/);
+  assert.equal(codeOf(check(['Meta'], 'dictate', { trigger: 'doubleTap' })), 'doubleTapWin');
+  assert.equal(codeOf(check(['F8'], 'dictate', { trigger: 'doubleTap' })), 'doubleTapKey');
+  assert.equal(codeOf(check(['Ctrl', 'Shift'], 'dictate', { trigger: 'doubleTap' })), 'doubleTapKey');
   const withChord = [...bindings, { id: 'r1', action: 'pasteLast', keys: ['CtrlRight'] }];
-  assert.match(validateShortcut(['CtrlRight'], 'dictate', withChord, { trigger: 'doubleTap' }), /already used for Paste last/);
+  assert.deepEqual(validateShortcut(['CtrlRight'], 'dictate', withChord, { trigger: 'doubleTap' }), { code: 'taken', params: { keys: ['CtrlRight'], action: 'pasteLast' } });
 });
 
 test('formatShortcut orders modifiers first', () => {

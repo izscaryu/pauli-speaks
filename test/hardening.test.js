@@ -32,7 +32,7 @@ test('a mode from a link or flag must be a plain name', () => {
 
 test('built-in names are not actions', () => {
   for (const name of BUILTINS) {
-    assert.match(validateShortcut(['F8'], name, DEFAULTS.bindings) || '', /Unknown action/, name);
+    assert.equal((validateShortcut(['F8'], name, DEFAULTS.bindings) || {}).code, 'unknownAction', name);
     assert.equal(maxBindings(name), 0, name);
   }
   assert.deepEqual(normalizeBindings([{ action: 'constructor', keys: ['F8'] }, { action: 'toString', keys: ['F9'] }]), []);

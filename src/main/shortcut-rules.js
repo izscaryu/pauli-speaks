@@ -4,8 +4,10 @@
 // On top of that: combinations Windows keeps for itself are refused, and
 // common app shortcuts (Ctrl+C...) get a warning the user has to confirm,
 // because the hook can't stop them from also doing their usual job.
+// Messages are { code, params } (keys as arrays, actions as ids), never sentences: the window says them in the
+// UI language (shortcuts.msg.<code> in the locale files).
 
-const { MODIFIERS, MOUSE_NAMES, formatShortcut } = require('./keys');
+const { MODIFIERS, MOUSE_NAMES } = require('./keys');
 const { sameSet } = require('./shortcut-engine');
 
 const MAX_BINDINGS = 4;
@@ -31,21 +33,24 @@ const RIGHT_MODIFIERS = new Set(['CtrlRight', 'AltRight', 'ShiftRight', 'MetaRig
 const STANDALONE = new Set(['CapsLock', 'ScrollLock', 'Insert', 'Pause']);
 const LEFT = { CtrlRight: 'Ctrl', AltRight: 'Alt', ShiftRight: 'Shift', MetaRight: 'Meta' };
 
+// Why Windows keeps it (shortcuts.reserved.<reason>), and what the common one does (shortcuts.common.<what>).
 const RESERVED = [
-  [['Meta', 'L'], 'locks the PC'],
-  [['Meta', 'D'], 'shows the desktop'],
-  [['Meta', 'E'], 'opens File Explorer'],
-  [['Meta', 'Tab'], 'opens Task view'],
-  [['Meta', 'R'], 'opens Run'],
-  [['Meta', 'I'], 'opens Settings'],
-  [['Alt', 'F4'], 'closes the window'],
-  [['Ctrl', 'Alt', 'Delete'], 'opens the security screen'],
+  [['Meta', 'L'], 'lock'],
+  [['Meta', 'D'], 'desktop'],
+  [['Meta', 'E'], 'explorer'],
+  [['Meta', 'Tab'], 'taskView'],
+  [['Meta', 'R'], 'run'],
+  [['Meta', 'I'], 'settings'],
+  [['Alt', 'F4'], 'closeWindow'],
+  [['Ctrl', 'Alt', 'Delete'], 'security'],
 ];
 const COMMON = [
-  [['Ctrl', 'C'], 'Copy'], [['Ctrl', 'V'], 'Paste'], [['Ctrl', 'X'], 'Cut'], [['Ctrl', 'Z'], 'Undo'],
-  [['Ctrl', 'S'], 'Save'], [['Ctrl', 'A'], 'Select all'], [['Ctrl', 'F'], 'Find'], [['Ctrl', 'T'], 'New tab'],
-  [['Ctrl', 'W'], 'Close tab'], [['Alt', 'Tab'], 'Switch windows'],
+  [['Ctrl', 'C'], 'copy'], [['Ctrl', 'V'], 'paste'], [['Ctrl', 'X'], 'cut'], [['Ctrl', 'Z'], 'undo'],
+  [['Ctrl', 'S'], 'save'], [['Ctrl', 'A'], 'selectAll'], [['Ctrl', 'F'], 'find'], [['Ctrl', 'T'], 'newTab'],
+  [['Ctrl', 'W'], 'closeTab'], [['Alt', 'Tab'], 'switchWindows'],
 ];
+
+const msg = (code, params = {}) => ({ code, params });
 
 /** Right-side modifiers count as the left ones when Windows or apps look at a combination. */
 const leftSided = (keys) => keys.map((k) => LEFT[k] || k);
@@ -63,44 +68,40 @@ const maxBindings = (action) => (isAction(action) ? ACTIONS[action].max || MAX_B
  * @param {string} action
  * @param {{id: string, action: string, keys: string[]}[]} bindings everything bound today
  * @param {{trigger?: 'doubleTap', ignoreId?: string}} opts ignoreId = the binding being replaced
- * @returns {string|null} error message, or null when valid
+ * @returns {{code: string, params: object}|null} what is wrong, or null when valid
  */
 function validateShortcut(keys, action, bindings = [], { trigger, ignoreId } = {}) {
-  if (!isAction(action)) return 'Unknown action.';
-  if (!keys || keys.length === 0) return 'Press a key combination.';
+  if (!isAction(action)) return msg('unknownAction');
+  if (!keys || keys.length === 0) return msg('noKeys');
   const others = bindings.filter((b) => b.id !== ignoreId);
   const max = maxBindings(action);
   if (others.filter((b) => b.action === action).length >= max) {
-    return `${ACTION_LABELS[action] || action} can have up to ${max} shortcut${max === 1 ? '' : 's'}.`;
+    return msg('tooMany', { action, count: max });
   }
-  if (keys.length > 3) return 'Use 3 keys or fewer.';
-  if (PAIRS.some(([l, r]) => keys.includes(l) && keys.includes(r))) {
-    return "Can't use the left and right version of the same key together.";
-  }
+  if (keys.length > 3) return msg('tooManyKeys');
+  if (PAIRS.some(([l, r]) => keys.includes(l) && keys.includes(r))) return msg('leftRight');
   if (trigger === 'doubleTap') {
-    if (keys.length !== 1 || !MODIFIERS.has(keys[0])) return 'Double-tap works with one Ctrl, Alt or Shift key.';
-    if ((LEFT[keys[0]] || keys[0]) === 'Meta') return 'Tapping Win opens the Start menu. Double-tap Ctrl, Alt or Shift instead.';
+    if (keys.length !== 1 || !MODIFIERS.has(keys[0])) return msg('doubleTapKey');
+    if ((LEFT[keys[0]] || keys[0]) === 'Meta') return msg('doubleTapWin');
   } else if (action !== 'cancel') {
     const single = keys.length === 1 ? keys[0] : null;
     const ok =
       keys.some((k) => MOUSE_NAMES.has(k)) ||
       (single && (RIGHT_MODIFIERS.has(single) || /^F\d+$/.test(single) || STANDALONE.has(single))) ||
       (!single && keys.some((k) => MODIFIERS.has(k)));
-    if (!ok) {
-      return 'Include Ctrl, Alt, Shift or Win - or use a single F-key, a right-side modifier, or a mouse side button.';
-    }
+    if (!ok) return msg('needsModifier');
   }
   const reserved = lookup(RESERVED, keys);
-  if (reserved) return `Windows keeps ${formatShortcut(keys)} for itself (it ${reserved}).`;
+  if (reserved) return msg('reserved', { keys: [...keys], reason: reserved });
   const taken = others.find((b) => b.keys && sameSet(b.keys, keys));
-  if (taken) return `${formatShortcut(keys)} is already used for ${ACTION_LABELS[taken.action] || taken.action}.`;
+  if (taken) return msg('taken', { keys: [...keys], action: taken.action });
   return null;
 }
 
-/** Soft warning: allowed, but only after the user confirms. @returns {string|null} */
+/** Soft warning: allowed, but only after the user confirms. @returns {{code: 'common', params: {keys, what}}|null} */
 function shortcutWarning(keys) {
   const what = lookup(COMMON, keys || []);
-  return what ? `${formatShortcut(keys)} is ${what} in most apps, and it will still do that when Pauli Speaks uses it.` : null;
+  return what ? msg('common', { keys: [...keys], what }) : null;
 }
 
 /** First free id like "dictate-2". */

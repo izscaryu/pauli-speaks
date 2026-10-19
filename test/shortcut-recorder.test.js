@@ -90,7 +90,7 @@ test('a hard error is shown and recording goes on', () => {
   press('Meta', 'L');
   release(['Meta', 'L'], ['Meta']);
   release(['Meta']);
-  assert.match(updates.at(-1).error, /Windows keeps/);
+  assert.equal(updates.at(-1).error.code, 'reserved');
   assert.equal(rec.active, true);
   press('F13');
   release(['F13']);
@@ -103,7 +103,7 @@ test('a common app shortcut waits for "Use anyway"', () => {
   press('Ctrl', 'C');
   release(['Ctrl', 'C'], ['Ctrl']);
   release(['Ctrl']);
-  assert.match(updates.at(-1).warning, /Copy in most apps/);
+  assert.deepEqual(updates.at(-1).warning, { code: 'common', params: { keys: ['Ctrl', 'C'], what: 'copy' } });
   press('F13');
   release(['F13']);
   assert.equal(saves.length, 0, 'keys are ignored while the warning is up');
@@ -145,7 +145,7 @@ test('left Ctrl alone suggests a double-tap', () => {
   release(['Ctrl']);
   advance(500);
   assert.equal(saves.length, 0);
-  assert.match(updates.at(-1).error, /double-tap/);
+  assert.deepEqual(updates.at(-1).error, { code: 'modifierAlone', params: { keys: ['Ctrl'] } });
 });
 
 test('Change replaces a shortcut and keeps its behaviour', () => {
