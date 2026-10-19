@@ -7,6 +7,7 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 - Silence detection: only the parts where you speak go to the speech engine. If you say nothing, nothing is typed and the pill says "No speech detected"; if the microphone gives no sound at all, it says "No sound. Is your mic muted?" and warns you after 2 seconds while you are still recording. Settings has a "Silence detection" switch if words ever get cut.
 - With Silence detection on, hands-free auto-stop waits for you to stop speaking instead of for the room to get quiet, so background noise no longer keeps it going.
 - If a dictation can't be transcribed, the pill and the entry in History offer "Retry", and your recording is kept until you quit. Esc now shows "Cancelled. Undo" for 4 seconds.
+- If the offline speech engine stops responding, the dictation now ends with "Couldn't transcribe." and a Retry button instead of staying on "processing", and the engine restarts by itself.
 - If Pauli Speaks crashes while you dictate, Home offers "Recover your last dictation?" the next time you start it.
 - Dictating into a window that runs as administrator no longer fails silently: the text is left on the clipboard and the pill says "Copied. Press Ctrl+V (this app runs as administrator)".
 - Dictated text is kept out of Windows clipboard history (Win+V) and cloud clipboard sync.
