@@ -11,7 +11,7 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 - Dictating into a window that runs as administrator no longer fails silently: the text is left on the clipboard and the pill says "Copied. Press Ctrl+V (this app runs as administrator)".
 - Dictated text is kept out of Windows clipboard history (Win+V) and cloud clipboard sync.
 - New Settings → Privacy section: keep your transcript history, delete it after 24 hours or don't keep it; optionally keep recordings for 24 hours to play them back or transcribe them again; switch crash recovery off; "Delete all my data" and "Delete downloaded models".
-- With the cloud engine and several languages chosen, a result in a language outside your list is transcribed again in your first language. If you keep speaking a language that isn't on your list, Home asks "Sounds like <language>. Add it to your languages?".
+- With the cloud engine and several languages chosen, a result in a close relative of one of your languages (Bosnian when you chose Croatian, for example) is transcribed again in your language; a result in an unrelated language is kept as it is. If you keep speaking a language that isn't on your list (and isn't a close relative of one on it), Home asks "Sounds like <language>. Add it to your languages?".
 
 ## 1.2.0
 

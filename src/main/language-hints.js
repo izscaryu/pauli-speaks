@@ -3,10 +3,13 @@
 // your list, Home offers to add it. The speech engine reports the language it thinks it heard
 // (`likely`) after each dictation; three in a row for the same language outside the list make a hint,
 // once per language ever (`languageHints.shown` in the settings). The streak and the waiting hint
-// live in memory only; only the languages you answered for are saved.
+// live in memory only; only the languages you answered for are saved. A close relative of one of your
+// languages (Serbian or Bosnian when you chose Croatian, language-relatives.js) counts as yours.
 //
 // Channels: 'language-hint:state' (the language waiting for an answer, or null), 'language-hint:add' and
 // 'language-hint:dismiss' (the language code), and the 'language-hint:changed' broadcast.
+
+const { relatedChosen } = require('./language-relatives');
 
 const DETECTIONS_FOR_HINT = 3;
 
@@ -19,7 +22,7 @@ const DETECTIONS_FOR_HINT = 3;
 function nextLanguageHint(state, { chosen, likely }) {
   const { streak, shown } = state;
   if (!chosen || !chosen.length || typeof likely !== 'string' || !likely) return { state, hint: null };
-  if (chosen.includes(likely)) return { state: { streak: {}, shown }, hint: null }; // heard one of yours: start over
+  if (relatedChosen(likely, chosen)) return { state: { streak: {}, shown }, hint: null }; // heard one of yours (or its close relative): start over
   if (shown.includes(likely)) return { state: { streak: {}, shown }, hint: null };
 
   const count = (Object.hasOwn(streak, likely) ? streak[likely] : 0) + 1;

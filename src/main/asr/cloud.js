@@ -4,14 +4,18 @@
 // whisper-large-v3-turbo much faster than a laptop CPU.
 
 const { encodeWav } = require('../audio-utils');
+const { relatedChosen } = require('../language-relatives');
 
 /**
- * With several chosen languages, a returned language outside them is wrong for this user: the audio is
- * sent once more with the first chosen language. One chosen language is sent with the request already,
- * and with none chosen the provider's detection is accepted.
+ * With several chosen languages, a returned language outside them is likely a close relative of the one
+ * spoken (Bosnian for Croatian): the audio is sent once more in that chosen language. When no chosen
+ * language is close, the first result stands (another language is not forced on it). One chosen language
+ * is sent with the request already, and with none chosen the provider's detection is accepted.
+ * @returns {string|null} the language for the second request, null for none
  */
-function needsCloudRetry(chosen, returned) {
-  return chosen.length > 1 && !!returned && !chosen.includes(returned);
+function cloudRetryLanguage(chosen, returned) {
+  if (chosen.length < 2 || !returned || chosen.includes(returned)) return null;
+  return relatedChosen(returned, chosen);
 }
 
 /**
@@ -47,10 +51,11 @@ async function transcribeCloud(audio, { baseUrl, apiKey, model, languages = [], 
   let json = await request(languages.length === 1 ? languages[0] : '');
   const returned = languageCode(json.language);
   let language = returned || languages[0] || null;
-  if (retryOutsideList && needsCloudRetry(languages, returned)) {
+  const retryIn = retryOutsideList ? cloudRetryLanguage(languages, returned) : null;
+  if (retryIn) {
     try {
-      json = await request(languages[0]); // at most one more request, to the same provider
-      language = languages[0];
+      json = await request(retryIn); // at most one more request, to the same provider
+      language = retryIn;
     } catch (err) {
       // the first answer is still usable: keep it, with the language it came back in
       log.warn(`Cloud language retry failed, keeping the first result: ${err.message}`);
@@ -110,4 +115,4 @@ async function translateCloud(audio, { baseUrl, apiKey, model }) {
   return { text: String(json.text || '').trim(), language: null, translatedTo: 'en' };
 }
 
-module.exports = { transcribeCloud, translateCloud, languageCode, needsCloudRetry };
+module.exports = { transcribeCloud, translateCloud, languageCode, cloudRetryLanguage };

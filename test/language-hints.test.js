@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { nextLanguageHint, createLanguageHints } = require('../src/main/language-hints');
-const { needsCloudRetry } = require('../src/main/asr/cloud');
+const { cloudRetryLanguage } = require('../src/main/asr/cloud');
 const { pickLanguage } = require('../src/main/asr/whisper-local');
 
 const fresh = () => ({ streak: {}, shown: [] });
@@ -67,6 +67,14 @@ test('the given state is not changed', () => {
   assert.deepEqual(next.shown, ['hr', 'de']);
 });
 
+test('B2: a close relative of a chosen language counts as yours: no streak, no hint', () => {
+  assert.deepEqual(feed(fresh(), ['sr', 'sr', 'sr', 'bs', 'bs', 'bs'], ['hr', 'en']).hints, [null, null, null, null, null, null]);
+  const { hints, state } = feed(fresh(), ['de', 'de', 'sr', 'de'], ['hr', 'en']);
+  assert.deepEqual(hints, [null, null, null, null], 'a relative resets the streak like one of yours');
+  assert.deepEqual(state.streak, { de: 1 });
+  assert.deepEqual(feed(fresh(), ['de', 'de', 'de'], ['hr', 'en']).hints, [null, null, 'de']);
+});
+
 test('languages named like object properties are plain counters', () => {
   const { hints } = feed(fresh(), ['__proto__', '__proto__', '__proto__', 'constructor']);
   assert.deepEqual(hints, [null, null, '__proto__', null]);
@@ -74,14 +82,15 @@ test('languages named like object properties are plain counters', () => {
 
 // ---------------------------------------------------------------- cloud retry
 
-test('needsCloudRetry: only with several chosen languages and a returned one outside them', () => {
-  assert.equal(needsCloudRetry(['en', 'hr'], 'de'), true);
-  assert.equal(needsCloudRetry(['en', 'hr'], 'hr'), false);
-  assert.equal(needsCloudRetry(['en', 'hr'], 'en'), false);
-  assert.equal(needsCloudRetry(['en'], 'de'), false, 'one language is sent as the request language already');
-  assert.equal(needsCloudRetry([], 'de'), false, 'auto-detect accepts anything');
-  assert.equal(needsCloudRetry(['en', 'hr'], null), false, 'nothing returned: nothing to compare');
-  assert.equal(needsCloudRetry(['en', 'hr'], ''), false);
+test('cloudRetryLanguage: with several chosen languages, the chosen relative of a returned one outside them', () => {
+  assert.equal(cloudRetryLanguage(['en', 'hr'], 'bs'), 'hr');
+  assert.equal(cloudRetryLanguage(['en', 'hr'], 'de'), null, 'nothing close: the first result is kept');
+  assert.equal(cloudRetryLanguage(['en', 'hr'], 'hr'), null);
+  assert.equal(cloudRetryLanguage(['en', 'hr'], 'en'), null);
+  assert.equal(cloudRetryLanguage(['hr'], 'bs'), null, 'one language is sent as the request language already');
+  assert.equal(cloudRetryLanguage([], 'bs'), null, 'auto-detect accepts anything');
+  assert.equal(cloudRetryLanguage(['en', 'hr'], null), null, 'nothing returned: nothing to compare');
+  assert.equal(cloudRetryLanguage(['en', 'hr'], ''), null);
 });
 
 // ---------------------------------------------------------------- local detection
@@ -225,15 +234,26 @@ const logged = [];
 const cloud = (languages, more = {}) => ({ baseUrl: 'https://example.test/v1', apiKey: 'k', model: 'm', languages, log: { warn: (m) => logged.push(m) }, ...more });
 const audio = new Float32Array(1600);
 
-test('cloud, several languages, answer outside them: one more request with the first language', async () => {
+test('B1: cloud, several languages, answer in a close relative of one: one more request in that chosen language', async () => {
   const { result, sent } = await withProvider(
-    [{ text: 'guten Tag', language: 'german' }, { text: 'good day', language: 'english' }],
+    [{ text: 'dobar dan (bs)', language: 'bosnian' }, { text: 'dobar dan', language: 'croatian' }],
     () => transcribeCloud(audio, cloud(['en', 'hr'])),
   );
-  assert.deepEqual(sent, [null, 'en']);
-  assert.equal(result.text, 'good day');
-  assert.equal(result.language, 'en');
-  assert.equal(result.likelyLanguage, 'de', 'what the provider heard first, for the hint');
+  assert.deepEqual(sent, [null, 'hr']);
+  assert.equal(result.text, 'dobar dan');
+  assert.equal(result.language, 'hr');
+  assert.equal(result.likelyLanguage, 'bs', 'what the provider heard first, for the hint');
+});
+
+test('B1: cloud, several languages, answer in an unrelated language: no second request, the first result is kept', async () => {
+  const { result, sent } = await withProvider(
+    [{ text: 'guten Tag', language: 'german' }, { text: 'never asked', language: 'english' }],
+    () => transcribeCloud(audio, cloud(['en', 'hr'])),
+  );
+  assert.deepEqual(sent, [null]);
+  assert.equal(result.text, 'guten Tag');
+  assert.equal(result.language, 'de');
+  assert.equal(result.likelyLanguage, 'de');
 });
 
 test('cloud, several languages, answer inside them: a single request', async () => {
@@ -265,24 +285,24 @@ test('cloud, file transcription (retryOutsideList false): one request even when 
 test('cloud, the retry fails: the first result is kept with its own language and the failure is logged without text', async () => {
   logged.length = 0;
   const { result, sent } = await withProvider(
-    [{ text: 'guten Tag', language: 'german' }, new Error('HTTP 429')],
+    [{ text: 'dobar dan', language: 'serbian' }, new Error('HTTP 429')],
     () => transcribeCloud(audio, cloud(['en', 'hr'])),
   );
-  assert.deepEqual(sent, [null, 'en']);
-  assert.equal(result.text, 'guten Tag');
-  assert.equal(result.language, 'de');
-  assert.equal(result.likelyLanguage, 'de');
+  assert.deepEqual(sent, [null, 'hr']);
+  assert.equal(result.text, 'dobar dan');
+  assert.equal(result.language, 'sr');
+  assert.equal(result.likelyLanguage, 'sr');
   assert.equal(logged.length, 1);
   assert.match(logged[0], /429/);
-  assert.doesNotMatch(logged[0], /guten/);
+  assert.doesNotMatch(logged[0], /dobar/);
 });
 
-test('cloud, the retry answers outside the list again: exactly two requests, language is the first chosen one', async () => {
+test('cloud, the retry answers outside the list again: exactly two requests, language is the one asked for', async () => {
   const { result, sent } = await withProvider(
-    [{ text: 'guten Tag', language: 'german' }, { text: 'bonjour', language: 'french' }, { text: 'never asked', language: 'english' }],
+    [{ text: 'dobar dan', language: 'bosnian' }, { text: 'dobar dan', language: 'serbian' }, { text: 'never asked', language: 'english' }],
     () => transcribeCloud(audio, cloud(['en', 'hr'])),
   );
-  assert.deepEqual(sent, [null, 'en']);
-  assert.equal(result.text, 'bonjour');
-  assert.equal(result.language, 'en');
+  assert.deepEqual(sent, [null, 'hr']);
+  assert.equal(result.text, 'dobar dan');
+  assert.equal(result.language, 'hr');
 });
