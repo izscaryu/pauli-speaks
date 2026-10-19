@@ -242,3 +242,101 @@ test('end() without stop() (cancel): the file is finished at once and late chunk
   assert.deepEqual(r.calls.map((c) => c[0]), ['begin', 'append', 'finish']);
   assert.equal(r.events.silence, 0);
 });
+
+// ---------------------------------------------------------------- the VAD watchdog (A1) and a failing result handler (C3)
+
+/** Fake one-shot timers for the watchdog. */
+function fakeTimers() {
+  let now = 0;
+  const list = [];
+  return {
+    timers: {
+      setTimeout: (fn, ms) => { const t = { fn, at: now + ms, done: false, unref() {} }; list.push(t); return t; },
+      clearTimeout: (t) => { if (t) t.done = true; },
+    },
+    advance(ms) {
+      now += ms;
+      for (const t of list) if (!t.done && t.at <= now) { t.done = true; t.fn(); }
+    },
+    pending: () => list.filter((t) => !t.done).length,
+  };
+}
+
+function watchdogRig(t, vadStream, more = {}) {
+  t.mock.timers.enable({ apis: ['setInterval'] });
+  let length = 0;
+  const vadErrors = [];
+  const errors = [];
+  const fake = fakeTimers();
+  const session = createListeningSession({
+    settings: { ...ON, crashRecovery: false },
+    intervalMs: 1000,
+    requestTail: async (from) => new Float32Array(Math.max(0, length - from)),
+    vadStream,
+    isHandsFree: () => true,
+    onVadError: (err) => vadErrors.push(err.message),
+    onError: (err) => errors.push(err.message),
+    timers: fake.timers,
+    vadTimeoutMs: 3000,
+    ...more,
+  });
+  return {
+    session, vadErrors, errors, fake,
+    async tick() {
+      length += 16000;
+      t.mock.timers.tick(1000);
+      await settle();
+    },
+  };
+}
+
+test('A1: a speech detector that does not answer within 3 s hands auto-stop back to the overlay, once', async (t) => {
+  let pushes = 0;
+  const r = watchdogRig(t, () => { pushes++; return new Promise(() => {}); });
+  r.session.start();
+  await r.tick();
+  await r.tick();
+  r.fake.advance(2999);
+  assert.deepEqual(r.vadErrors, []);
+  r.fake.advance(1);
+  assert.deepEqual(r.vadErrors, ['Speech detector did not answer in time']);
+  await r.tick();
+  assert.equal(pushes, 2, 'no more VAD pushes in this dictation');
+  r.fake.advance(10000);
+  assert.equal(r.vadErrors.length, 1);
+  await r.session.stop();
+  r.session.end();
+});
+
+test('A1: a detector that keeps answering never trips the watchdog, and end() clears it', async (t) => {
+  const r = watchdogRig(t, async () => ({ heardSpeech: false, silentMsSinceSpeech: 0 }));
+  r.session.start();
+  for (let i = 0; i < 5; i++) {
+    await r.tick();
+    r.fake.advance(2000);
+  }
+  assert.deepEqual(r.vadErrors, []);
+  assert.equal(r.fake.pending(), 0, 'nothing waiting once every push was answered');
+  await r.session.stop();
+  r.session.end();
+});
+
+test('A1: after end() the watchdog cannot reach the next dictation', async (t) => {
+  const r = watchdogRig(t, () => new Promise(() => {}));
+  r.session.start();
+  await r.tick();
+  r.session.end();
+  r.fake.advance(5000);
+  assert.deepEqual(r.vadErrors, []);
+});
+
+test('C3: a failure while handling a VAD result is reported through onError', async (t) => {
+  const r = watchdogRig(t, async () => ({ heardSpeech: true, silentMsSinceSpeech: 9000 }), {
+    onSilence: () => { throw new Error('stop failed'); },
+  });
+  r.session.start();
+  await r.tick();
+  assert.deepEqual(r.errors, ['stop failed']);
+  await r.session.stop();
+  r.session.end();
+});

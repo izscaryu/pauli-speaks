@@ -4,10 +4,13 @@
 // detector, which ends a hands-free dictation after N seconds without speech.
 // Started when listening starts; stop() before the final recording is taken,
 // end() once the dictation is over (pasted, cancelled, nothing said).
+// A detector that fails, or leaves a push unanswered for VAD_TIMEOUT_MS, is off for the rest of
+// the dictation (onVadError): the overlay's loudness auto-stop takes over.
 
 const { createRecordingTap } = require('./recording-tap');
 
 let lastVadSession = 0;
+const VAD_TIMEOUT_MS = 3000;
 
 /**
  * @param {object} o
@@ -20,12 +23,13 @@ let lastVadSession = 0;
  * @param {() => void} [o.onSilence]  N seconds without speech: finish the dictation
  * @param {(err: Error) => void} [o.onVadError]  the VAD failed; it is off for the rest of this dictation
  * @param {(err: Error) => void} [o.onRecoveryError]  the crash file failed; it is off for the rest of this dictation
- * @param {(err: Error) => void} [o.onError]  a pull from the recorder failed (the tap keeps going)
+ * @param {(err: Error) => void} [o.onError]  a pull from the recorder failed, or handling a VAD answer did (the tap keeps going)
+ * @param {number} [o.vadTimeoutMs]  a VAD push unanswered this long counts as a VAD failure
  */
 function createListeningSession({
   settings, recovery = null, mode = 'dictate', requestTail, vadStream = null,
   isHandsFree = () => false, onSilence = () => {}, onVadError = () => {}, onRecoveryError = () => {},
-  onError = () => {}, intervalMs = 500, now = Date.now,
+  onError = () => {}, intervalMs = 500, now = Date.now, vadTimeoutMs = VAD_TIMEOUT_MS, timers = { setTimeout, clearTimeout },
 }) {
   const vadAutoStop = Number(settings.autoStopSilence) > 0 && !!settings.silenceDetection;
   const silenceMs = Number(settings.autoStopSilence) * 1000;
@@ -37,6 +41,29 @@ function createListeningSession({
   let stopping = false;
   let ended = false;
   let silenceSent = false;
+  let unanswered = 0; // VAD pushes without an answer yet
+  let watchdog = null;
+
+  function clearWatchdog() {
+    if (watchdog) timers.clearTimeout(watchdog);
+    watchdog = null;
+  }
+
+  /** While a push is unanswered, the detector has vadTimeoutMs to answer (counted again after each answer). */
+  function armWatchdog() {
+    clearWatchdog();
+    if (!unanswered || !useVad || ended) return;
+    watchdog = timers.setTimeout(() => {
+      watchdog = null;
+      onVadFailure(new Error('Speech detector did not answer in time'));
+    }, vadTimeoutMs);
+    watchdog.unref?.();
+  }
+
+  function answered() {
+    unanswered = Math.max(0, unanswered - 1);
+    armWatchdog();
+  }
 
   function recoveryFailed(err) {
     writing = false;
@@ -54,6 +81,7 @@ function createListeningSession({
   }
 
   function onVadResult(r) {
+    answered();
     if (stopping || silenceSent || !isHandsFree()) return;
     if (r && r.heardSpeech && r.silentMsSinceSpeech >= silenceMs) {
       silenceSent = true;
@@ -64,6 +92,7 @@ function createListeningSession({
   function onVadFailure(err) {
     if (!useVad) return; // already reported for this dictation
     useVad = false;
+    clearWatchdog();
     if (!ended) onVadError(err); // after end() a fallback would reach the next dictation's overlay
   }
 
@@ -79,7 +108,9 @@ function createListeningSession({
     } catch (err) {
       pushed = Promise.reject(err);
     }
-    pushed.then(onVadResult, onVadFailure);
+    unanswered++;
+    if (!watchdog) armWatchdog();
+    pushed.then(onVadResult, onVadFailure).catch(onError);
   }
 
   const tap = (writing || useVad) ? createRecordingTap({ requestTail, onSamples, onError, intervalMs }) : null;
@@ -104,6 +135,7 @@ function createListeningSession({
     /** Before the final recording is taken: one last pull into the crash file, no more VAD. */
     async stop() {
       stopping = true;
+      clearWatchdog(); // late answers are ignored from here on
       if (tap) await tap.stop();
     },
 
@@ -117,6 +149,7 @@ function createListeningSession({
       if (ended) return;
       ended = true;
       stopping = true;
+      clearWatchdog();
       if (tap) tap.stop().catch(() => {});
       if (began) {
         try {

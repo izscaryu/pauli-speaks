@@ -8,22 +8,41 @@ const { joinSegments } = require('./speech-segments');
 
 const SILENCE_LEVEL = 0.004; // below this the old check calls a recording silence
 const NO_SOUND_LEVEL = 0.0005; // below this the microphone is giving essentially nothing
+const SAMPLE_RATE = 16000;
+const TIMEOUT_MESSAGE = 'Speech detector did not answer in time';
+
+/** How long the detector may take for a recording: 1.5 s, or 20 ms per second of audio when that is longer. */
+function detectTimeoutMs(seconds) {
+  return Math.max(1500, Math.round(20 * seconds));
+}
+
+/** `promise`, or a rejection after `ms` (a busy or hung worker must not hold up the dictation). */
+function withTimeout(promise, ms) {
+  let timer;
+  const late = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(TIMEOUT_MESSAGE)), ms);
+    timer.unref?.();
+  });
+  return Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
 
 /**
  * @param {Float32Array} audio 16 kHz mono
  * @param {{enabled: boolean,
  *          detect: ((audio: Float32Array) => Promise<Array<{start: number, end: number}>>) | null,
  *          level: (audio: Float32Array) => number,
- *          onError?: (err: Error) => void}} options  onError hears why the detector could not run, before the fallback
+ *          onError?: (err: Error) => void,
+ *          timeoutMs?: number}} options  onError hears why the detector could not run (or didn't answer within
+ *          timeoutMs, detectTimeoutMs of the audio's length by default), before the fallback
  * @returns {Promise<{skip: 'no-speech' | 'no-sound'} | {audio: Float32Array, trimmed: boolean}>}
  */
-async function gateSpeech(audio, { enabled, detect, level, onError }) {
+async function gateSpeech(audio, { enabled, detect, level, onError, timeoutMs = detectTimeoutMs(audio.length / SAMPLE_RATE) }) {
   const loudness = level(audio);
   if (loudness < NO_SOUND_LEVEL) return { skip: 'no-sound' };
 
   if (enabled && typeof detect === 'function') {
     try {
-      const segments = await detect(audio);
+      const segments = await withTimeout(Promise.resolve().then(() => detect(audio)), timeoutMs);
       if (!segments.length) return { skip: 'no-speech' };
       return { audio: joinSegments(audio, segments), trimmed: true };
     } catch (err) {
@@ -46,4 +65,4 @@ function reportOncePerMessage(report) {
   };
 }
 
-module.exports = { gateSpeech, reportOncePerMessage, SILENCE_LEVEL, NO_SOUND_LEVEL };
+module.exports = { gateSpeech, reportOncePerMessage, detectTimeoutMs, SILENCE_LEVEL, NO_SOUND_LEVEL };

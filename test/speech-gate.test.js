@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { gateSpeech, reportOncePerMessage, SILENCE_LEVEL, NO_SOUND_LEVEL } = require('../src/main/speech-gate');
+const { gateSpeech, reportOncePerMessage, detectTimeoutMs, SILENCE_LEVEL, NO_SOUND_LEVEL } = require('../src/main/speech-gate');
 const { speechLevel, SAMPLE_RATE } = require('../src/main/audio-utils');
 
 const tone = (seconds, amp = 0.1) => Float32Array.from({ length: Math.round(seconds * SAMPLE_RATE) }, (_, i) => amp * Math.sin(i / 10));
@@ -111,4 +111,37 @@ test('reportOncePerMessage reports each distinct message once, message text only
   onError(new Error('onnx failed'));
   onError('plain string');
   assert.deepEqual(out, ['model missing', 'onnx failed', 'plain string']);
+});
+
+// ---------------------------------------------------------------- a detector that never answers (A1)
+
+test('detectTimeoutMs: 1.5 s at least, 20 ms per second of audio for long recordings', () => {
+  assert.equal(detectTimeoutMs(0), 1500);
+  assert.equal(detectTimeoutMs(5), 1500);
+  assert.equal(detectTimeoutMs(75), 1500);
+  assert.equal(detectTimeoutMs(100), 2000);
+  assert.equal(detectTimeoutMs(1200), 24000);
+});
+
+test('a detector that never answers: the gate falls back to the loudness check within the bound and says why', async () => {
+  const audio = tone(2);
+  const seen = [];
+  const started = Date.now();
+  const r = await gateSpeech(audio, { enabled: true, detect: () => new Promise(() => {}), level, onError: (e) => seen.push(e.message), timeoutMs: 40 });
+  assert.ok(Date.now() - started < 1000, 'well within a second');
+  assert.equal(r.audio, audio);
+  assert.equal(r.trimmed, false);
+  assert.deepEqual(seen, ['Speech detector did not answer in time']);
+  const silent = await gateSpeech(quiet(2), { enabled: true, detect: () => new Promise(() => {}), level, timeoutMs: 20 });
+  assert.deepEqual(silent, { skip: 'no-speech' });
+});
+
+test('a detector that answers late is ignored, and one that answers in time is used', async () => {
+  const audio = tone(2);
+  let answer;
+  const r = await gateSpeech(audio, { enabled: true, detect: () => new Promise((res) => { answer = res; }), level, timeoutMs: 20 });
+  answer([]); // too late: must not matter
+  assert.equal(r.audio, audio);
+  const quick = await gateSpeech(audio, { enabled: true, detect: async () => [], level, timeoutMs: 20 });
+  assert.deepEqual(quick, { skip: 'no-speech' });
 });
