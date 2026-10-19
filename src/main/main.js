@@ -478,6 +478,13 @@ function preloadTranslator() {
   return promise;
 }
 
+/** Nothing is loaded (the models were deleted, or the speech engine restarted). */
+function forgetModels() {
+  modelState = { model: null, acceleration: null, status: 'idle', percent: 0, error: null, device: null };
+  translatorState = { status: 'idle', percent: 0, error: null };
+  broadcast('model:state', publicModelState());
+}
+
 function publicModelState() {
   const { promise, ...rest } = modelState;
   const { promise: _p, ...translator } = translatorState;
@@ -978,11 +985,7 @@ function registerIpc() {
     fileActive: () => fileBusy,
     modelsBusy: () => [modelState.status, translatorState.status].some((st) => st === 'downloading' || st === 'loading'),
     unloadModels: () => asr.stop(),
-    afterModelsDeleted: () => {
-      modelState = { model: null, acceleration: null, status: 'idle', percent: 0, error: null, device: null };
-      translatorState = { status: 'idle', percent: 0, error: null };
-      broadcast('model:state', publicModelState());
-    },
+    afterModelsDeleted: forgetModels,
     deleteAll: () => deleteAllData({
       history, audioHistory, settings, recoveryFile: recovery,
       forgetInMemory: () => { retry.clear(); lastPaste.forget(); recoveryIpc.forget(); languageHints.forget(); },
@@ -1153,6 +1156,7 @@ function init() {
   });
   recovery = createRecoveryFile(path.join(app.getPath('userData'), 'recovery'));
   asr = new LocalAsr(modelsDir());
+  asr.on('restarted', forgetModels); // a fresh worker has nothing loaded: the next dictation loads the model again
   asr.on('progress', (p) => {
     if (p.model === NLLB_MODEL) {
       if (p.status !== 'downloading') return;
