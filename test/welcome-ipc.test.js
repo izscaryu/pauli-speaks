@@ -33,7 +33,7 @@ function setup(overrides = {}) {
 test('registers the welcome and health channels', () => {
   const { handlers } = setup();
   assert.deepEqual(Object.keys(handlers).sort(), [
-    'health:state', 'model:redownload', 'welcome:finish', 'welcome:recommend', 'welcome:system', 'whatsnew:get', 'whatsnew:seen',
+    'health:state', 'model:redownload', 'welcome:finish', 'welcome:languages', 'welcome:recommend', 'welcome:system', 'whatsnew:get', 'whatsnew:seen',
   ]);
 });
 
@@ -391,4 +391,24 @@ test('backup:import reports a file that cannot be read', async (t) => {
   assert.equal(r.ok, false);
   assert.equal(typeof r.error, 'string');
   assert.deepEqual(calls.update, []);
+});
+
+test('welcome:languages saves the languages and adds their voice-command phrases', async () => {
+  const { DEFAULT_VOICE_COMMANDS } = require('../src/main/voice-commands');
+  const { handlers, calls } = setup({ getSettings: () => ({ onboarded: false, voiceCommands: DEFAULT_VOICE_COMMANDS }) });
+  const out = await handlers['welcome:languages']({}, { languages: ['de', 'hr'] });
+  assert.equal(calls.update.length, 1);
+  assert.deepEqual(calls.update[0].languages, ['de', 'hr']);
+  const phrases = calls.update[0].voiceCommands.flatMap((c) => c.phrases);
+  assert.ok(phrases.includes('neue Zeile'));
+  assert.ok(phrases.includes('novi red'));
+  assert.deepEqual(out, { onboarded: false, voiceCommands: DEFAULT_VOICE_COMMANDS }, 'answers with the settings for the window');
+});
+
+test('welcome:languages keeps only language codes', async () => {
+  const { handlers, calls } = setup({ getSettings: () => ({ voiceCommands: [] }) });
+  await handlers['welcome:languages']({}, { languages: ['de', 42, '../x', 'EN', 'de'] });
+  assert.deepEqual(calls.update[0].languages, ['de']);
+  await handlers['welcome:languages']({}, null);
+  assert.deepEqual(calls.update[1].languages, []);
 });

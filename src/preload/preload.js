@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('pauli', {
 
   welcomeSystem: () => ipcRenderer.invoke('welcome:system'),
   welcomeRecommend: (languages) => ipcRenderer.invoke('welcome:recommend', { languages }),
+  welcomeLanguages: (languages) => ipcRenderer.invoke('welcome:languages', { languages }),
   finishWelcome: () => ipcRenderer.invoke('welcome:finish'),
   healthState: () => ipcRenderer.invoke('health:state'),
   getWhatsNew: () => ipcRenderer.invoke('whatsnew:get'),

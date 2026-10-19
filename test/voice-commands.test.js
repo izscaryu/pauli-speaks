@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { cleanUtterance, cleanTranscript } = require('../src/main/text-cleanup');
-const { DEFAULT_VOICE_COMMANDS, normalizeVoiceCommands } = require('../src/main/voice-commands');
+const { DEFAULT_VOICE_COMMANDS, VOICE_PACKS, normalizeVoiceCommands, addPacks } = require('../src/main/voice-commands');
 
 const opts = { removeFillers: true, capitalize: true, voiceCommandsEnabled: true, voiceCommands: DEFAULT_VOICE_COMMANDS };
 const actions = (list) => list.map((c) => `${c.action}:${c.arg}`);
@@ -105,4 +105,51 @@ test('broken commands from disk or the window are dropped', () => {
     { phrases: ['send it'], action: 'key', arg: 'Enter' },
     { phrases: ['undo please'], action: 'undo', arg: '' },
   ]);
+});
+
+// --- per-language packs (added when the user picks languages in the welcome flow) ---------------
+
+const phrasesFor = (list, action, arg) => (list.find((c) => c.action === action && c.arg === arg) || { phrases: [] }).phrases;
+
+test('packs ship for English, Croatian, German, Spanish, Italian, Polish, Slovenian and Serbian', () => {
+  assert.deepEqual(Object.keys(VOICE_PACKS).sort(), ['de', 'en', 'es', 'hr', 'it', 'pl', 'sl', 'sr']);
+  for (const [lang, pack] of Object.entries(VOICE_PACKS)) {
+    for (const what of ['newline', 'paragraph', 'enter', 'undo']) assert.ok(pack[what] && pack[what].length, `${lang} ${what}`);
+  }
+});
+
+test('addPacks() adds the phrases of a language to the matching commands', () => {
+  const out = addPacks(DEFAULT_VOICE_COMMANDS, ['de']);
+  assert.deepEqual(phrasesFor(out, 'insert', '\n'), ['new line', 'novi red', 'neue Zeile']);
+  assert.ok(phrasesFor(out, 'key', 'Enter').includes('abschicken'));
+  assert.ok(phrasesFor(out, 'undo', '').includes('lösch das'));
+  assert.equal(out.length, DEFAULT_VOICE_COMMANDS.length, 'no new commands, only phrases');
+  assert.deepEqual(phrasesFor(DEFAULT_VOICE_COMMANDS, 'insert', '\n'), ['new line', 'novi red'], 'the input is not changed');
+});
+
+test('addPacks() never repeats a phrase, never removes one, and keeps your own commands', () => {
+  const mine = [
+    { phrases: ['new line', 'zeilenumbruch'], action: 'insert', arg: '\n' },
+    { phrases: ['tab please'], action: 'key', arg: 'Tab' },
+  ];
+  const out = addPacks(mine, ['en', 'hr', 'sr', 'de']);
+  assert.deepEqual(phrasesFor(out, 'insert', '\n'), ['new line', 'zeilenumbruch', 'novi red', 'neue Zeile']);
+  assert.deepEqual(phrasesFor(out, 'key', 'Tab'), ['tab please']);
+  const all = out.flatMap((c) => c.phrases.map((p) => p.toLowerCase()));
+  assert.equal(all.length, new Set(all).size, 'every phrase once');
+  assert.ok(out.some((c) => c.action === 'undo'), 'a missing command is added with the pack phrases');
+});
+
+test('addPacks() ignores languages without a pack and stays within the phrase limit', () => {
+  assert.deepEqual(addPacks(DEFAULT_VOICE_COMMANDS, ['ja', 'xx', 42]), normalizeVoiceCommands(DEFAULT_VOICE_COMMANDS));
+  const full = [{ phrases: Array.from({ length: 12 }, (_, i) => `line ${i}`), action: 'insert', arg: '\n' }];
+  assert.equal(phrasesFor(addPacks(full, ['de']), 'insert', '\n').length, 12);
+});
+
+test('a German pack phrase works as a command', () => {
+  const commands = addPacks(DEFAULT_VOICE_COMMANDS, ['de']);
+  const r = cleanUtterance('bis morgen abschicken', { ...opts, voiceCommands: commands });
+  assert.equal(r.text.trim(), 'Bis morgen');
+  assert.deepEqual(actions(r.after), ['key:Enter']);
+  assert.equal(cleanTranscript('Hallo neue Zeile Welt', { ...opts, voiceCommands: commands }), 'Hallo\nWelt');
 });

@@ -21,6 +21,52 @@ const DEFAULT_VOICE_COMMANDS = Object.freeze([
   { phrases: ['scratch that', 'obriši to'], action: 'undo', arg: '' },
 ]);
 
+// Phrases per language, added to the matching commands when the user picks languages in the welcome flow.
+// Serbian in Latin script, as Whisper usually writes it. Short and unusual enough not to turn up in normal text.
+const PACK_COMMANDS = {
+  newline: { action: 'insert', arg: '\n' },
+  paragraph: { action: 'insert', arg: '\n\n' },
+  enter: { action: 'key', arg: 'Enter' },
+  undo: { action: 'undo', arg: '' },
+};
+const VOICE_PACKS = Object.freeze({
+  en: { newline: ['new line'], paragraph: ['new paragraph'], enter: ['press enter', 'send it'], undo: ['scratch that'] },
+  hr: { newline: ['novi red'], paragraph: ['novi odlomak'], enter: ['pošalji'], undo: ['obriši to'] },
+  de: { newline: ['neue Zeile'], paragraph: ['neuer Absatz'], enter: ['abschicken'], undo: ['lösch das'] },
+  es: { newline: ['nueva línea'], paragraph: ['nuevo párrafo'], enter: ['envíalo'], undo: ['borra eso'] },
+  it: { newline: ['nuova riga'], paragraph: ['nuovo paragrafo'], enter: ['invialo'], undo: ['cancella questo'] },
+  pl: { newline: ['nowa linia'], paragraph: ['nowy akapit'], enter: ['wyślij'], undo: ['usuń to'] },
+  sl: { newline: ['nova vrstica'], paragraph: ['nov odstavek'], enter: ['pošlji'], undo: ['izbriši to'] },
+  sr: { newline: ['novi red'], paragraph: ['novi pasus'], enter: ['pošalji'], undo: ['obriši to'] },
+});
+
+/**
+ * The commands with the packs of `languages` added: each phrase goes to the command that does the same
+ * (a missing command is added), never twice, never past the phrase limit; nothing is removed (pure).
+ */
+function addPacks(commands, languages) {
+  const out = normalizeVoiceCommands(commands).map((c) => ({ ...c, phrases: [...c.phrases] }));
+  const known = new Set(out.flatMap((c) => c.phrases.map((p) => p.toLowerCase())));
+  for (const lang of Array.isArray(languages) ? languages : []) {
+    if (typeof lang !== 'string' || !Object.hasOwn(VOICE_PACKS, lang)) continue;
+    for (const [what, phrases] of Object.entries(VOICE_PACKS[lang])) {
+      const { action, arg } = PACK_COMMANDS[what];
+      let command = out.find((c) => c.action === action && c.arg === arg);
+      for (const phrase of phrases) {
+        if (known.has(phrase.toLowerCase())) continue;
+        if (!command) {
+          command = { phrases: [], action, arg };
+          out.push(command);
+        }
+        if (command.phrases.length >= MAX_PHRASES) break;
+        command.phrases.push(phrase);
+        known.add(phrase.toLowerCase());
+      }
+    }
+  }
+  return out;
+}
+
 /** Repair a command list from disk or from the window. */
 function normalizeVoiceCommands(list) {
   const out = [];
@@ -120,6 +166,6 @@ function extractEdgeCommands(text, commands) {
 }
 
 module.exports = {
-  DEFAULT_VOICE_COMMANDS, VOICE_ACTIONS, COMMAND_KEYS,
+  DEFAULT_VOICE_COMMANDS, VOICE_ACTIONS, COMMAND_KEYS, VOICE_PACKS, addPacks,
   normalizeVoiceCommands, activeCommands, applyInsertCommands, extractEdgeCommands, phrasePattern,
 };

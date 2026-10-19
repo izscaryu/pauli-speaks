@@ -27,6 +27,7 @@ const { baseVersion, changelogSection } = require('./changelog');
 const { exportBackup, importBackup } = require('./settings-backup');
 const { SETTINGS_VERSION } = require('./settings');
 const { t } = require('./strings');
+const { addPacks } = require('./voice-commands');
 
 const TASKLIST_TIMEOUT_MS = 5000;
 const MAX_BACKUP_BYTES = 1024 * 1024;
@@ -87,6 +88,14 @@ function registerWelcomeIpc(ipcMain, deps) {
     const langs = languages();
     const [g, found] = await Promise.all([gpu(), conflicts()]);
     return { languages: langs, gpu: g, conflicts: found, recommendation: recommendModel({ languages: langs, gpu: g }) };
+  });
+
+  // Step 1: the languages, and their voice-command phrases ("neue Zeile" for German) added to the commands.
+  ipcMain.handle('welcome:languages', (_e, payload) => {
+    const picked = payload && Array.isArray(payload.languages) ? payload.languages : [];
+    const languages = [...new Set(picked.filter((c) => typeof c === 'string' && /^[a-z]{2,3}$/.test(c)))];
+    updateSettings({ languages, voiceCommands: addPacks((getSettings() || {}).voiceCommands, languages) });
+    return getSettings();
   });
 
   ipcMain.handle('welcome:recommend', async (_e, payload) => {

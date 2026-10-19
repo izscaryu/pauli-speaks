@@ -75,7 +75,7 @@ const Welcome = (() => {
           onclick: async (e) => {
             e.currentTarget.disabled = true;
             try {
-              await save({ languages: [...chosen] }, null);
+              settings = await api.welcomeLanguages([...chosen]); // also adds their voice-command phrases
             } catch (err) {
               console.error('welcome: saving languages failed', err);
             }

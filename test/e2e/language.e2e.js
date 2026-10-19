@@ -61,3 +61,25 @@ test('no page shows a raw translation key, in English or in Croatian', async (t)
     }
   }
 });
+
+test('the welcome flow: picking German adds the German voice commands', async (t) => {
+  const run = await launch({ settings: null });
+  t.after(run.close);
+  await run.page.locator('#welcome-step [data-lang="de"]').waitFor({ state: 'visible', timeout: 10000 });
+  if ((await run.page.locator('#welcome-step [data-lang="de"]').getAttribute('aria-pressed')) !== 'true') {
+    await run.page.locator('#welcome-step [data-lang="de"]').click();
+  }
+  await run.page.locator('#welcome-step-actions button').click();
+  const saved = await waitFor(() => {
+    try {
+      const s = JSON.parse(fs.readFileSync(path.join(run.dir, 'settings.json'), 'utf8'));
+      return Array.isArray(s.languages) && s.languages.includes('de') ? s : null;
+    } catch {
+      return null;
+    }
+  }, { what: 'the saved languages' });
+  const phrases = saved.voiceCommands.flatMap((c) => c.phrases);
+  assert.ok(phrases.includes('neue Zeile'));
+  assert.ok(phrases.includes('abschicken'));
+  assert.ok(phrases.includes('new line'), 'the defaults stay');
+});
