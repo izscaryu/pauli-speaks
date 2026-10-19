@@ -6,9 +6,7 @@ const path = require('node:path');
 const { issueUrl } = require('../src/main/diagnostics');
 
 const DIR = path.join(__dirname, '..', '.github', 'ISSUE_TEMPLATE');
-const read = (name) => fs.readFileSync(path.join(DIR, name), 'utf8').replace(/
-/g, '
-'); // Windows checkouts have CRLF
+const read = (name) => fs.readFileSync(path.join(DIR, name), 'utf8').replace(/\r\n/g, '\n'); // Windows checkouts have CRLF
 
 test('Report a problem opens a form that exists, and fills in a field it has', () => {
   const url = new URL(issueUrl({ owner: 'o', repo: 'r' }, '1.0.0'));
