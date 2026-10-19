@@ -45,7 +45,47 @@ test for the pattern).
 | `src/main/privacy*.js`, `history.js`, `audio-history.js` | History, recordings and the privacy controls |
 | `src/main/diagnostics*.js` | About → Copy diagnostic info / Report a problem |
 | `src/renderer/` | The main window (`app.html`) and the floating pill (`overlay.html`) |
+| `src/renderer/locales/` | Every word the app shows, one JSON file per language (`en.json` is the source) |
+| `src/renderer/i18n.js`, `src/main/strings.js` | `t()` for the windows and for the main process (tray, pill messages, errors) |
 | `test/` | Unit tests; `test/e2e/` end-to-end tests |
+
+## Translate Pauli Speaks
+
+A language is one file. You don't need to write code.
+
+1. Copy `src/renderer/locales/en.json` to a file named after your language's code: `de.json` for German,
+   `es.json` for Spanish, `pt-br.json` for Brazilian Portuguese.
+2. Translate the text on the right of each line. Keep the key on the left exactly as it is. Set
+   `"language.name"` to your language's name in your language (`"Deutsch"`); that is what the language list shows.
+3. Keep every `{placeholder}` as it is, in the place your sentence needs it: `"Hold {keys} while you speak"`
+   becomes `"Halte {keys} gedrückt, während du sprichst"`. Translate the surrounding words only.
+4. Plurals: a key ending in `.one` / `.other` is one sentence in its singular and plural forms. Give the forms
+   your language uses (Croatian, Polish and Slovenian have more, for example `.few` and `.many`).
+   `npm run i18n:check` tells you which ones it expects.
+5. Run the check and the app in your language:
+
+   ```powershell
+   npm run i18n:check   # lists missing, extra and changed keys and {placeholders}
+   npm start            # Settings → Language → App language
+   ```
+
+6. Open a pull request. Say which language it is and whether you are a native speaker.
+
+Language names in the lists (Croatian, German…), dates and numbers come from Windows, so they are right in
+every language without translation. In the app, anything left out shows in English; the check (and CI) only
+passes once every key is there.
+
+Voice commands ("new line", "send it" and the rest) are separate: their phrases per language are in
+`VOICE_PACKS` in `src/main/voice-commands.js`. Adding your language there means a line of code and a test in
+`test/voice-commands.test.js`; open an issue with the phrases if you'd rather not.
+
+### Adding text to the app
+
+New text never goes into the code as a sentence. Put the English in `en.json` under a key that says where it
+appears (`settings.language.title`), then use it: `t('settings.language.title')` in a script,
+`data-i18n="settings.language.title"` in the HTML (`data-i18n-placeholder`, `-title` and `-aria-label` for
+those attributes). Add the Croatian to `hr.json` too, or ask in the pull request. `npm run i18n:check` runs in CI
+and fails on missing, unused or untranslated keys.
 
 ## Rules of the house
 

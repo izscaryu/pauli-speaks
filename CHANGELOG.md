@@ -2,6 +2,12 @@
 
 What changed in each version of Pauli Speaks. The app shows the newest section once after an update.
 
+## 1.4.0
+
+- Pauli Speaks speaks your language: the app, the welcome setup, the bar and the tray menu are in Croatian (Hrvatski) as well as English. It follows the Windows language; Settings → Language changes it. Dates and numbers follow it too.
+- Picking your languages in the welcome setup adds voice commands in them: German, Spanish, Italian, Polish, Slovenian and Serbian join English and Croatian ("neue Zeile", "abschicken", "lösch das"…).
+- A new language is one file: CONTRIBUTING.md explains how to translate Pauli Speaks.
+
 ## 1.3.0
 
 - Silence detection: only the parts where you speak go to the speech engine. If you say nothing, nothing is typed and the pill says "No speech detected"; if the microphone gives no sound at all, it says "No sound. Is your mic muted?" and warns you after 2 seconds while you are still recording. Settings has a "Silence detection" switch if words ever get cut.
