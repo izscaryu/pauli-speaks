@@ -66,6 +66,8 @@ contextBridge.exposeInMainWorld('pauli', {
   appInfo: () => ipcRenderer.invoke('app:info'),
   openPath: (which) => ipcRenderer.invoke('app:open-path', which),
   openExternal: (url) => ipcRenderer.invoke('app:open-external', url),
+  copyDiagnostics: () => ipcRenderer.invoke('diagnostics:copy'),
+  reportProblem: () => ipcRenderer.invoke('diagnostics:report'),
 
   // overlay pill + recorder
   onOverlayState: on('overlay:state'),

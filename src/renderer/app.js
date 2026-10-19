@@ -926,6 +926,14 @@ document.querySelectorAll('[data-setting]').forEach((input) =>
   input.addEventListener('change', () => save({ [input.dataset.setting]: input.checked })));
 
 document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => api.openPath(b.dataset.open)));
+$('#diagnostics-copy').addEventListener('click', async () => {
+  const r = await api.copyDiagnostics();
+  toast(r.ok ? 'Diagnostic info copied. Paste it into your bug report.' : `Couldn't copy: ${r.error}`);
+});
+$('#diagnostics-report').addEventListener('click', async () => {
+  const r = await api.reportProblem();
+  toast(r.ok ? 'Diagnostic info copied. Paste it into the form that just opened.' : `Couldn't copy: ${r.error}`);
+});
 
 // ------------------------------------------------------------------ wiring
 

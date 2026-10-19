@@ -12,6 +12,7 @@
 //   llm.js  command mode (edit the selection by voice)
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const {
   app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell, session, clipboard, safeStorage, dialog,
@@ -54,6 +55,7 @@ const { setupPortable } = require('./portable');
 const { shouldPreloadAtStartup, shouldOfferSmallerModel, isAllowedExternalUrl } = require('./system-check');
 const { registerWelcomeIpc, registerBackupIpc, runningProcessNames } = require('./welcome-ipc');
 const { registerRecoveryIpc } = require('./recovery-ipc');
+const { registerDiagnosticsIpc } = require('./diagnostics-ipc');
 const { createLanguageHints } = require('./language-hints');
 const { readChangelog } = require('./changelog');
 
@@ -757,6 +759,14 @@ function registerIpc() {
     preloadModel,
     log,
   });
+  registerDiagnosticsIpc(ipcMain, {
+    appVersion: () => app.getVersion(), isPortable: () => portable.active, getSettings: () => settings.get(), os,
+    hasApiKey: () => { try { return !!settings.getApiKey(); } catch { return false; } },
+    gpuInfo: () => app.getGPUInfo('complete'), getModelState: () => modelState, getTranslatorState: () => translatorState,
+    modelsDir, modelIds: [...MODELS.map((m) => m.id), NLLB_MODEL], formatKeys: formatShortcut, hookError: () => hookError,
+    processNames: runningProcessNames, recentLog: (n) => log.recent(n), writeClipboard: (text) => clipboard.writeText(text),
+    openExternal: (url) => shell.openExternal(url), repo: require('../../package.json').build.publish[0], log,
+  });
   recoveryIpc = registerRecoveryIpc(ipcMain, {
     recovery, crashRecoveryOn: () => settings.get().crashRecovery, dictationActive: () => controller.status !== 'idle',
     process: (run, mode) => controller.process(run, mode), transcribe: flow.transcribeKept, isCancelled: () => controller.cancelled,
@@ -1099,7 +1109,7 @@ async function runSelfTest(dir) {
     const result = await run.transcribe(samples);
     report.dictation = { ms: Date.now() - t0, raw: result.text, text: cleanTranscript(result.text, settings.get()), language: result.language };
     report.codeStyle = cleanTranscript(result.text, { ...settings.get(), style: 'code' });
-    log.info(`SELFTEST transcript (${report.dictation.ms}ms on ${report.device}): ${JSON.stringify(report.dictation.text)}`);
+    log.info(`SELFTEST transcript (${report.dictation.ms}ms on ${report.device}): ${report.dictation.text.length} chars`); // the text itself goes only into the report file
 
     if (process.env.PAULI_SELFTEST_TARGET) {
       const saved = { ...settings.get().translation };
