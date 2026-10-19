@@ -8,6 +8,15 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { ortLibraryPaths, preloadOrtLibraries } = require('./ort-preload');
+
+// Before anything loads ONNX Runtime: ours, not the older copy in System32 (see ort-preload.js).
+preloadOrtLibraries({
+  paths: ortLibraryPaths({ indexPath: require.resolve('onnxruntime-node'), platform: process.platform, arch: process.arch }),
+  load: (p) => require('koffi').load(p),
+  onError: (err, p) => console.error(`Could not preload ${path.basename(p)}: ${err.message}`),
+});
+
 const { createLocalWhisper } = require('./whisper-local');
 const { createTranslator } = require('./translator-local');
 const { createVad } = require('./vad');

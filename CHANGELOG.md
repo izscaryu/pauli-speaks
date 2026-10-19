@@ -8,6 +8,7 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 - With Silence detection on, hands-free auto-stop waits for you to stop speaking instead of for the room to get quiet, so background noise no longer keeps it going.
 - If a dictation can't be transcribed, the pill and the entry in History offer "Retry", and your recording is kept until you quit. Esc now shows "Cancelled. Undo" for 4 seconds.
 - If the offline speech engine stops responding, the dictation now ends with "Couldn't transcribe." and a Retry button instead of staying on "processing", and the engine restarts by itself.
+- Fixed: started from Firefox's download list, the offline speech engine stopped at once ("Speech engine stopped unexpectedly"), because Windows handed it the older ONNX Runtime that recent Windows 11 updates put in System32. Pauli Speaks now always uses its own.
 - If Pauli Speaks crashes while you dictate, Home offers "Recover your last dictation?" the next time you start it.
 - Dictating into a window that runs as administrator no longer fails silently: the text is left on the clipboard and the pill says "Copied. Press Ctrl+V (this app runs as administrator)".
 - Dictated text is kept out of Windows clipboard history (Win+V) and cloud clipboard sync.
