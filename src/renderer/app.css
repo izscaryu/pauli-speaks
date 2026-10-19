@@ -159,7 +159,17 @@ main { flex: 1; overflow-x: hidden; overflow-y: auto; padding: 28px 36px 48px; }
   font: 600 11.5px/1 var(--mono);
   white-space: nowrap;
 }
-.key.empty { color: var(--ink-3); font-family: inherit; font-weight: 500; }
+/* "Not set": a flat, dashed slot rather than a keycap. Its own padding, or the list rule .empty (28px) wins. */
+.key.empty {
+  padding: 0 8px;
+  border-style: dashed;
+  border-bottom-width: 1px;
+  border-color: color-mix(in srgb, var(--ink-3) 55%, transparent); /* visible on light and dark */
+  background: transparent;
+  color: var(--ink-3);
+  font-family: inherit;
+  font-weight: 500;
+}
 .keys-strip { display: flex; flex-wrap: wrap; gap: 8px 22px; }
 .kitem { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13px; }
 
