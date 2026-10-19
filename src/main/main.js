@@ -31,7 +31,7 @@ const { sameSet } = require('./shortcut-engine');
 const { ShortcutRecorder } = require('./shortcut-recorder');
 const { LastPaste } = require('./last-paste');
 const { formatShortcut, sortKeys, VK } = require('./keys');
-const { cleanTranscript, cleanUtterance, countWords, toSrt } = require('./text-cleanup');
+const { cleanTranscript, toSrt } = require('./text-cleanup');
 const { speechLevel, splitAtPauses, SAMPLE_RATE } = require('./audio-utils');
 const { gateSpeech, reportOncePerMessage, SILENCE_LEVEL } = require('./speech-gate');
 const { createRecoveryFile } = require('./recovery-file');
@@ -39,8 +39,9 @@ const { createListeningSession } = require('./listening-session');
 const { createPendingAudio } = require('./pending-audio');
 const { createRetryOffers } = require('./retry-offers');
 const { createDictationFlow, BUSY } = require('./dictation-flow');
+const { createDictationRun } = require('./dictation-run');
+const { createTyping } = require('./typing');
 const { pasteText, pressKey, getSelectedText, writeExcluded } = require('./paster');
-const { shouldRunFollowUps } = require('./paste-plan');
 const { PROTOCOL, parseCommandLine } = require('./remote');
 const { resolveStyle } = require('./app-styles');
 const { buildCommandMessages, chatComplete } = require('./llm');
@@ -83,8 +84,7 @@ let recorder = null; // ShortcutRecorder behind "+ Add" on the Shortcuts page
 let keyTest = null; // "Test a key" readout: { max }
 let lastTalkBinding = null;
 let hookError = null; // why the global keyboard hook did not start (null: it did)
-const lastPaste = new LastPaste(); // what undoLast removes
-let enterAfterPaste = false;
+const lastPaste = new LastPaste(); // what typing.undoLast removes
 let overlayReady = false;
 const remoteQueue = [];
 let trayHintShown = false;
@@ -99,6 +99,8 @@ let privacy = null; // retention, hourly sweep, saved recordings
 let listening = null; // tap + crash file + live VAD of the dictation in progress
 let retry = null; // Retry / Undo: audio kept in memory (retry-offers.js)
 let flow = null; // what happens to a recording after the microphone stops (dictation-flow.js)
+let run = null; // transcribe, clean up, paste; command mode (dictation-run.js)
+let typing = null; // paste, Enter, undo last, voice commands (typing.js)
 let reading = false;
 let fileBusy = false;
 let updater = null;
@@ -290,8 +292,8 @@ function updateTrayMenu() {
         label: controller && controller.status !== 'idle' ? 'Stop dictation' : 'Start hands-free dictation',
         click: () => controller.toggle(),
       },
-      { label: 'Paste last transcript', click: () => pasteLast(), enabled: !!history.last() },
-      { label: 'Copy last transcript', click: () => copyLast(), enabled: !!history.last() },
+      { label: 'Paste last transcript', click: () => typing.pasteLast(), enabled: !!history.last() },
+      { label: 'Copy last transcript', click: () => typing.copyLast(), enabled: !!history.last() },
       { type: 'separator' },
       ...(updater && updater.state.status === 'ready'
         ? [{ label: `Restart to update to ${updater.state.version}`, click: () => updater.install() }]
@@ -303,16 +305,12 @@ function updateTrayMenu() {
 
 // ---------------------------------------------------------------- dictation session
 
-function translatingNow() {
-  return !controller.command && (controller.translate || settings.get().translation.always);
-}
-
 function listeningState(extra = {}) {
   return {
     state: 'listening',
     locked: controller.locked,
-    mode: controller.command ? 'command' : translatingNow() ? 'translate' : 'dictate',
-    translateTo: translatingNow() ? settings.get().translation.target : null,
+    mode: controller.command ? 'command' : run.translatingNow() ? 'translate' : 'dictate',
+    translateTo: run.translatingNow() ? settings.get().translation.target : null,
     ...extra,
   };
 }
@@ -320,7 +318,7 @@ function listeningState(extra = {}) {
 function startRecording() {
   if (reading) stopReading();
   retry.expireUndo(); // before the new crash file begins: the cancelled one's is deleted now
-  enterAfterPaste = false;
+  typing.enterAfterPaste = false;
   sessionApp = win32.foregroundApp();
   showOverlay();
   sendOverlayState(listeningState());
@@ -540,28 +538,6 @@ async function translateText(text, source, target) {
   return asr.translate(text, source, target);
 }
 
-/**
- * Speech -> text, optionally translated:
- *   Fast  (target English): Whisper's own translate task, one pass, no extra download
- *   Best  (or other target): transcribe, clean up, then NLLB-200 text translation
- * @returns {Promise<{text: string, language: string|null, translatedTo: string|null, original?: string}>}
- */
-async function transcribe(audio, { translate = false } = {}) {
-  const s = settings.get();
-  const target = s.translation.target;
-  const fast = translate && target === 'en' && !needsNllb(s);
-  const result = await recognise(audio, fast ? 'translate' : 'transcribe');
-  if (!translate || result.translatedTo) return result;
-
-  const source = result.language || (s.languages.length === 1 ? s.languages[0] : null);
-  if (source === target) return result;
-  // Voice commands are found in the language they were spoken in ("pošalji"), before translating.
-  const { text: original, before, after } = cleanUtterance(result.text, { ...s, addTrailingSpace: false, snippets: [] });
-  if (!original.trim()) return result;
-  const text = await translateText(original, source || 'en', target);
-  return { ...result, text, language: source, translatedTo: target, original, before, after };
-}
-
 const reportDetectorError = reportOncePerMessage((message) => log.warn(`Speech detector unavailable: ${message}`));
 const reportTapError = reportOncePerMessage((message) => log.warn(`Recording tap: ${message}`));
 
@@ -583,106 +559,6 @@ async function transcribeDictation(reason) {
 
 const speechGate = (audio) => gateSpeech(audio, { enabled: settings.get().silenceDetection, detect: (a) => asr.detectSpeech(a), level: speechLevel, onError: reportDetectorError });
 
-/** What Retry / Undo need to run a kept recording again the way it was meant. */
-const keptMeta = (seconds) => ({
-  durationMs: Math.round(seconds * 1000), engine: controller.command ? settings.get().command.model : engineLabel(),
-  command: controller.command, translate: controller.translate, app: sessionApp,
-});
-
-/** Text plus the voice commands said at its start / end. */
-function dictationText(result, style) {
-  const s = settings.get();
-  if (!result.original) return cleanUtterance(result.text, { ...s, style });
-  // NLLB output was already cleaned (and its commands found) before translation: only polish it now.
-  const after = result.after || [];
-  const keyAfter = after.some((c) => c.action === 'key');
-  const text = cleanTranscript(result.text, { ...s, removeFillers: false, voiceCommands: false, style, addTrailingSpace: s.addTrailingSpace && !keyAfter });
-  return { text, before: result.before || [], after };
-}
-
-/** A transcript for History; `historyId` fills in a failed entry instead of adding one. `audio`: the recording, kept when Privacy says so. */
-function record(entry, historyId, audio) {
-  flow.noteRecorded();
-  const item = (historyId && history.resolve(historyId, entry)) || history.add(entry);
-  if (audio) privacy.saveRecording(item.id, audio);
-  return item;
-}
-
-function dictationEntry(result, text, seconds, style, app) {
-  return {
-    text: text.trim(),
-    rawText: result.text,
-    original: result.original || null,
-    durationMs: Math.round(seconds * 1000),
-    words: countWords(text),
-    engine: engineLabel(),
-    language: result.language || null,
-    translatedTo: result.translatedTo || null,
-    app: app ? app.exe : null,
-    style,
-  };
-}
-
-async function runDictation(audio, seconds, t0, historyId = null, recording = null) {
-  const result = await transcribe(audio, { translate: translatingNow() });
-  if (controller.cancelled) return sendOverlayState({ state: 'idle' });
-
-  const s = settings.get();
-  const style = resolveStyle(sessionApp && sessionApp.exe, s.appStyles);
-  const { text: cleaned, before, after } = dictationText(result, style);
-  // "scratch that" at the end throws away what was just said
-  const scratched = after.some((c) => c.action === 'undo');
-  const text = scratched ? '' : cleaned;
-  log.info(`Transcribed in ${Date.now() - t0}ms (${result.language || '?'}${result.translatedTo ? ` -> ${result.translatedTo}` : ''}, ${sessionApp ? sessionApp.exe : '?'}: ${style})${before.length + after.length ? `, commands: ${[...before, ...after].map((c) => c.action).join(' ')}` : ''}`);
-  if (!text.trim() && !before.length && !after.length) return flash('No speech detected');
-  sendOverlayState({ state: 'idle' });
-
-  for (const c of before) await runVoiceAction(c, !text.trim());
-  if (scratched) return flash('Dropped that dictation');
-  if (!text.trim()) {
-    if (enterAfterPaste) await pressEnterNow();
-    return;
-  }
-
-  record(dictationEntry(result, text, seconds, style, sessionApp), historyId, recording);
-  languageHints.feed({ chosen: s.languages, likely: result.likelyLanguage ?? result.language });
-  if (!shouldRunFollowUps(await paste(text))) return; // enterAfterPaste is reset by the caller
-  for (const c of after) await runVoiceAction(c, false);
-  if (enterAfterPaste && !after.some((c) => c.arg === 'Enter')) await pressEnterNow();
-}
-
-/** Command mode: the speech is an instruction for the selected text (or a request to write something). */
-async function runCommand(audio, seconds, historyId = null) {
-  const s = settings.get();
-  sendOverlayState({ state: 'processing', mode: 'command', text: 'Listening to your instruction…' });
-  const r = await recognise(audio, 'transcribe');
-  const instruction = cleanTranscript(r.text, { ...s, addTrailingSpace: false, snippets: [] });
-  if (!instruction.trim()) return flash('No speech detected');
-  const selection = await selectedText();
-  sendOverlayState({ state: 'processing', mode: 'command', text: selection.trim() ? 'Editing your selection…' : 'Writing…' });
-  const output = await chatComplete(
-    { baseUrl: s.cloud.baseUrl, apiKey: settings.getApiKey(), model: s.command.model },
-    buildCommandMessages(instruction, selection),
-  );
-  if (controller.cancelled) return sendOverlayState({ state: 'idle' });
-  if (!output) return flash('The AI returned nothing - try rephrasing', 'error');
-  log.info(`Command (${instruction.length} chars) on ${selection.length} chars -> ${output.length} chars`);
-  record({
-    kind: 'command',
-    text: output,
-    instruction,
-    rawText: r.text,
-    original: selection.trim() ? selection : null,
-    durationMs: Math.round(seconds * 1000),
-    words: countWords(output),
-    engine: s.command.model,
-    language: r.language || null,
-    app: sessionApp ? sessionApp.exe : null,
-  }, historyId);
-  sendOverlayState({ state: 'idle' });
-  if (shouldRunFollowUps(await paste(output)) && enterAfterPaste) await pressEnterNow();
-}
-
 function engineLabel() {
   const s = settings.get();
   if (s.engine === 'cloud') return s.cloud.model;
@@ -690,100 +566,12 @@ function engineLabel() {
   return modelState.device === 'dml' ? `${name} · GPU` : name;
 }
 
-/** Paste into the focused app and remember it, so "undo last" can take it back. Administrator windows get copy-only. */
-async function paste(text) {
-  const result = await pasteText(text, { restoreClipboard: settings.get().restoreClipboard });
-  if (result.mode === 'copy-only') {
-    lastPaste.forget(); // nothing was typed, so nothing to undo
-    flash('Copied. Press Ctrl+V (this app runs as administrator)', 'info', 4500);
-    return result;
-  }
-  const target = win32.foregroundApp();
-  lastPaste.remember(text, target && target.exe);
-  return result;
-}
-
-async function pasteLast() {
-  const last = history.last();
-  if (!last) return flash('Nothing to paste yet');
-  await waitForKeysReleased();
-  await paste(last.text + (settings.get().addTrailingSpace ? ' ' : ''));
-}
-
-function copyLast(notify = false) {
-  const last = history.last();
-  if (!last) return notify ? flash('Nothing to copy yet') : undefined;
-  Promise.resolve(clipboard.writeText(last.text))
-    .then(() => notify && flash('Copied your last dictation'))
-    .catch((err) => log.warn(`Copy failed: ${err.message}`));
-}
-
-/** Take back the text Pauli Speaks typed last (rules in last-paste.js). @returns {Promise<boolean>} removed */
-async function undoLast() {
-  const target = win32.foregroundApp();
-  const plan = lastPaste.undoPlan(target && target.exe);
-  if (plan.error) {
-    flash(plan.error);
-    return false;
-  }
-  await waitForKeysReleased();
-  await pressKey(VK.Backspace, plan.backspaces);
-  return true;
-}
-
-async function pressEnterNow() {
-  enterAfterPaste = false;
-  await waitForKeysReleased();
-  await pressKey(VK.Enter);
-  lastPaste.markSent();
-}
-
-/** "Press Enter" shortcut: while dictating it finishes and sends; otherwise it presses Enter now. */
-function pressEnter() {
-  if (controller.isListening) {
-    enterAfterPaste = true;
-    return controller.stop('enter');
-  }
-  if (controller.status === 'processing') {
-    enterAfterPaste = true;
-    return;
-  }
-  return pressEnterNow();
-}
-
-/** A voice command said at the start or end of a dictation. */
-async function runVoiceAction(c, alone) {
-  if (c.action === 'undo') {
-    if ((await undoLast()) && alone) flash('Removed the last dictation');
-    return;
-  }
-  if (c.action === 'key' && VK[c.arg]) {
-    if (c.arg === 'Enter') return pressEnterNow();
-    await waitForKeysReleased();
-    await pressKey(VK[c.arg]);
-  }
-}
-
-/**
- * Before we synthesise Ctrl+C, every key of the user's shortcut must be up -
- * otherwise a still-held letter (the S of Shift+Alt+S) turns it into Ctrl+S.
- */
-async function waitForKeysReleased(timeoutMs = 1500) {
-  const end = Date.now() + timeoutMs;
-  while (keyboard.engine.pressed.size > 0 && Date.now() < end) await new Promise((r) => setTimeout(r, 15));
-}
-
-async function selectedText() {
-  await waitForKeysReleased();
-  return getSelectedText();
-}
-
 // ---------------------------------------------------------------- read aloud
 
 async function readAloud() {
   if (reading) return stopReading();
   if (controller.isListening && !controller.locked) controller.dismiss('other-shortcut');
-  const text = (await selectedText()).trim();
+  const text = (await typing.selectedText()).trim();
   if (!text) return flash('Select some text, then press the read-aloud shortcut');
   const s = settings.get();
   reading = true;
@@ -866,10 +654,10 @@ function onAction({ action, phase, binding = {} }) {
 /** Actions that fire once (shortcut down, or a command-line flag). */
 function runAction(action) {
   if (action === 'cancel') return reading ? stopReading() : controller.cancel();
-  if (action === 'pasteLast') return pasteLast();
-  if (action === 'copyLast') return copyLast(true);
-  if (action === 'undoLast') return undoLast();
-  if (action === 'pressEnter') return pressEnter();
+  if (action === 'pasteLast') return typing.pasteLast();
+  if (action === 'copyLast') return typing.copyLast(true);
+  if (action === 'undoLast') return typing.undoLast();
+  if (action === 'pressEnter') return typing.pressEnter();
   if (action === 'readAloud') return readAloud();
   if (action === 'cycleMode') return flash('Switching modes comes with Modes, in a later version');
 }
@@ -1196,8 +984,17 @@ function init() {
     updateTrayMenu();
   });
   controller.on('busy', () => flash(BUSY));
+  typing = createTyping({
+    settings, lastPaste, history, controller, VK, pasteText, pressKey, getSelectedText, flash, log,
+    foregroundApp: () => win32.foregroundApp(), keysDown: () => keyboard.engine.pressed.size, writeClipboard: (text) => clipboard.writeText(text),
+  });
+  run = createDictationRun({
+    settings, controller, history, typing, recognise, translateText, needsNllb, engineLabel, chatComplete, sendOverlayState, flash, log,
+    sessionApp: () => sessionApp, saveRecording: (id, audio) => privacy.saveRecording(id, audio), onRecorded: () => flow.noteRecorded(),
+    feedLanguage: (hint) => languageHints.feed(hint),
+  });
   flow = createDictationFlow({
-    retry, history, controller, speechGate, runDictation, runCommand, transcribe, translatingNow, dictationText, dictationEntry, keptMeta,
+    ...run, retry, history, controller, speechGate, // run: runDictation, runCommand, transcribe, dictationText, …
     styleFor: (target) => resolveStyle(target && target.exe, settings.get().appStyles),
     takeListening: () => { const s = listening; listening = null; return s; },
     stopForUndo: (s) => stopRecording(false, s, true),
@@ -1205,7 +1002,7 @@ function init() {
       sessionApp = win32.foregroundApp();
       sendOverlayState({ state: 'processing', mode: controller.command ? 'command' : 'dictate' });
     },
-    afterRun: () => { enterAfterPaste = false; },
+    afterRun: () => { typing.enterAfterPaste = false; },
     showIdle: () => sendOverlayState({ state: 'idle' }),
     showError: (message) => broadcast('app:error', { message }),
     flash, copy: writeExcluded, savedRecording: (hid) => privacy.savedRecording(hid), audioIds: () => audioHistory.ids(), log,
@@ -1299,7 +1096,7 @@ async function runSelfTest(dir) {
     report.gpuError = modelState.gpuError || null;
 
     let t0 = Date.now();
-    const result = await transcribe(samples);
+    const result = await run.transcribe(samples);
     report.dictation = { ms: Date.now() - t0, raw: result.text, text: cleanTranscript(result.text, settings.get()), language: result.language };
     report.codeStyle = cleanTranscript(result.text, { ...settings.get(), style: 'code' });
     log.info(`SELFTEST transcript (${report.dictation.ms}ms on ${report.device}): ${JSON.stringify(report.dictation.text)}`);
@@ -1308,7 +1105,7 @@ async function runSelfTest(dir) {
       const saved = { ...settings.get().translation };
       settings.update({ translation: { target: process.env.PAULI_SELFTEST_TARGET } });
       t0 = Date.now();
-      const tr = await transcribe(samples, { translate: true });
+      const tr = await run.transcribe(samples, { translate: true });
       report.translation = { ms: Date.now() - t0, text: tr.text, translatedTo: tr.translatedTo };
       settings.update({ translation: saved });
     }
