@@ -22,10 +22,11 @@ function registerI18nIpc(ipcMain, deps) {
   });
 
   return {
-    /** Call with every settings patch. @returns {boolean} whether the language setting changed */
+    /** Call with every settings patch. @returns {boolean} whether the UI language changed (the windows were told) */
     settingsChanged(patch) {
       if (!patch || !('uiLanguage' in patch)) return false;
-      apply();
+      const before = strings.currentLanguage();
+      if (apply() === before) return false; // same language (a reset, or "Same as Windows" naming the same one)
       deps.broadcast('i18n:changed', strings.payload());
       return true;
     },

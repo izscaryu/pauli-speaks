@@ -59,3 +59,9 @@ test('a broken system-language lookup falls back to English', () => {
   registerI18nIpc(ipc, { getSettings: () => ({ uiLanguage: 'system' }), systemLanguages: () => { throw new Error('nope'); }, broadcast() {} });
   assert.equal(strings.currentLanguage(), 'en');
 });
+
+test('a patch that keeps the same language (a reset, for example) sends nothing', () => {
+  const { i18n, sent } = setup('en');
+  assert.equal(i18n.settingsChanged({ uiLanguage: 'en', sounds: true }), false);
+  assert.equal(sent.length, 0);
+});
