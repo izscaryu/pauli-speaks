@@ -975,6 +975,8 @@ function registerIpc() {
     catalog: () => [...MODELS.map((m) => ({ id: m.id, label: `Whisper ${m.label}`, kind: 'speech' })), { id: NLLB_MODEL, label: 'Offline translator', kind: 'translator' }],
     modelsDir,
     dictationActive: () => controller.status !== 'idle',
+    fileActive: () => fileBusy,
+    modelsBusy: () => [modelState.status, translatorState.status].some((st) => st === 'downloading' || st === 'loading'),
     unloadModels: () => asr.stop(),
     afterModelsDeleted: () => {
       modelState = { model: null, acceleration: null, status: 'idle', percent: 0, error: null, device: null };
@@ -983,8 +985,9 @@ function registerIpc() {
     },
     deleteAll: () => deleteAllData({
       history, audioHistory, settings, recoveryFile: recovery,
-      forgetInMemory: () => { retry.forgetAll(); lastPaste.forget(); recoveryIpc.forget(); languageHints.forget(); },
+      forgetInMemory: () => { retry.clear(); lastPaste.forget(); recoveryIpc.forget(); languageHints.forget(); },
     }),
+    retentionDrops: (r) => history.wouldDrop(r),
     audioBytes: (id) => audioHistory.read(id),
     log,
   });
@@ -1201,7 +1204,7 @@ function init() {
     afterRun: () => { enterAfterPaste = false; },
     showIdle: () => sendOverlayState({ state: 'idle' }),
     showError: (message) => broadcast('app:error', { message }),
-    flash, copy: (text) => clipboard.writeText(text), savedRecording: (hid) => privacy.savedRecording(hid), audioIds: () => audioHistory.ids(), log,
+    flash, copy: writeExcluded, savedRecording: (hid) => privacy.savedRecording(hid), audioIds: () => audioHistory.ids(), log,
   });
   controller.on('cancel-processing', () => sendOverlayState({ state: 'idle' }));
 

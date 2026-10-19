@@ -1,19 +1,23 @@
 'use strict';
-// IPC behind Settings → Privacy: the two delete buttons and the sound of a saved recording.
+// IPC behind Settings → Privacy: the two delete buttons, how many saved transcripts a retention
+// choice deletes (asked before switching), and the sound of a saved recording.
 // Everything Electron-specific comes in through `deps`, so a fake ipcMain can test it.
 //
 //   deps = {
 //     catalog: () => [{id, label, kind}],     // the models the app knows (speech models, the translator)
 //     modelsDir: () => string,
 //     dictationActive: () => boolean,
+//     fileActive?: () => boolean,             // a file is being transcribed
+//     modelsBusy?: () => boolean,             // a speech model or the translator is downloading or loading
 //     unloadModels: () => Promise<void>,      // stop the speech engine so it lets go of the model files
 //     afterModelsDeleted: () => void,         // main forgets the loaded state and tells the windows
 //     deleteAll: () => {ok, errors},          // privacy.js deleteAllData with the app's parts
 //     audioBytes: (historyId) => Buffer|null, // a saved recording (WAV)
+//     retentionDrops: (retention) => number,  // History items that retention would delete now
 //     log?,
 //   }
 
-const { modelsOnDisk, deleteModels } = require('./privacy');
+const { modelsOnDisk, deleteModels, RETENTIONS } = require('./privacy');
 
 const message = (err) => String((err && err.message) || err);
 
@@ -27,6 +31,8 @@ function registerPrivacyIpc(ipcMain, deps) {
 
   ipcMain.handle('privacy:delete-models', async () => {
     if (deps.dictationActive()) return { ok: false, error: 'Finish your dictation first.' };
+    if (deps.fileActive?.()) return { ok: false, error: 'Wait until the file transcription has finished.' };
+    if (deps.modelsBusy?.()) return { ok: false, error: 'Wait until the model has finished downloading or loading.' };
     const root = deps.modelsDir();
     const found = modelsOnDisk(root, deps.catalog());
     if (!found.length) return { ok: true, removed: [], failed: [] };
@@ -43,9 +49,16 @@ function registerPrivacyIpc(ipcMain, deps) {
   });
 
   ipcMain.handle('privacy:delete-all', () => {
+    // the dictation in progress owns its crash file and its audio: deleting them under it would lose or resurrect data
+    if (deps.dictationActive()) return { ok: false, errors: [], error: 'Finish your dictation first.' };
     const result = deps.deleteAll();
     for (const e of result.errors) log.warn(`privacy: deleting ${e.part} failed:`, e.error);
     return result;
+  });
+
+  ipcMain.handle('privacy:retention-drops', (_e, retention) => {
+    if (typeof retention !== 'string' || !RETENTIONS.includes(retention)) return 0;
+    return deps.retentionDrops(retention);
   });
 
   ipcMain.handle('history:audio', (_e, historyId) => {

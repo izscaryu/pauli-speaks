@@ -170,7 +170,10 @@ function createPrivacy({ history, audioHistory, getSettings, timers = { setInter
     /** A setting changed (`patch` holds the keys). */
     apply(patch) {
       const s = getSettings();
-      if ('historyRetention' in patch) guard('applying the history setting', () => history.setRetention(s.historyRetention));
+      if ('historyRetention' in patch) {
+        guard('applying the history setting', () => history.setRetention(s.historyRetention));
+        if (s.audioHistory === '24h') sweepAudio(); // the recordings of the entries that just went go now too
+      }
       if ('audioHistory' in patch && s.audioHistory !== '24h') guard('deleting recordings', () => audioHistory.clear());
     },
 

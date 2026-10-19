@@ -25,7 +25,8 @@ the app says so next to that option.
   History entry, and not encrypted. History then shows a play button on that entry and Retry
   transcribes the recording again (a normal entry gets the new text, which is copied). Recordings are
   deleted 24 hours after they were made (checked every hour and at start), when you delete the entry
-  or clear History, when no History entry lists them any more, and all at once when you turn the
+  or clear History, when no History entry lists them any more (at once when a *Transcript history*
+  change deletes entries, otherwise at the hourly check), and all at once when you turn the
   switch off. A dictation that couldn't be transcribed is saved the same way, so Retry works after a
   restart.
 - **Retry and Undo.** If a dictation can't be transcribed (for example the cloud service is
@@ -37,7 +38,9 @@ the app says so next to that option.
   them again. A dictation that couldn't be transcribed is listed there too, with the error and without
   text. **Settings → Privacy → Transcript history** changes that: *Keep* (the default), *Delete
   after 24 hours* (older entries are deleted, checked every hour and at start) or *Don't keep*
-  (nothing is written to `history.json`, and what was saved is deleted when you choose it). With
+  (nothing is written to `history.json`, and what was saved is deleted when you choose it). When the
+  choice would delete saved entries, the app first asks, with how many, and changes nothing if you
+  cancel. With
   *Don't keep* and *Delete after 24 hours* the entries and failed dictations follow the same rule.
   With *Don't keep* a dictation stays in the list in memory until you close Pauli Speaks, so *Paste
   last*, *Copy last* and *Undo last dictation* still work for the current session. Clear them any
@@ -47,9 +50,9 @@ the app says so next to that option.
   record it, and clipboard managers that respect the marking skip it. Your own clipboard content is
   put back afterwards unless you turned that off. When the app in front runs as administrator,
   Windows doesn't allow the paste: the text then stays on the clipboard (still marked, and your earlier
-  clipboard content is not put back) so you can press Ctrl+V yourself. What you copy yourself
-  (*Copy last*, *Copy* in History, and the copy after *Retry* in History) is an ordinary copy, which
-  Windows clipboard history may keep.
+  clipboard content is not put back) so you can press Ctrl+V yourself. The text copied after *Retry*
+  in History and after *Recover* is marked the same way. What you copy yourself (*Copy last* and
+  *Copy* in History) is an ordinary copy, which Windows clipboard history may keep.
 - **Your dictionary, snippets, voice commands and settings.**
 - **Logs.** For troubleshooting, the app logs timings, the detected language, the name of the app
   you dictated into (for example `chrome.exe`), which voice commands ran, and errors. It doesn't
@@ -99,11 +102,12 @@ next to its `.exe` instead; to delete everything, delete the `.exe` and that fol
 | `recovery\` | Unencrypted audio of the dictation in progress (`current.pcm`, and `current.json` with its start time and mode). Deleted when the dictation ends; after a crash or a quit mid-dictation it stays until you choose Recover or Discard on the next start (or until a new dictation replaces it). A copy under half a second is deleted at start |
 
 **Delete all my data** (Settings → Privacy) deletes your history, the recordings, a leftover crash
-recording, your dictionary, snippets and settings (including the API key and the older
-`settings.v<N>.json` copies). Settings go back to their defaults and the welcome setup runs again the
+recording, the recordings kept in memory for Retry and Undo, your dictionary, snippets and settings
+(including the API key and the older `settings.v<N>.json` copies). It waits until no dictation is
+running (finish or cancel it first). Settings go back to their defaults and the welcome setup runs again the
 next time you open the app. Downloaded models are kept; **Delete downloaded models** removes the
 models (and nothing else) after its own confirmation, and they are downloaded again when you need
-them. Logs are not touched by either button.
+them; it waits until no dictation, file transcription or model download is running. Logs are not touched by either button.
 
 To remove everything including logs: quit Pauli Speaks (tray icon → *Quit Pauli Speaks*), uninstall it from
 Windows Settings → Apps, then delete the `%APPDATA%\Pauli Speaks` folder.

@@ -7,8 +7,9 @@ const Privacy = (() => {
   const RETENTION_DESC = {
     keep: 'Your last 500 dictations stay in History until you delete them.',
     '24h': 'Dictations older than 24 hours are deleted, checked every hour.',
-    off: "Nothing is saved to disk. Dictations stay in History until you close Pauli Speaks, so Paste last and Undo still work.",
+    off: "Transcripts aren't saved to disk. Dictations stay in History until you close Pauli Speaks, so Paste last and Undo still work.",
   };
+  const RECORDINGS_STILL_KEPT = ' Their recordings are still kept for 24 hours while "Keep recordings for 24 hours" is on.';
 
   let crashRecovery = null;
   let models = { models: [], bytes: 0 };
@@ -19,11 +20,33 @@ const Privacy = (() => {
 
   function render() {
     $('#history-retention').value = settings.historyRetention;
-    $('#retention-desc').textContent = RETENTION_DESC[settings.historyRetention] || '';
+    $('#retention-desc').textContent = (RETENTION_DESC[settings.historyRetention] || '')
+      + (settings.historyRetention === 'off' && settings.audioHistory === '24h' ? RECORDINGS_STILL_KEPT : '');
     $('#audio-history').checked = settings.audioHistory === '24h';
   }
 
-  $('#history-retention').addEventListener('change', (e) => save({ historyRetention: e.target.value }));
+  /** Switching to a choice that deletes saved transcripts asks first, with how many; Cancel puts the choice back. */
+  $('#history-retention').addEventListener('change', async (e) => {
+    const select = e.target;
+    const next = select.value;
+    let drops = null; // unknown: ask anyway
+    try {
+      drops = next === 'keep' ? 0 : await api.retentionDrops(next);
+    } catch (err) {
+      console.error('counting transcripts failed', err);
+    }
+    if (drops === 0) return save({ historyRetention: next });
+    confirmBox({
+      title: next === 'off' ? 'Stop keeping transcripts?' : 'Delete transcripts older than 24 hours?',
+      items: [drops ? `Deletes ${drops} saved transcript${drops === 1 ? '' : 's'} now` : 'Deletes saved transcripts now'],
+      note: next === 'off'
+        ? "This can't be undone. From now on dictations stay in History only until you close Pauli Speaks."
+        : "This can't be undone. From now on transcripts older than 24 hours are deleted every hour.",
+      label: 'Delete and switch',
+      run: () => save({ historyRetention: next }),
+      onCancel: () => { select.value = settings.historyRetention; },
+    });
+  });
   $('#audio-history').addEventListener('change', (e) => save({ audioHistory: e.target.checked ? '24h' : 'off' }));
 
   // ---------------------------------------------------------------- downloaded models
@@ -47,12 +70,24 @@ const Privacy = (() => {
 
   const box = () => $('#privacy-confirm');
   const close = () => { box().hidden = true; box().replaceChildren(); };
+  let onCancelOpen = null; // what Cancel undoes for the confirmation on screen (a retention choice goes back)
+
+  /** Cancel, Escape, or another confirmation taking its place. */
+  function cancelOpen() {
+    const undo = onCancelOpen;
+    onCancelOpen = null;
+    close();
+    if (undo) undo();
+  }
 
   /** A confirmation in the page: what goes, then Cancel / the destructive button. */
-  function confirmBox({ title, items, note, label, run }) {
-    const cancel = el('button', { class: 'btn', onclick: close }, 'Cancel');
+  function confirmBox({ title, items, note, label, run, onCancel = null }) {
+    if (onCancelOpen) cancelOpen();
+    onCancelOpen = onCancel;
+    const cancel = el('button', { class: 'btn', onclick: cancelOpen }, 'Cancel');
     const go = el('button', { class: 'btn danger primary' }, label);
     go.addEventListener('click', async () => {
+      onCancelOpen = null;
       go.disabled = true;
       cancel.disabled = true;
       go.textContent = 'Deleting…';
@@ -68,7 +103,7 @@ const Privacy = (() => {
     const panel = box();
     panel.setAttribute('role', 'alertdialog');
     panel.setAttribute('aria-label', title);
-    panel.onkeydown = (e) => { if (e.key === 'Escape' && !cancel.disabled) { e.stopPropagation(); close(); } };
+    panel.onkeydown = (e) => { if (e.key === 'Escape' && !cancel.disabled) { e.stopPropagation(); cancelOpen(); } };
     panel.replaceChildren(
       el('h3', {}, title),
       el('ul', {}, ...items.map((t) => el('li', {}, t))),
@@ -93,7 +128,7 @@ const Privacy = (() => {
       run: async () => {
         const r = await api.deleteAllData();
         HomeNotices.refreshRecovery(); // a leftover recording is gone too
-        toast(r.ok ? 'All your data was deleted.' : "Some data couldn't be deleted. Try again.");
+        toast(r.ok ? 'All your data was deleted.' : r.error || "Some data couldn't be deleted. Try again.");
       },
     });
   }

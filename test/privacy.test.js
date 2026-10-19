@@ -110,6 +110,21 @@ test("switching from 'off' back to 'keep' saves the dictations made from then on
   assert.deepEqual(history.list().map((i) => i.text), ['kept', 'private']);
 });
 
+test('B3: wouldDrop counts what a retention would delete now, without deleting it', () => {
+  const file = path.join(scratch(), 'history.json');
+  const history = new History(file);
+  history.add(entry('new'));
+  history.add(entry('old'));
+  history.addFailed({ audioId: 'a1', durationMs: 1000, engine: 'x', error: 'boom' }, { persist: false });
+  history.items[1].createdAt = at(30); // "old"
+  history.items[2].createdAt = at(1);
+  assert.equal(history.wouldDrop('keep', NOW), 0);
+  assert.equal(history.wouldDrop('24h', NOW), 1);
+  assert.equal(history.wouldDrop('off', NOW), 2, 'the saved ones; the one in memory stays');
+  assert.equal(history.list().length, 3);
+  assert.equal(diskItems(file).length, 2);
+});
+
 test('retention 24h: setRetention and sweep drop old items, in memory and on disk', () => {
   const file = path.join(scratch(), 'history.json');
   const history = new History(file);
@@ -178,7 +193,8 @@ test('deleteAllData goes on when one part fails, and says which', () => {
 test('deleteAllData on real files: history emptied, recordings and leftover recording gone, settings reset', () => {
   const dir = scratch();
   const settings = new Settings(path.join(dir, 'settings.json'), { encrypt: (s) => s, decrypt: (s) => s });
-  settings.update({ dictionary: [{ from: 'a', to: 'b' }], snippets: [{ trigger: 'x', text: 'y' }], onboarded: true, historyRetention: '24h' });
+  settings.update({ dictionary: [{ from: 'a', to: 'b' }], snippets: [{ trigger: 'x', text: 'y' }], onboarded: true, historyRetention: '24h', cloud: { apiKey: 'sk-test-key' } });
+  assert.ok(settings.get().cloud.apiKeyEnc, 'a key is stored before');
   fs.writeFileSync(path.join(dir, 'settings.v4.json'), JSON.stringify({ dictionary: [{ from: 'old', to: 'copy' }] }));
   const history = new History(path.join(dir, 'history.json'));
   history.add(entry('secret words'));
@@ -202,6 +218,8 @@ test('deleteAllData on real files: history emptied, recordings and leftover reco
   assert.deepEqual(saved.dictionary, DEFAULTS.dictionary);
   assert.deepEqual(saved.snippets, []);
   assert.equal(saved.historyRetention, 'keep');
+  assert.equal(saved.cloud.apiKeyEnc, '', 'the encrypted API key is gone from the file');
+  assert.equal(settings.getApiKey(), '');
   assert.equal(settings.get().onboarded, false);
 });
 
@@ -323,6 +341,13 @@ test('a changed historyRetention is applied at once', () => {
   state.historyRetention = 'off';
   privacy.apply({ historyRetention: 'off' });
   assert.deepEqual(calls, [['setRetention', 'off']]);
+});
+
+test('A5: a changed historyRetention sweeps the recordings of the entries it dropped at once (recordings on)', () => {
+  const { privacy, calls, state } = privacySetup({ audioHistory: '24h' });
+  state.historyRetention = 'off';
+  privacy.apply({ historyRetention: 'off' });
+  assert.deepEqual(calls, [['setRetention', 'off'], ['audioSweep', ['a', 'b']]]);
 });
 
 test('turning recordings off deletes them all; turning them on does not', () => {

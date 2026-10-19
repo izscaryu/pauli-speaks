@@ -86,6 +86,11 @@ class History extends EventEmitter {
     this.#save();
   }
 
+  /** How many items setRetention(retention) would delete now (Settings asks before deleting saved transcripts). */
+  wouldDrop(retention, now = Date.now()) {
+    return this.items.length - this.#kept(RETENTIONS.includes(retention) ? retention : 'keep', now).size;
+  }
+
   /** The hourly sweep for '24h' (saves and announces only when something went). */
   sweep(now = Date.now()) {
     if (this.#enforce(now)) this.#save();
@@ -93,16 +98,21 @@ class History extends EventEmitter {
 
   /** @returns {boolean} an item was dropped */
   #enforce(now) {
-    const saved = this.items.filter((i) => !this.sessionOnly.has(i.id));
-    const inMemory = this.items.filter((i) => this.sessionOnly.has(i.id));
-    const kept = new Set([
-      ...sweepHistory(saved, this.retention, now),
-      ...(this.retention === '24h' ? sweepHistory(inMemory, '24h', now) : inMemory),
-    ]);
+    const kept = this.#kept(this.retention, now);
     const before = this.items.length;
     this.items = this.items.filter((i) => kept.has(i));
     for (const id of this.sessionOnly) if (!this.items.some((i) => i.id === id)) this.sessionOnly.delete(id);
     return this.items.length !== before;
+  }
+
+  /** The items that stay under `retention`: saved ones follow it; in-memory ones go only when older than 24 hours. */
+  #kept(retention, now) {
+    const saved = this.items.filter((i) => !this.sessionOnly.has(i.id));
+    const inMemory = this.items.filter((i) => this.sessionOnly.has(i.id));
+    return new Set([
+      ...sweepHistory(saved, retention, now),
+      ...(retention === '24h' ? sweepHistory(inMemory, '24h', now) : inMemory),
+    ]);
   }
 
   clear() {

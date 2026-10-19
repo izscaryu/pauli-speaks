@@ -29,6 +29,7 @@ function setup(over = {}) {
     unloadModels: async () => { calls.push('unload'); },
     afterModelsDeleted: () => { calls.push('after'); },
     deleteAll: () => { calls.push('deleteAll'); return { ok: true, errors: [] }; },
+    retentionDrops: (r) => ({ keep: 0, '24h': 2, off: 5 })[r],
     audioBytes: (id) => (id === 'good' ? Buffer.from([1, 2, 3]) : null),
     log: { warn: (...a) => calls.push(['warn', ...a]) },
     ...over,
@@ -39,7 +40,7 @@ function setup(over = {}) {
 
 test('registers the privacy channels', () => {
   const { handlers } = setup();
-  assert.deepEqual(Object.keys(handlers).sort(), ['history:audio', 'privacy:delete-all', 'privacy:delete-models', 'privacy:models']);
+  assert.deepEqual(Object.keys(handlers).sort(), ['history:audio', 'privacy:delete-all', 'privacy:delete-models', 'privacy:models', 'privacy:retention-drops']);
 });
 
 test('privacy:models lists what is on disk with the total size', async () => {
@@ -67,6 +68,17 @@ test('privacy:delete-models refuses while a dictation is running', async () => {
   assert.ok(fs.existsSync(path.join(models, 'onnx-community', 'whisper-tiny')));
 });
 
+test('C4: privacy:delete-models refuses while a file is transcribed or a model downloads', async () => {
+  for (const [over, re] of [[{ fileActive: () => true }, /file/i], [{ modelsBusy: () => true }, /download/i]]) {
+    const { handlers, calls, models } = setup(over);
+    const r = await handlers['privacy:delete-models']();
+    assert.equal(r.ok, false);
+    assert.match(r.error, re);
+    assert.deepEqual(calls, []);
+    assert.ok(fs.existsSync(path.join(models, 'onnx-community', 'whisper-tiny')));
+  }
+});
+
 test('privacy:delete-models with nothing downloaded is fine', async () => {
   const { handlers, models } = setup();
   fs.rmSync(models, { recursive: true });
@@ -85,6 +97,24 @@ test('privacy:delete-all runs the deletion and reports it', async () => {
   const { handlers, calls } = setup();
   assert.deepEqual(await handlers['privacy:delete-all'](), { ok: true, errors: [] });
   assert.deepEqual(calls, ['deleteAll']);
+});
+
+test('A6: privacy:delete-all refuses while a dictation is running, and deletes nothing', async () => {
+  const { handlers, calls } = setup({ dictationActive: () => true });
+  const r = await handlers['privacy:delete-all']();
+  assert.equal(r.ok, false);
+  assert.match(r.error, /dictation/i);
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(calls, []);
+});
+
+test('B3: privacy:retention-drops says how many saved transcripts a retention deletes now', async () => {
+  const { handlers } = setup();
+  assert.equal(await handlers['privacy:retention-drops']({}, 'off'), 5);
+  assert.equal(await handlers['privacy:retention-drops']({}, '24h'), 2);
+  assert.equal(await handlers['privacy:retention-drops']({}, 'keep'), 0);
+  assert.equal(await handlers['privacy:retention-drops']({}, 'nonsense'), 0);
+  assert.equal(await handlers['privacy:retention-drops']({}, { not: 'a string' }), 0);
 });
 
 test('privacy:delete-all passes on what failed', async () => {
