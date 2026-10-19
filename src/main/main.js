@@ -56,6 +56,7 @@ const { shouldPreloadAtStartup, shouldOfferSmallerModel, isAllowedExternalUrl } 
 const { registerWelcomeIpc, registerBackupIpc, runningProcessNames } = require('./welcome-ipc');
 const { registerRecoveryIpc } = require('./recovery-ipc');
 const { registerDiagnosticsIpc } = require('./diagnostics-ipc');
+const { e2eEnabled, createE2E } = require('./e2e');
 const { createLanguageHints } = require('./language-hints');
 const { readChangelog } = require('./changelog');
 
@@ -63,6 +64,10 @@ const { readChangelog } = require('./changelog');
 const portable = setupPortable(app);
 // Development only: run against a scratch data folder instead of the real one.
 if (!app.isPackaged && process.env.PAULI_USER_DATA_DIR) app.setPath('userData', process.env.PAULI_USER_DATA_DIR);
+// End-to-end tests only (e2e.js): fake paster, keys, clipboard and speech engine, and a fake microphone.
+const e2e = e2eEnabled(app) ? createE2E() : null;
+if (e2e) for (const sw of ['use-fake-device-for-media-stream', 'use-fake-ui-for-media-stream']) app.commandLine.appendSwitch(sw);
+const io = e2e ? e2e.io : { pasteText, pressKey, getSelectedText, writeClipboard: (text) => clipboard.writeText(text) };
 
 const ROOT = path.join(__dirname, '..', '..');
 const RENDERER = path.join(__dirname, '..', 'renderer');
@@ -764,7 +769,7 @@ function registerIpc() {
     hasApiKey: () => { try { return !!settings.getApiKey(); } catch { return false; } },
     gpuInfo: () => app.getGPUInfo('complete'), getModelState: () => modelState, getTranslatorState: () => translatorState,
     modelsDir, modelIds: [...MODELS.map((m) => m.id), NLLB_MODEL], formatKeys: formatShortcut, hookError: () => hookError,
-    processNames: runningProcessNames, recentLog: (n) => log.recent(n), writeClipboard: (text) => clipboard.writeText(text),
+    processNames: runningProcessNames, recentLog: (n) => log.recent(n), writeClipboard: io.writeClipboard,
     openExternal: (url) => shell.openExternal(url), repo: require('../../package.json').build.publish[0], log,
   });
   recoveryIpc = registerRecoveryIpc(ipcMain, {
@@ -995,11 +1000,11 @@ function init() {
   });
   controller.on('busy', () => flash(BUSY));
   typing = createTyping({
-    settings, lastPaste, history, controller, VK, pasteText, pressKey, getSelectedText, flash, log,
-    foregroundApp: () => win32.foregroundApp(), keysDown: () => keyboard.engine.pressed.size, writeClipboard: (text) => clipboard.writeText(text),
+    settings, lastPaste, history, controller, VK, flash, log, pasteText: io.pasteText, pressKey: io.pressKey, getSelectedText: io.getSelectedText,
+    foregroundApp: () => win32.foregroundApp(), keysDown: () => keyboard.engine.pressed.size, writeClipboard: io.writeClipboard,
   });
   run = createDictationRun({
-    settings, controller, history, typing, recognise, translateText, needsNllb, engineLabel, chatComplete, sendOverlayState, flash, log,
+    settings, controller, history, typing, recognise: e2e ? e2e.io.recognise : recognise, translateText, needsNllb, engineLabel, chatComplete, sendOverlayState, flash, log,
     sessionApp: () => sessionApp, saveRecording: (id, audio) => privacy.saveRecording(id, audio), onRecorded: () => flow.noteRecorded(),
     feedLanguage: (hint) => languageHints.feed(hint),
   });
@@ -1024,6 +1029,7 @@ function init() {
   keyboard.on('chord', () => controller.otherChord());
   keyboard.on('recording', onRecording);
   keyboard.setBindings(settings.get().bindings);
+  if (e2e) e2e.attach({ keyboard });
   recorder = new ShortcutRecorder({
     getBindings: () => settings.get().bindings,
     onUpdate: (update) => send(mainWindow, 'shortcut:recording', update),

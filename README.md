@@ -196,8 +196,11 @@ Every push and pull request runs the tests in [CI](.github/workflows/ci.yml).
 ## Tests
 
 ```bash
-npm test
+npm test            # unit tests, a few seconds
+npm run test:e2e    # the real app with fake keys, paster, speech engine and microphone
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how the code is laid out and the house rules.
 
 ## How it works
 

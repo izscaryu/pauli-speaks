@@ -1,4 +1,4 @@
-# Runs the unit tests on every push and pull request.
+# Runs the unit tests and the end-to-end tests on every push and pull request.
 name: CI
 
 on:
@@ -20,6 +20,7 @@ jobs:
     env:
       # The tests run in plain Node; the Electron binary is only needed to build.
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,3 +31,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+
+  e2e:
+    # The real app with fake keys, a fake paster, a fake speech engine and a fake microphone (src/main/e2e.js).
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1' # Playwright drives Electron; it needs no browsers of its own
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:e2e

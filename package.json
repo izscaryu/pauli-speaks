@@ -15,6 +15,7 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test \"test/*.test.js\"",
+    "test:e2e": "node --test --test-concurrency=1 \"test/e2e/*.e2e.js\"",
     "icon": "node scripts/make-icon.js",
     "dist": "electron-builder --win nsis --publish never",
     "dist:portable": "electron-builder --win portable --publish never",
@@ -28,7 +29,8 @@
   },
   "devDependencies": {
     "electron": "44.7.2",
-    "electron-builder": "26.15.3"
+    "electron-builder": "26.15.3",
+    "playwright": "1.63.0"
   },
   "build": {
     "appId": "com.pauli.speaks",
