@@ -26,20 +26,50 @@ function sourceFiles(dir) {
   return out;
 }
 
-/** @returns {{keys: Set<string>, prefixes: string[]}} */
+const KEY = /^[\w-]+(\.[\w-]+)+$/;
+
+/** The first argument of the t( call that starts at `from`: up to the first top-level comma or closing bracket. */
+function firstArgument(text, from) {
+  let depth = 0;
+  let quote = null;
+  for (let i = from; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = null;
+    } else if (ch === "'" || ch === '"' || ch === '`') quote = ch;
+    else if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      if (depth === 0) return text.slice(from, i);
+      depth--;
+    } else if (ch === ',' && depth === 0) return text.slice(from, i);
+  }
+  return text.slice(from);
+}
+
+/**
+ * keys: what t() calls and data-i18n* attributes name (every key a ternary can pick, too);
+ * prefixes: t(`prefix.${x}`); literals: every quoted dotted string, so a key kept in a lookup table counts as used.
+ * @returns {{keys: Set<string>, prefixes: string[], literals: Set<string>}}
+ */
 function usedKeys(srcDir) {
   const keys = new Set();
   const prefixes = new Set();
+  const literals = new Set();
   for (const file of sourceFiles(srcDir)) {
     const text = fs.readFileSync(file, 'utf8');
-    for (const m of text.matchAll(new RegExp(`${CALL}(['"])([\\w.-]+)\\1`, 'g'))) keys.add(m[2]);
-    for (const m of text.matchAll(new RegExp(`${CALL}\`([^\`$]*)(\\$\\{)?`, 'g'))) {
-      if (m[2]) { if (m[1]) prefixes.add(m[1]); } else keys.add(m[1]);
+    for (const m of text.matchAll(new RegExp(CALL, 'g'))) {
+      const arg = firstArgument(text, m.index + m[0].length);
+      for (const s of arg.matchAll(/(['"])([^'"\n]*)\1/g)) if (KEY.test(s[2])) keys.add(s[2]);
+      for (const s of arg.matchAll(/`([^`$]*)(\$\{)?[^`]*`/g)) {
+        if (s[2]) { if (s[1]) prefixes.add(s[1]); } else if (KEY.test(s[1])) keys.add(s[1]);
+      }
     }
-    for (const m of text.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]+)"/g)) keys.add(m[1]);
-    for (const m of text.matchAll(/'data-i18n(?:-[a-z-]+)?':\s*'([^']+)'/g)) keys.add(m[1]);
+    for (const m of text.matchAll(/data-i18n(?:-(?!slot)[a-z-]+)?="([^"]+)"/g)) keys.add(m[1]);
+    for (const m of text.matchAll(/'data-i18n(?:-(?!slot)[a-z-]+)?':\s*'([^']+)'/g)) keys.add(m[1]);
+    for (const m of text.matchAll(/(['"])([\w-]+(?:\.[\w-]+)+)\1/g)) literals.add(m[2]);
   }
-  return { keys, prefixes: [...prefixes].sort() };
+  return { keys, prefixes: [...prefixes].sort(), literals };
 }
 
 /** 'a.b.few' → 'a.b' when the last part is a plural category, else null. */
@@ -72,8 +102,10 @@ function checkLocales(used, locales) {
   };
 
   const missing = [...used.keys].filter((k) => !Object.hasOwn(en, k) && !plurals.has(k)).sort();
+  const literals = used.literals || new Set();
   const unused = enKeys.filter((k) => !ALWAYS_USED.includes(k)
     && !used.keys.has(k)
+    && !literals.has(k)
     && !(isPluralForm(k) && used.keys.has(pluralBase(k)))
     && !used.prefixes.some((p) => k.startsWith(p))).sort();
 

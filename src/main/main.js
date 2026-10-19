@@ -59,6 +59,8 @@ const { registerDiagnosticsIpc } = require('./diagnostics-ipc');
 const { e2eEnabled, createE2E } = require('./e2e');
 const { createLanguageHints } = require('./language-hints');
 const { readChangelog } = require('./changelog');
+const { registerI18nIpc } = require('./i18n-ipc');
+const { t } = require('./strings');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
 const portable = setupPortable(app);
@@ -101,6 +103,7 @@ let previewBusy = false;
 let recovery = null; // crash-recovery file of the dictation in progress
 let recoveryIpc = null; // Home's "Recover your last dictation?"
 let languageHints = null; // Home's "Sounds like <Language>. Add it to your languages?"
+let i18nIpc = null; // the UI language (strings.js) and the windows' copy of it
 let audioHistory = null; // recordings kept for 24 hours (Settings → Privacy)
 let privacy = null; // retention, hourly sweep, saved recordings
 let listening = null; // tap + crash file + live VAD of the dictation in progress
@@ -745,6 +748,7 @@ function setKeyTest(on) {
 // ---------------------------------------------------------------- IPC
 
 function registerIpc() {
+  i18nIpc = registerI18nIpc(ipcMain, { getSettings: () => settings.get(), systemLanguages: () => app.getPreferredSystemLanguages(), broadcast });
   ipcMain.handle('settings:get', () => settings.getPublic());
   ipcMain.handle('settings:update', (_e, patch) => {
     settings.update(patch);
@@ -931,6 +935,7 @@ function applySettings(data, patch) {
   if (('translation' in patch || 'engine' in patch || 'localModel' in patch) && data.translation.always && needsNllb(data)) {
     preloadTranslator();
   }
+  i18nIpc.settingsChanged(patch);
   updateTrayMenu();
   if (controller.status === 'listening') sendOverlayState(listeningState());
   else if (controller.status === 'idle' && !reading) sendOverlayState({ state: 'idle' });

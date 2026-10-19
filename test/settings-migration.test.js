@@ -120,7 +120,7 @@ const backupOf = (file, v) => path.join(path.dirname(file), `settings.v${v}.json
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 test('migrations form an unbroken chain up to the current version', () => {
-  assert.equal(SETTINGS_VERSION, 5);
+  assert.equal(SETTINGS_VERSION, 6);
   MIGRATIONS.forEach((m, i) => {
     assert.equal(m.from, i + 1);
     assert.equal(m.to, m.from + 1);
@@ -333,7 +333,7 @@ test('the v5 defaults hold for a new install', () => {
   for (const [k, v] of Object.entries(V5_DEFAULTS)) assert.deepEqual(data[k], v, k);
 });
 
-test('a v4 file is backed up as settings.v4.json and saved as v5 with the new defaults', () => {
+test('a v4 file is backed up as settings.v4.json and saved as the current version with the v5 defaults', () => {
   const v4 = { settingsVersion: 4, sounds: false, onboarded: true };
   const file = tempFile(v4);
   const s = new Settings(file, plain);
@@ -341,11 +341,55 @@ test('a v4 file is backed up as settings.v4.json and saved as v5 with the new de
   assert.equal(s.get().sounds, false);
   assert.deepEqual(readJson(backupOf(file, 4)), v4);
   const saved = readJson(file);
-  assert.equal(saved.settingsVersion, 5);
+  assert.equal(saved.settingsVersion, SETTINGS_VERSION);
   assert.equal(saved.silenceDetection, true);
 });
 
 test('languageHints merges key by key like the other object settings', () => {
   const s = new Settings(tempFile({ settingsVersion: 5, languageHints: {} }), plain);
   assert.deepEqual(s.get().languageHints, { shown: [] });
+});
+
+// --- v5 -> v6 (speaks your language) ------------------------------------------
+
+test('v5 → v6 on its own: the UI language arrives as "Same as Windows", everything else is kept', () => {
+  const v5to6 = MIGRATIONS.find((m) => m.from === 5);
+  assert.equal(v5to6.to, 6);
+  const saved = { settingsVersion: 5, sounds: false, languages: ['hr'] };
+  const out = v5to6.run(saved);
+  assert.equal(out.uiLanguage, 'system');
+  assert.equal(out.sounds, false);
+  assert.deepEqual(out.languages, ['hr']);
+  assert.equal(saved.uiLanguage, undefined, 'the input is not changed');
+});
+
+test('v5 → v6 keeps a UI language that is already there', () => {
+  assert.equal(MIGRATIONS.find((m) => m.from === 5).run({ uiLanguage: 'hr' }).uiLanguage, 'hr');
+});
+
+test('a new install follows the Windows language', () => {
+  assert.equal(new Settings(tempFile(null), plain).get().uiLanguage, 'system');
+});
+
+test('a v5 file is backed up as settings.v5.json and saved as v6 with uiLanguage', () => {
+  const v5 = { settingsVersion: 5, sounds: false, onboarded: true };
+  const file = tempFile(v5);
+  const s = new Settings(file, plain);
+  assert.equal(s.get().uiLanguage, 'system');
+  assert.deepEqual(readJson(backupOf(file, 5)), v5);
+  const saved = readJson(file);
+  assert.equal(saved.settingsVersion, 6);
+  assert.equal(saved.uiLanguage, 'system');
+});
+
+test('update() takes "system" or a language code for uiLanguage and ignores anything else', () => {
+  const s = new Settings(tempFile(null), plain);
+  s.update({ uiLanguage: 'hr' });
+  assert.equal(s.get().uiLanguage, 'hr');
+  for (const bad of [42, '', '../../etc', 'x'.repeat(40), null]) {
+    s.update({ uiLanguage: bad });
+    assert.equal(s.get().uiLanguage, 'hr', String(bad));
+  }
+  s.update({ uiLanguage: 'system' });
+  assert.equal(s.get().uiLanguage, 'system');
 });

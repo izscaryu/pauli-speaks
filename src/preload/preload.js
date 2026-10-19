@@ -10,6 +10,9 @@ const on = (channel) => (cb) => {
 };
 
 contextBridge.exposeInMainWorld('pauli', {
+  // Synchronous on purpose: i18n.js needs the strings before the page's own scripts run.
+  i18n: () => ipcRenderer.sendSync('i18n:get'),
+  onI18n: on('i18n:changed'),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   updateSettings: (patch) => ipcRenderer.invoke('settings:update', patch),
   onSettings: on('settings:changed'),

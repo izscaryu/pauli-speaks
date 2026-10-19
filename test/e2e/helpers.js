@@ -11,10 +11,10 @@ const { _electron: electron } = require('playwright');
 const ROOT = path.join(__dirname, '..', '..');
 const { version } = require(path.join(ROOT, 'package.json'));
 
-/** A set-up profile: past the welcome flow, F13 to dictate (no Win key: that would send a real masking key). */
+/** A set-up profile: past the welcome flow, F13 to dictate (no Win key: that would send a real masking key), English UI. */
 function setUpSettings(more = {}) {
   return {
-    settingsVersion: 5, onboarded: true, setupCard: false, lastSeenVersion: version,
+    settingsVersion: 6, onboarded: true, setupCard: false, lastSeenVersion: version, uiLanguage: 'en',
     engine: 'local', languages: ['en'], silenceDetection: false, sounds: false,
     bindings: [
       { id: 'dictate-1', action: 'dictate', keys: ['F13'], behaviour: 'both' },

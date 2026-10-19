@@ -72,6 +72,7 @@ const DEFAULTS = Object.freeze({
   historyRetention: 'keep', // 'keep' | '24h' | 'off'
   audioHistory: 'off', // 'off' | '24h'
   languageHints: { shown: [] },
+  uiLanguage: 'system', // 'system' (same as Windows) or a locale file's code: 'en', 'hr', ...
 });
 
 // reset() leaves these out of the change it announces: the model they name would start downloading.
@@ -146,13 +147,22 @@ function v4to5(saved) {
   return out;
 }
 
+/** Version 5 → 6 (speaks your language): the window's language, following Windows unless one was chosen. */
+function v5to6(saved) {
+  return { ...saved, uiLanguage: typeof saved.uiLanguage === 'string' ? saved.uiLanguage : 'system' };
+}
+
 /** Every change to the shape of settings.json is a step here, in order. */
 const MIGRATIONS = Object.freeze([
   { from: 1, to: 2, run: v1to2 },
   { from: 2, to: 3, run: v2to3 },
   { from: 3, to: 4, run: v3to4 },
   { from: 4, to: 5, run: v4to5 },
+  { from: 5, to: 6, run: v5to6 },
 ]);
+
+/** 'system' or something shaped like a locale code; strings.js falls back to English for a code without a file. */
+const isUiLanguage = (v) => typeof v === 'string' && (v === 'system' || /^[a-z]{2,3}(-[a-z0-9]{2,8})?$/i.test(v));
 const SETTINGS_VERSION = MIGRATIONS.at(-1).to;
 
 /** Files written before settings were numbered are version 1. */
@@ -252,6 +262,8 @@ class Settings extends EventEmitter {
         next.bindings = normalizeBindings(v);
       } else if (k === 'voiceCommands') {
         next.voiceCommands = normalizeVoiceCommands(v);
+      } else if (k === 'uiLanguage') {
+        if (isUiLanguage(v)) next.uiLanguage = v;
       } else if (NESTED.includes(k)) {
         next[k] = { ...next[k], ...v };
       } else {

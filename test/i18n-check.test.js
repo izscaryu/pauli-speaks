@@ -42,6 +42,25 @@ const EN = {
   'old.unused': 'Nobody uses me',
 };
 
+test('usedKeys() sees every key a ternary can pick, and skips slot names', (t) => {
+  const dir = tree({
+    'src/c.js': "t(on ? 'toggle.on' : 'toggle.off', { code: code(x) }); t(n < 5 ? 'n.few' : n < 9 ? 'n.some' : 'n.many');",
+    'src/d.html': '<p data-i18n="p.text">Hold <span data-i18n-slot="keys"></span></p>',
+  });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  assert.deepEqual([...usedKeys(path.join(dir, 'src')).keys].sort(), ['n.few', 'n.many', 'n.some', 'p.text', 'toggle.off', 'toggle.on']);
+});
+
+test('usedKeys() lists every quoted dotted string, so a key kept in a lookup table counts as used', (t) => {
+  const dir = tree({ 'src/e.js': "const key = { idle: 'update.status.idle', 'up-to-date': 'update.status.upToDate' }[s]; t(key);" });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const used = usedKeys(path.join(dir, 'src'));
+  assert.ok(used.literals.has('update.status.idle'));
+  const r = checkLocales(used, { en: { 'language.name': 'English', 'update.status.idle': 'Idle', 'update.status.upToDate': 'Up to date', 'never.used': 'x' } });
+  assert.deepEqual(r.unused, ['never.used']);
+  assert.deepEqual(r.missing, []);
+});
+
 test('checkLocales(): keys the code uses that en.json lacks, and en.json keys nobody uses', () => {
   const used = { keys: new Set(['home.ready', 'home.hello', 'home.words', 'html.text', 'html.placeholder', 'js.attr', 'brand.new']), prefixes: ['action.'] };
   const r = checkLocales(used, { en: EN });
