@@ -49,11 +49,11 @@ class History extends EventEmitter {
 
   /**
    * A dictation that couldn't be transcribed; its audio is kept elsewhere under `audioId`.
-   * @param {{audioId: string, durationMs: number, engine: string, error: string}} failed
+   * @param {{audioId: string, durationMs: number, engine: string, error: string, translate?: boolean}} failed  translate: a retry translates again
    * @param {{persist?: boolean}} [opts]  false: this session only (transcript history off)
    */
-  addFailed({ audioId, durationMs, engine, error }, { persist = true } = {}) {
-    const item = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), status: 'failed', audioId, durationMs, words: 0, engine, error };
+  addFailed({ audioId, durationMs, engine, error, translate = false }, { persist = true } = {}) {
+    const item = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), status: 'failed', audioId, durationMs, words: 0, engine, error, translate: !!translate };
     if (!persist) this.sessionOnly.add(item.id);
     return this.add(item);
   }

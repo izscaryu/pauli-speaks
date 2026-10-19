@@ -82,7 +82,7 @@ test('too short or nothing heard: a message, nothing kept', async () => {
 test('a dead microphone says so', async () => {
   const { flow, calls } = rig({ gate: async () => ({ skip: 'no-sound' }) });
   await flow.processDictation(audio(1), 0);
-  assert.equal(calls.flashed[0][0], 'No sound. Is your mic muted?');
+  assert.deepEqual(calls.flashed[0], ['No sound. Is your mic muted?', 'warn'], 'amber, like the live warning (C1)');
 });
 
 test('a failed transcription keeps the audio: failed History entry and Retry on the pill', async () => {

@@ -108,7 +108,7 @@ function createRetryOffers({ pending, history, onFailed = () => {}, undoMs = UND
      */
     failed(audio, meta, error) {
       const audioId = pending.put(audio, meta);
-      onFailed(history.addFailed({ audioId, durationMs: meta.durationMs, engine: meta.engine, error }), audio);
+      onFailed(history.addFailed({ audioId, durationMs: meta.durationMs, engine: meta.engine, error, translate: !!meta.translate }), audio);
       return show('retry', audioId);
     },
 

@@ -333,6 +333,14 @@ test('retryInHistory: a failed entry whose memory copy is gone is retried from t
   assert.equal(history.list()[0].status, undefined);
 });
 
+test('C6: a failed entry remembers whether it was a translation', () => {
+  const { history, offers } = setup();
+  offers.failed(audio(), { ...meta, translate: true }, 'boom');
+  assert.equal(history.list()[0].translate, true);
+  offers.failed(audio(), meta, 'boom');
+  assert.equal(history.list()[0].translate, false);
+});
+
 test('failed: onFailed gets the History entry and the audio (so a recording can be saved)', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pauli-retry-'));
   test.after(() => fs.rmSync(dir, { recursive: true, force: true }));

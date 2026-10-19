@@ -60,7 +60,7 @@ function createDictationFlow(d) {
     const gate = await d.speechGate(audio);
     if (gate.skip) {
       log.info(`Speech gate: ${gate.skip}`);
-      if (gate.skip === 'no-sound') return nothingSaid('No sound. Is your mic muted?', 'error', job);
+      if (gate.skip === 'no-sound') return nothingSaid('No sound. Is your mic muted?', 'warn', job); // amber, like the live warning
       return nothingSaid('No speech detected', null, job);
     }
     if (gate.trimmed) log.info(`Speech gate: ${seconds.toFixed(1)}s -> ${(gate.audio.length / SAMPLE_RATE).toFixed(1)}s of speech`);

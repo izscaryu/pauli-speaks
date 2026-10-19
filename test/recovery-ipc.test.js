@@ -57,6 +57,12 @@ test('no file means no banner', () => {
   assert.equal(handlers['recovery:state'](), null);
 });
 
+test('C8: nothing readable (a stray current.json without its audio) is cleaned up at start', () => {
+  const { ipc, calls } = setup({ file: null });
+  ipc.check();
+  assert.equal(calls.finish, 1);
+});
+
 test('with crash recovery off any leftover file is deleted and nothing is offered', () => {
   const { handlers, ipc, calls } = setup({ crashRecoveryOn: () => false });
   ipc.check();

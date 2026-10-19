@@ -36,7 +36,7 @@ function registerRecoveryIpc(ipcMain, deps) {
     try {
       if (!deps.crashRecoveryOn()) return recovery.finish(); // off: nothing is written, a leftover goes
       const read = recovery.read();
-      if (!read) return;
+      if (!read) return recovery.finish(); // nothing readable: a stray current.json without its audio goes too
       if (read.audio.length / SAMPLE_RATE < MIN_RECOVER_SECONDS) return recovery.finish();
       found = read;
     } catch (err) {

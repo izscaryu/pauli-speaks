@@ -405,3 +405,16 @@ test('savedRecording turns a saved WAV back into audio plus the way it was recor
   const noAudio = history.add(entry('no recording'));
   assert.equal(privacy.savedRecording(noAudio.id), null);
 });
+
+test('C6: savedRecording runs a translated entry, or a failed translation, in translate mode again', () => {
+  const { createAudioHistory } = require('../src/main/audio-history');
+  const dir = scratch();
+  const history = new History(path.join(dir, 'history.json'));
+  const audioHistory = createAudioHistory(path.join(dir, 'audio'));
+  const privacy = createPrivacy({ history, audioHistory, getSettings: () => ({ audioHistory: '24h' }) });
+  const translated = history.add({ ...entry('hello'), translatedTo: 'de' });
+  const failed = history.addFailed({ audioId: 'a1', durationMs: 1000, engine: 'x', error: 'boom', translate: true });
+  for (const item of [translated, failed]) privacy.saveRecording(item.id, new Float32Array(1600));
+  assert.equal(privacy.savedRecording(translated.id).meta.translate, true);
+  assert.equal(privacy.savedRecording(failed.id).meta.translate, true);
+});

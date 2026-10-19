@@ -72,10 +72,10 @@ function render(state) {
   previewEl.textContent = preview.length > 160 ? `…${preview.slice(-160)}` : preview;
 }
 
-/** Amber warning in the pill while listening to a dead microphone; the dictation itself carries on. */
+/** Amber warning in the pill while listening to a dead microphone (the dictation carries on), and for a 'warn' message. */
 function showNoSound() {
   const on = noSound && ui.state === 'listening';
-  pill.classList.toggle('warn', on);
+  pill.classList.toggle('warn', on || (ui.state === 'message' && ui.kind === 'warn'));
   if (on) label.textContent = 'No sound. Is your mic muted?';
 }
 

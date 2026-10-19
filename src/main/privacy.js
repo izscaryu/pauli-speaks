@@ -193,7 +193,8 @@ function createPrivacy({ history, audioHistory, getSettings, timers = { setInter
       if (!wav) return null;
       return guard('reading the recording', () => ({
         audio: decodeWav(wav).samples,
-        meta: { durationMs: item.durationMs, engine: item.engine, command: false, translate: false, app: item.app ? { exe: item.app } : null },
+        // translated: a done entry says so with translatedTo, a failed one with its own translate flag
+        meta: { durationMs: item.durationMs, engine: item.engine, command: false, translate: !!item.translatedTo || item.translate === true, app: item.app ? { exe: item.app } : null },
       })) || null;
     },
   };
