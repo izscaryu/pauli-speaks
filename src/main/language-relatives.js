@@ -1,7 +1,7 @@
 'use strict';
 // Languages so close that Whisper often reports one when the speaker used the other. Used by the cloud
-// engine's second request (transcribe again in the chosen language close to the one it heard) and by the
-// "Sounds like <Language>" hint (a close relative of a chosen language is not a new language).
+// engine when the provider reports no confidence (keep the chosen language close to the one it heard) and
+// by the "Sounds like <Language>" hint (a close relative of a chosen language is not a new language).
 // Kept short on purpose: only pairs that are well-known Whisper confusions belong here.
 
 const RELATIVES = [

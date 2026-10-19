@@ -65,7 +65,7 @@ the app says so next to that option.
 | **Cloud API** speech recognition (Settings → Speech recognition) | The audio of each dictation, and of files you transcribe, plus your dictionary words as a hint for the recognition (while *Use dictionary words as hints* is on) | The provider you set up (Groq by default: `api.groq.com`) |
 | **Command mode** (select text, hold the command shortcut, speak) | The selected text and your spoken instruction (as text) | The same provider |
 
-With Cloud API recognition and several languages chosen, a dictation that comes back in a close relative of one of your languages (for example Bosnian when you chose Croatian) is sent once more to the same provider, with that language of yours as the language to use. A result in an unrelated language is not sent again. Files you transcribe are not sent twice.
+With Cloud API recognition and several languages chosen, a dictation that comes back in a language that isn't one of yours (for example Polish or Bosnian when you chose Croatian and English) is sent again to the same provider, once for each of your languages, and the result the speech model is surest of is kept. Files you transcribe are not sent more than once.
 
 These options need an API key that you get from the provider yourself. The key is encrypted
 with Windows (DPAPI) and stored in your settings file. On a PC where Windows encryption isn't
