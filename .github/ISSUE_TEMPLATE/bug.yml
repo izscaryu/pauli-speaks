@@ -1,0 +1,42 @@
+name: Something doesn't work
+description: Pauli Speaks typed the wrong thing, nothing, crashed, or a setting misbehaves.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. In Pauli Speaks, **About → Report a problem** copies diagnostic info
+        and opens this form. Paste it below. It never contains what you dictated or your API key.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: I held Ctrl + Win, said a sentence in Croatian, and it typed Polish words.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we see it too?
+      description: The steps, if you know them. "It happens every time" or "only once" helps as well.
+      placeholder: |
+        1. Settings → Speech recognition → Cloud
+        2. Choose Croatian and English
+        3. Dictate a short sentence
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostic info
+      description: About → Copy diagnostic info, then paste here (Ctrl + V).
+      placeholder: "### Pauli Speaks diagnostics ..."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown on the About page.
+      placeholder: 1.3.0
+    validations:
+      required: true

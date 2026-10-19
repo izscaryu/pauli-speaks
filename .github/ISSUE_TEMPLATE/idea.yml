@@ -1,0 +1,23 @@
+name: Idea
+description: Something Pauli Speaks could do, or do better.
+labels: [idea]
+body:
+  - type: textarea
+    id: moment
+    attributes:
+      label: When would you use it?
+      description: Tell us about the moment you wished it existed. What were you doing?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What would you like Pauli Speaks to do? Rough is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: elsewhere
+    attributes:
+      label: Seen it elsewhere?
+      description: Another app that does this well (or badly), if any.
