@@ -68,6 +68,12 @@ test('languageName() names a language in the UI language, capitalised for lists'
   assert.equal(createI18n({ lang: 'en', strings: en, fallback: en }).languageName('de'), 'German');
 });
 
+test('list() joins names the way the language does', () => {
+  assert.equal(createI18n({ lang: 'en', strings: en, fallback: en }).list(['Discord', 'Zoom', 'Teams']), 'Discord, Zoom, and Teams');
+  assert.equal(createI18n({ lang: 'hr', strings: hr, fallback: en }).list(['Discord', 'Zoom']), 'Discord i Zoom');
+  assert.equal(createI18n({ lang: 'hr', strings: hr, fallback: en }).list(['Discord']), 'Discord');
+});
+
 test('an unknown language code still works (English formatting)', () => {
   const { t, num } = createI18n({ lang: 'not a locale', strings: {}, fallback: en });
   assert.equal(t('home.ready'), 'Ready');

@@ -9,10 +9,11 @@
 // Everything Electron- or engine-specific comes in through `deps`, so it is unit tested with fakes.
 
 const { UNDO_MS } = require('./retry-offers');
+const { t } = require('./strings');
 
 const SAMPLE_RATE = 16000;
 const MIN_AUDIO_SECONDS = 0.3;
-const BUSY = 'Still working on the last dictation…';
+const BUSY = 'Still working on the last dictation…'; // flash.busy in English, for the tests
 
 /**
  * @param {object} d
@@ -74,9 +75,9 @@ function createDictationFlow(d) {
       log.error('Dictation failed', err);
       if (controller.cancelled) return; // the user cancelled it: nothing to retry, nothing to report
       d.showError(err.message);
-      if (recorded) d.flash(err.message.length > 80 ? 'Something went wrong - see Pauli Speaks for details' : err.message, 'error', 4500);
+      if (recorded) d.flash(err.message.length > 80 ? t('flash.wentWrong') : err.message, 'error', 4500);
       // the audio is safe in memory for this session, so the crash file can go as usual
-      else d.flash("Couldn't transcribe.", 'error', 6000, job?.kind === 'retry' ? retry.failedAgain(job.audioId) : retry.failed(audio, d.keptMeta(seconds), err.message));
+      else d.flash(t('flash.couldNotTranscribe'), 'error', 6000, job?.kind === 'retry' ? retry.failedAgain(job.audioId) : retry.failed(audio, d.keptMeta(seconds), err.message));
     } finally {
       d.afterRun?.();
     }
@@ -88,12 +89,12 @@ function createDictationFlow(d) {
     const meta = d.keptMeta(0);
     const hold = retry.holdForUndo(() => session?.end());
     try {
-      d.flash('Cancelled.'); // at once; the Undo button follows with the audio
+      d.flash(t('flash.cancelled')); // at once; the Undo button follows with the audio
       const audio = await d.stopForUndo(session);
       const seconds = audio.length / SAMPLE_RATE;
       if (seconds < MIN_AUDIO_SECONDS) return hold.cancel();
       const action = hold.offer(audio, { ...meta, durationMs: Math.round(seconds * 1000) });
-      if (action) d.flash('Cancelled.', 'info', UNDO_MS, action);
+      if (action) d.flash(t('flash.cancelled'), 'info', UNDO_MS, action);
     } catch (err) {
       log.warn(`Undo: ${err.message}`);
       hold.cancel(); // nothing to undo after all: the crash file goes
@@ -103,9 +104,9 @@ function createDictationFlow(d) {
   /** The pill's Retry / Undo: pasted into the app in front now (the pill never takes the focus). */
   async function runPillAction(actionId) {
     // Busy: nothing is taken, so a held Undo keeps its audio and its crash file until it expires.
-    if (controller.status !== 'idle') return d.flash(BUSY);
+    if (controller.status !== 'idle') return d.flash(t('flash.busy'));
     const job = retry.take(actionId);
-    if (!job) return d.flash('That recording is no longer available');
+    if (!job) return d.flash(t('errors.recordingGone'));
     try {
       await controller.process(async () => {
         d.beginRun();

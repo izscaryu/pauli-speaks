@@ -5,23 +5,28 @@
 
 const Privacy = (() => {
   const RETENTION_DESC = {
-    keep: 'Your last 500 dictations stay in History until you delete them.',
-    '24h': 'Dictations older than 24 hours are deleted, checked every hour.',
-    off: "Transcripts aren't saved to disk. Dictations stay in History until you close Pauli Speaks, so Paste last and Undo still work.",
+    keep: 'privacy.retention.keep',
+    '24h': 'privacy.retention.24h',
+    off: 'privacy.retention.off',
   };
-  const RECORDINGS_STILL_KEPT = ' Their recordings are still kept for 24 hours while "Keep recordings for 24 hours" is on.';
+
+  /** Whisper models keep their name; the translator's is said in the UI language. */
+  const modelName = (m) => (m.kind === 'translator' ? t('translation.model.title') : m.label);
 
   let crashRecovery = null;
   let models = { models: [], bytes: 0 };
 
-  const size = (bytes) => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(bytes / 1e6))} MB`);
+  const size = (bytes) => (bytes >= 1e9
+    ? `${I18n.num(bytes / 1e9, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} GB`
+    : `${I18n.num(Math.max(1, Math.round(bytes / 1e6)))} MB`);
 
   // ---------------------------------------------------------------- the settings
 
   function render() {
     $('#history-retention').value = settings.historyRetention;
-    $('#retention-desc').textContent = (RETENTION_DESC[settings.historyRetention] || '')
-      + (settings.historyRetention === 'off' && settings.audioHistory === '24h' ? RECORDINGS_STILL_KEPT : '');
+    const desc = Object.hasOwn(RETENTION_DESC, settings.historyRetention) ? t(RETENTION_DESC[settings.historyRetention]) : '';
+    $('#retention-desc').textContent = settings.historyRetention === 'off' && settings.audioHistory === '24h'
+      ? `${desc} ${t('privacy.retention.recordingsKept')}` : desc;
     $('#audio-history').checked = settings.audioHistory === '24h';
   }
 
@@ -37,12 +42,10 @@ const Privacy = (() => {
     }
     if (drops === 0) return save({ historyRetention: next });
     confirmBox({
-      title: next === 'off' ? 'Stop keeping transcripts?' : 'Delete transcripts older than 24 hours?',
-      items: [drops ? `Deletes ${drops} saved transcript${drops === 1 ? '' : 's'} now` : 'Deletes saved transcripts now'],
-      note: next === 'off'
-        ? "This can't be undone. From now on dictations stay in History only until you close Pauli Speaks."
-        : "This can't be undone. From now on transcripts older than 24 hours are deleted every hour.",
-      label: 'Delete and switch',
+      title: t(next === 'off' ? 'privacy.confirm.offTitle' : 'privacy.confirm.24hTitle'),
+      items: [drops ? t('privacy.confirm.deletes', { count: drops }) : t('privacy.confirm.deletesAll')],
+      note: t(next === 'off' ? 'privacy.confirm.offNote' : 'privacy.confirm.24hNote'),
+      label: t('privacy.confirm.switch'),
       run: () => save({ historyRetention: next }),
       onCancel: () => { select.value = settings.historyRetention; },
     });
@@ -60,10 +63,10 @@ const Privacy = (() => {
     }
     const button = $('#delete-models');
     button.disabled = !models.models.length;
-    button.textContent = models.models.length ? `Delete downloaded models (${size(models.bytes)})` : 'No models downloaded';
+    button.textContent = models.models.length ? t('privacy.models.deleteSize', { size: size(models.bytes) }) : t('privacy.models.none');
     $('#models-desc').textContent = models.models.length
-      ? `${models.models.map((m) => m.label).join(', ')}. They are downloaded again when you need them.`
-      : 'Speech and translation models you download are listed here.';
+      ? t('privacy.models.list', { names: I18n.list(models.models.map(modelName)) })
+      : t('privacy.models.empty');
   }
 
   // ---------------------------------------------------------------- the confirmation
@@ -84,18 +87,18 @@ const Privacy = (() => {
   function confirmBox({ title, items, note, label, run, onCancel = null }) {
     if (onCancelOpen) cancelOpen();
     onCancelOpen = onCancel;
-    const cancel = el('button', { class: 'btn', onclick: cancelOpen }, 'Cancel');
+    const cancel = el('button', { class: 'btn', onclick: cancelOpen }, t('common.cancel'));
     const go = el('button', { class: 'btn danger primary' }, label);
     go.addEventListener('click', async () => {
       onCancelOpen = null;
       go.disabled = true;
       cancel.disabled = true;
-      go.textContent = 'Deleting…';
+      go.textContent = t('privacy.deleting');
       try {
         await run();
       } catch (err) {
         console.error('deleting failed', err);
-        toast("Couldn't delete everything. Try again.");
+        toast(t('privacy.deleteFailed'));
       } finally {
         close();
       }
@@ -106,7 +109,7 @@ const Privacy = (() => {
     panel.onkeydown = (e) => { if (e.key === 'Escape' && !cancel.disabled) { e.stopPropagation(); cancelOpen(); } };
     panel.replaceChildren(
       el('h3', {}, title),
-      el('ul', {}, ...items.map((t) => el('li', {}, t))),
+      el('ul', {}, ...items.map((item) => el('li', {}, item))),
       el('p', { class: 'desc' }, note),
       el('div', { class: 'buttons' }, cancel, go));
     panel.hidden = false;
@@ -116,19 +119,14 @@ const Privacy = (() => {
 
   function askDeleteAll() {
     confirmBox({
-      title: 'Delete all my data?',
-      items: [
-        'Your transcript history',
-        'Saved recordings (the audio kept for 24 hours)',
-        'Your dictionary and snippets',
-        'Your settings, shortcuts and API key',
-      ],
-      note: "Downloaded models are kept (delete them separately). This can't be undone. Pauli Speaks starts over with its welcome setup the next time you open it.",
-      label: 'Delete all my data',
+      title: t('privacy.all.confirmTitle'),
+      items: ['privacy.all.history', 'privacy.all.recordings', 'privacy.all.dictionary', 'privacy.all.settings'].map((key) => t(key)),
+      note: t('privacy.all.note'),
+      label: t('privacy.all.title'),
       run: async () => {
         const r = await api.deleteAllData();
         HomeNotices.refreshRecovery(); // a leftover recording is gone too
-        toast(r.ok ? 'All your data was deleted.' : r.error || "Some data couldn't be deleted. Try again.");
+        toast(r.ok ? t('privacy.all.done') : r.error || t('privacy.all.partly'));
       },
     });
   }
@@ -137,13 +135,13 @@ const Privacy = (() => {
     await refreshModels();
     if (!models.models.length) return;
     confirmBox({
-      title: 'Delete downloaded models?',
-      items: models.models.map((m) => `${m.label} (${size(m.bytes)})`),
-      note: 'Only these model files are deleted. Speech recognition downloads a model again the next time you use it.',
-      label: `Delete models (${size(models.bytes)})`,
+      title: t('privacy.models.confirmTitle'),
+      items: models.models.map((m) => `${modelName(m)} (${size(m.bytes)})`),
+      note: t('privacy.models.note'),
+      label: t('privacy.models.confirm', { size: size(models.bytes) }),
       run: async () => {
         const r = await api.deleteModels();
-        toast(r.ok ? 'Models deleted.' : r.error || "Couldn't delete the models.");
+        toast(r.ok ? t('privacy.models.done') : r.error || t('privacy.models.failed'));
         await refreshModels();
       },
     });

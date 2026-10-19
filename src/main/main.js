@@ -39,7 +39,7 @@ const { createRecoveryFile } = require('./recovery-file');
 const { createListeningSession } = require('./listening-session');
 const { createPendingAudio } = require('./pending-audio');
 const { createRetryOffers } = require('./retry-offers');
-const { createDictationFlow, BUSY } = require('./dictation-flow');
+const { createDictationFlow } = require('./dictation-flow');
 const { createDictationRun } = require('./dictation-run');
 const { createTyping } = require('./typing');
 const { pasteText, pressKey, getSelectedText, writeExcluded } = require('./paster');
@@ -60,6 +60,7 @@ const { e2eEnabled, createE2E } = require('./e2e');
 const { createLanguageHints } = require('./language-hints');
 const { readChangelog } = require('./changelog');
 const { registerI18nIpc } = require('./i18n-ipc');
+const { trayTemplate, trayHints } = require('./tray-menu');
 const { t } = require('./strings');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
@@ -196,13 +197,8 @@ function bindingKeys(action, test = () => true) {
 
 const holdKeys = () => bindingKeys('dictate', (b) => b.behaviour !== 'toggle');
 
-/** "hold Ctrl + Win to dictate", or whatever the first dictation shortcut is. */
-function talkHint() {
-  const hold = holdKeys();
-  if (hold.length) return `hold ${formatShortcut(hold)} to dictate`;
-  const any = bindingKeys('dictate');
-  return any.length ? `press ${formatShortcut(any)} to dictate` : 'click the bar to dictate';
-}
+/** The tray's tooltip and balloon: "hold Ctrl + Win to dictate", or whatever the first dictation shortcut is. */
+const hints = () => trayHints({ hold: formatShortcut(holdKeys()), any: formatShortcut(bindingKeys('dictate')) });
 
 function sendOverlayState(state) {
   send(overlay, 'overlay:state', {
@@ -260,8 +256,8 @@ function createMainWindow(page) {
     if (!trayHintShown && tray) {
       trayHintShown = true;
       tray.displayBalloon({
-        title: 'Pauli Speaks is still running',
-        content: `${talkHint().replace(/^./, (c) => c.toUpperCase())} anywhere. Change the shortcut on the Shortcuts page. Right-click the tray icon to quit.`,
+        title: t('tray.balloon.title'),
+        content: hints().balloon,
         iconType: 'info',
       });
     }
@@ -292,25 +288,20 @@ function createTray() {
 
 function updateTrayMenu() {
   if (!tray) return;
-  tray.setToolTip(`Pauli Speaks - ${talkHint()}`);
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: 'Open Pauli Speaks', click: () => createMainWindow() },
-      { label: 'Transcribe a file…', click: () => createMainWindow('files') },
-      { type: 'separator' },
-      {
-        label: controller && controller.status !== 'idle' ? 'Stop dictation' : 'Start hands-free dictation',
-        click: () => controller.toggle(),
-      },
-      { label: 'Paste last transcript', click: () => typing.pasteLast(), enabled: !!history.last() },
-      { label: 'Copy last transcript', click: () => typing.copyLast(), enabled: !!history.last() },
-      { type: 'separator' },
-      ...(updater && updater.state.status === 'ready'
-        ? [{ label: `Restart to update to ${updater.state.version}`, click: () => updater.install() }]
-        : []),
-      { label: 'Quit Pauli Speaks', click: () => app.quit() },
-    ]),
-  );
+  tray.setToolTip(hints().tooltip);
+  tray.setContextMenu(Menu.buildFromTemplate(trayTemplate({
+    busy: !!controller && controller.status !== 'idle',
+    hasLast: !!history.last(),
+    updateVersion: updater && updater.state.status === 'ready' ? updater.state.version : null,
+  }, {
+    open: () => createMainWindow(),
+    files: () => createMainWindow('files'),
+    toggle: () => controller.toggle(),
+    pasteLast: () => typing.pasteLast(),
+    copyLast: () => typing.copyLast(),
+    install: () => updater.install(),
+    quit: () => app.quit(),
+  })));
 }
 
 // ---------------------------------------------------------------- dictation session
@@ -532,19 +523,19 @@ async function recognise(audio, task, extra = {}) {
     return task === 'translate' ? translateCloud(audio, cloudOpts()) : transcribeCloud(audio, cloudOpts());
   }
   if (modelState.status !== 'ready') {
-    sendOverlayState({ state: 'processing', text: modelState.status === 'downloading' ? 'Downloading speech model…' : 'Loading speech model…' });
+    sendOverlayState({ state: 'processing', text: t(modelState.status === 'downloading' ? 'overlay.downloadingModel' : 'overlay.loadingModel') });
   }
   await preloadModel();
-  if (modelState.status === 'error') throw new Error(`Speech model failed to load: ${modelState.error}`);
+  if (modelState.status === 'error') throw new Error(t('errors.modelFailed', { error: modelState.error }));
   return asr.transcribe(audio, { ...localOpts(), task, ...extra });
 }
 
 async function translateText(text, source, target) {
   if (translatorState.status !== 'ready') {
-    sendOverlayState({ state: 'processing', text: isModelDownloaded(modelsDir(), NLLB_MODEL) ? 'Loading translator…' : 'Downloading translator…' });
+    sendOverlayState({ state: 'processing', text: t(isModelDownloaded(modelsDir(), NLLB_MODEL) ? 'overlay.loadingTranslator' : 'overlay.downloadingTranslator') });
   }
   await preloadTranslator();
-  if (translatorState.status === 'error') throw new Error(`Translator failed to load: ${translatorState.error}`);
+  if (translatorState.status === 'error') throw new Error(t('errors.translatorFailed', { error: translatorState.error }));
   return asr.translate(text, source, target);
 }
 
@@ -582,7 +573,7 @@ async function readAloud() {
   if (reading) return stopReading();
   if (controller.isListening && !controller.locked) controller.dismiss('other-shortcut');
   const text = (await typing.selectedText()).trim();
-  if (!text) return flash('Select some text, then press the read-aloud shortcut');
+  if (!text) return flash(t('flash.readAloudSelect'));
   const s = settings.get();
   reading = true;
   showOverlay();
@@ -605,8 +596,8 @@ function stopReading() {
  * @returns {Promise<{text: string, segments: {start,end,text}[], language: string|null, translatedTo: string|null}>}
  */
 async function transcribeFile(audio, { translate = false } = {}) {
-  if (fileBusy) throw new Error('Another file is already being transcribed');
-  if (controller.status !== 'idle') throw new Error('Finish the current dictation first');
+  if (fileBusy) throw new Error(t('errors.fileBusy'));
+  if (controller.status !== 'idle') throw new Error(t('errors.finishCurrent'));
   fileBusy = true;
   try {
     const s = settings.get();
@@ -624,7 +615,7 @@ async function transcribeFile(audio, { translate = false } = {}) {
         r = fast ? await translateCloud(samples, cloudOpts()) : await transcribeCloud(samples, { ...cloudOpts(), prompt: '', retryOutsideList: false });
       } else {
         await preloadModel();
-        if (modelState.status === 'error') throw new Error(`Speech model failed to load: ${modelState.error}`);
+        if (modelState.status === 'error') throw new Error(t('errors.modelFailed', { error: modelState.error }));
         r = await asr.transcribe(samples, { ...localOpts(), prompt: '', task: fast ? 'translate' : 'transcribe', timestamps: true });
       }
       const dur = samples.length / SAMPLE_RATE;
@@ -669,7 +660,7 @@ function runAction(action) {
   if (action === 'undoLast') return typing.undoLast();
   if (action === 'pressEnter') return typing.pressEnter();
   if (action === 'readAloud') return readAloud();
-  if (action === 'cycleMode') return flash('Switching modes comes with Modes, in a later version');
+  if (action === 'cycleMode') return flash(t('flash.modesLater'));
 }
 
 // ----- deep links and command-line flags (remote.js)
@@ -885,7 +876,7 @@ function registerIpc() {
     const base = String(name || 'transcript').replace(/\.[^.]+$/, '');
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
       defaultPath: `${base}.${format}`,
-      filters: [format === 'srt' ? { name: 'Subtitles', extensions: ['srt'] } : { name: 'Text', extensions: ['txt'] }],
+      filters: [format === 'srt' ? { name: t('files.filter.subtitles'), extensions: ['srt'] } : { name: t('files.filter.text'), extensions: ['txt'] }],
     });
     if (canceled || !filePath) return { saved: false };
     fs.writeFileSync(filePath, format === 'srt' ? toSrt(segments || []) : String(text || ''), 'utf8');
@@ -970,14 +961,14 @@ function init() {
       if (p.status !== 'downloading') return;
       translatorState = { ...translatorState, status: 'downloading', percent: p.percent };
       broadcast('model:state', publicModelState());
-      if (controller.status === 'processing') sendOverlayState({ state: 'processing', text: `Downloading translator… ${p.percent}%` });
+      if (controller.status === 'processing') sendOverlayState({ state: 'processing', text: t('overlay.downloadingTranslatorPercent', { percent: p.percent }) });
       return;
     }
     if (p.model !== modelState.model) return;
     if (p.status === 'downloading') {
       modelState = { ...modelState, status: 'downloading', percent: p.percent };
       broadcast('model:state', publicModelState());
-      if (controller.status === 'processing') sendOverlayState({ state: 'processing', text: `Downloading speech model… ${p.percent}%` });
+      if (controller.status === 'processing') sendOverlayState({ state: 'processing', text: t('overlay.downloadingModelPercent', { percent: p.percent }) });
     }
   });
 
@@ -993,7 +984,7 @@ function init() {
       stopRecording(true);
       if (reason === 'tap') {
         const keys = lastTalkBinding && lastTalkBinding.keys ? lastTalkBinding.keys : holdKeys();
-        flash(`Hold ${formatShortcut(keys)} while you speak`, 'info', 2200);
+        flash(t('flash.holdToTalk', { keys: formatShortcut(keys) }), 'info', 2200);
       }
       else sendOverlayState({ state: 'idle' });
     },
@@ -1003,7 +994,7 @@ function init() {
     broadcast('dictation:status', { status, locked, translateTo: listeningState().translateTo, mode: listeningState().mode });
     updateTrayMenu();
   });
-  controller.on('busy', () => flash(BUSY));
+  controller.on('busy', () => flash(t('flash.busy')));
   typing = createTyping({
     settings, lastPaste, history, controller, VK, flash, log, pasteText: io.pasteText, pressKey: io.pressKey, getSelectedText: io.getSelectedText,
     foregroundApp: () => win32.foregroundApp(), keysDown: () => keyboard.engine.pressed.size, writeClipboard: io.writeClipboard,
@@ -1055,8 +1046,8 @@ function init() {
     if (state.status === 'ready' && !updateNotified && tray) {
       updateNotified = true;
       tray.displayBalloon({
-        title: `Pauli Speaks ${state.version} is ready`,
-        content: 'Restart from the tray menu or the app to update. Otherwise it installs when you quit.',
+        title: t('tray.updateBalloon.title', { version: state.version }),
+        content: t('tray.updateBalloon.text'),
         iconType: 'info',
       });
     }

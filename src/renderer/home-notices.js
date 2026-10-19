@@ -19,19 +19,17 @@ const HomeNotices = (() => {
     hook.hidden = !health.hookError;
     if (health.hookError) {
       hook.replaceChildren(el('div', { class: 'grow', title: health.hookError },
-        el('strong', {}, "Pauli Speaks can't see your shortcut."),
-        el('span', { class: 'desc' }, 'Dictation by shortcut will not work until this is fixed. ',
-          el('a', { href: TROUBLESHOOTING_URL, target: '_blank' }, 'Read the troubleshooting steps'))));
+        el('strong', {}, t('notices.hook.title')),
+        el('span', { class: 'desc' }, ...I18n.nodes('notices.hook.desc', { link: el('a', { href: TROUBLESHOOTING_URL, target: '_blank' }, t('notices.hook.link')) }))));
     }
     const names = health.conflicts || [];
     const key = names.join('|');
     const box = $('#conflict-banner');
     box.hidden = !names.length || key === dismissedConflicts;
     if (!box.hidden) {
-      const verb = names.length === 1 ? 'is' : 'are';
       box.replaceChildren(
-        el('div', { class: 'grow' }, el('strong', {}, `${names.join(', ')} ${verb} running. It may use the same shortcut as Pauli Speaks.`)),
-        el('button', { class: 'btn quiet', onclick: () => { dismissedConflicts = key; drawHealth(); } }, 'Dismiss'));
+        el('div', { class: 'grow' }, el('strong', {}, t('notices.conflict', { names: I18n.list(names), count: names.length }))),
+        el('button', { class: 'btn quiet', onclick: () => { dismissedConflicts = key; drawHealth(); } }, t('common.dismiss')));
     }
   }
 
@@ -59,25 +57,25 @@ const HomeNotices = (() => {
     box.hidden = !offer;
     if (!offer) return;
     const secs = Math.max(1, Math.round(offer.seconds));
-    const when = offer.startedAt ? ` from ${new Date(offer.startedAt).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : '';
-    const recover = el('button', { class: 'btn primary' }, 'Recover');
-    const discard = el('button', { class: 'btn quiet' }, 'Discard');
+    const when = offer.startedAt ? I18n.date(offer.startedAt, { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '';
+    const recover = el('button', { class: 'btn primary' }, t('notices.recovery.recover'));
+    const discard = el('button', { class: 'btn quiet' }, t('notices.recovery.discard'));
     const busy = (on) => {
       recover.disabled = on;
       discard.disabled = on;
-      recover.textContent = on ? 'Transcribing…' : 'Recover';
+      recover.textContent = t(on ? 'common.transcribing' : 'notices.recovery.recover');
     };
     recover.addEventListener('click', async () => {
       busy(true);
       try {
         const r = await api.recoverDictation();
-        if (r.copied) toast('Copied');
-        else if (r.cancelled) toast('Cancelled. You can retry it from History.');
-        else if (r.failed) toast("Couldn't transcribe. You can retry it from History.");
+        if (r.copied) toast(t('common.copied'));
+        else if (r.cancelled) toast(t('notices.recovery.cancelled'));
+        else if (r.failed) toast(t('notices.recovery.failed'));
         else toast(r.error);
       } catch (err) {
         console.error('recovery failed', err);
-        toast("Couldn't recover the dictation. Try again.");
+        toast(t('notices.recovery.error'));
       } finally {
         busy(false);
         drawRecovery(); // gone once the file is handled; still there when the app was busy
@@ -89,15 +87,15 @@ const HomeNotices = (() => {
         await api.discardRecovery();
       } catch (err) {
         console.error('discarding the recovery failed', err);
-        toast("Couldn't discard the recording. Try again.");
+        toast(t('notices.recovery.discardFailed'));
       } finally {
         busy(false);
         drawRecovery();
       }
     });
     box.replaceChildren(
-      el('div', { class: 'grow' }, el('strong', {}, 'Recover your last dictation?'),
-        el('span', { class: 'desc' }, `A ${secs}-second recording${when} was left when Pauli Speaks closed. Recovering it copies the text to your clipboard.`)),
+      el('div', { class: 'grow' }, el('strong', {}, t('notices.recovery.title')),
+        el('span', { class: 'desc' }, t(when ? 'notices.recovery.descWhen' : 'notices.recovery.desc', { count: secs, when }))),
       recover, discard);
   }
 
@@ -118,14 +116,14 @@ const HomeNotices = (() => {
         await call(code);
       } catch (err) {
         console.error('answering the language hint failed', err);
-        toast("Couldn't save that. Try again.");
+        toast(t('notices.saveFailed'));
         refreshLanguageHint();
       }
     };
     box.replaceChildren(
-      el('div', { class: 'grow' }, el('strong', {}, `Sounds like ${LANG_NAME[code]}. Add it to your languages?`)),
-      el('button', { class: 'btn primary', onclick: done(api.addHintedLanguage) }, 'Add'),
-      el('button', { class: 'btn quiet', onclick: done(api.dismissLanguageHint) }, 'No thanks'));
+      el('div', { class: 'grow' }, el('strong', {}, t('notices.language.title', { language: LANG_NAME[code] }))),
+      el('button', { class: 'btn primary', onclick: done(api.addHintedLanguage) }, t('common.add')),
+      el('button', { class: 'btn quiet', onclick: done(api.dismissLanguageHint) }, t('notices.language.no')));
   }
 
   async function refreshLanguageHint() {
@@ -143,9 +141,9 @@ const HomeNotices = (() => {
     card.hidden = !settings.setupCard;
     if (card.hidden) return;
     card.replaceChildren(
-      el('div', { class: 'grow' }, el('strong', {}, 'New: a guided setup for languages, microphone, speech engine and shortcut.')),
-      el('button', { class: 'btn primary', onclick: runSetup }, 'Run setup'),
-      el('button', { class: 'btn quiet', onclick: () => save({ setupCard: false }, null) }, 'Dismiss'));
+      el('div', { class: 'grow' }, el('strong', {}, t('notices.setup.title'))),
+      el('button', { class: 'btn primary', onclick: runSetup }, t('notices.setup.run')),
+      el('button', { class: 'btn quiet', onclick: () => save({ setupCard: false }, null) }, t('common.dismiss')));
   }
 
   async function runSetup() {
@@ -184,8 +182,8 @@ const HomeNotices = (() => {
     if (!info) return;
     const card = $('#whatsnew-card');
     card.replaceChildren(
-      el('div', { class: 'panel-head' }, el('h2', {}, `What's new in Pauli Speaks ${info.version}`),
-        el('button', { class: 'btn quiet', onclick: () => { card.hidden = true; } }, 'Got it')),
+      el('div', { class: 'panel-head' }, el('h2', {}, t('notices.whatsNew.title', { version: info.version })),
+        el('button', { class: 'btn quiet', onclick: () => { card.hidden = true; } }, t('notices.whatsNew.ok'))),
       el('div', { class: 'whatsnew-body' }, ...whatsNewBody(info.text)));
     card.hidden = false;
     api.whatsNewSeen(); // shown once: it is not offered again on the next start
@@ -195,7 +193,7 @@ const HomeNotices = (() => {
 
   async function redownload() {
     const r = await api.redownloadModel();
-    if (!r || !r.ok) toast("Couldn't remove the model files. Close other programs using them and try again.");
+    if (!r || !r.ok) toast(t('notices.redownloadFailed'));
   }
 
   /** The speech model failed to load although its files are marked as downloaded: offer a fresh download. */

@@ -1,5 +1,5 @@
 'use strict';
-// First-run welcome flow. Loaded after app.js and uses its globals:
+// First-run welcome flow. Loaded after app.js (and i18n.js: t()) and uses its globals:
 // api, $, el, save, settings, LANGUAGES, LANG_NAME, toast, showPage.
 //
 // The shell owns the progress dots, "Skip", "Finish later" and moving between
@@ -67,8 +67,8 @@ const Welcome = (() => {
         }, name)));
         draw();
         body.append(
-          title('Which languages do you speak?'),
-          el('p', { class: 'sub' }, 'One language is fastest. With several, Pauli Speaks detects which one you used.'),
+          title(t('welcome.languages.title')),
+          el('p', { class: 'sub' }, t('welcome.languages.sub')),
           chips);
         f.actions(el('button', {
           class: 'btn primary',
@@ -82,7 +82,7 @@ const Welcome = (() => {
             f.data.languages = [...chosen];
             if (alive) f.next();
           },
-        }, 'Continue'));
+        }, t('welcome.continue')));
       },
       leave() {
         alive = false;
@@ -135,10 +135,10 @@ const Welcome = (() => {
     };
 
     const fill = (devices) => {
-      const opts = [el('option', { value: 'default' }, 'System default')];
+      const opts = [el('option', { value: 'default' }, t('common.systemDefault'))];
       for (const d of devices) {
         if (d.deviceId === 'default' || d.deviceId === 'communications' || !d.deviceId) continue;
-        opts.push(el('option', { value: d.deviceId }, d.label || 'Microphone'));
+        opts.push(el('option', { value: d.deviceId }, d.label || t('mic.unnamed')));
       }
       const keep = select.value || settings.microphoneId;
       select.replaceChildren(...opts);
@@ -151,17 +151,17 @@ const Welcome = (() => {
       const devices = await listMics();
       if (my !== gen) return;
       fill(devices);
-      if (!devices.length) return setStatus('none', 'Plug in a microphone or headset.', 'bad');
-      setStatus('opening', 'Say something');
+      if (!devices.length) return setStatus('none', t('welcome.mic.none'), 'bad');
+      setStatus('opening', t('welcome.mic.say'));
       let s;
       try {
         const id = select.value;
         s = await navigator.mediaDevices.getUserMedia({ audio: id !== 'default' ? { deviceId: { exact: id } } : true });
       } catch (err) {
         if (my !== gen) return;
-        if (err && err.name === 'NotAllowedError') return setStatus('blocked', 'Windows is blocking the microphone.', 'bad');
-        if (err && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) return setStatus('none', 'Plug in a microphone or headset.', 'bad');
-        return setStatus('error', `Couldn't open the microphone: ${(err && err.message) || err}`, 'bad');
+        if (err && err.name === 'NotAllowedError') return setStatus('blocked', t('welcome.mic.blocked'), 'bad');
+        if (err && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) return setStatus('none', t('welcome.mic.none'), 'bad');
+        return setStatus('error', t('welcome.mic.error', { error: (err && err.message) || String(err) }), 'bad');
       }
       if (my !== gen) {
         s.getTracks().forEach((t) => t.stop());
@@ -174,7 +174,7 @@ const Welcome = (() => {
       analyser.fftSize = 1024;
       ctx.createMediaStreamSource(stream).connect(analyser);
       const buf = new Float32Array(analyser.fftSize);
-      setStatus('listening', 'Say something');
+      setStatus('listening', t('welcome.mic.say'));
       fill(await listMics()); // labels are only known once the microphone is open
       if (my !== gen) return;
       let loudSince = 0;
@@ -189,11 +189,11 @@ const Welcome = (() => {
         if (level >= SILENT_BELOW) lastSound = now;
         if (level > HEARD_AT) {
           loudSince ||= now;
-          if (state !== 'heard' && now - loudSince >= HEARD_MS) setStatus('heard', 'We can hear you.', 'good');
+          if (state !== 'heard' && now - loudSince >= HEARD_MS) setStatus('heard', t('welcome.mic.heard'), 'good');
         } else loudSince = 0;
         if (state === 'listening' && now - lastSound >= MUTED_MS) {
-          setStatus('muted', 'Your mic may be muted. Check its mute switch or Windows sound settings.', 'bad');
-        } else if (state === 'muted' && level >= SILENT_BELOW) setStatus('listening', 'Say something');
+          setStatus('muted', t('welcome.mic.muted'), 'bad');
+        } else if (state === 'muted' && level >= SILENT_BELOW) setStatus('listening', t('welcome.mic.say'));
       }, TICK_MS);
     }
 
@@ -220,7 +220,7 @@ const Welcome = (() => {
       id: 'microphone',
       render(body, f) {
         select = el('select', {
-          'aria-label': 'Microphone',
+          'aria-label': t('mic.title'),
           onchange: () => {
             save({ microphoneId: select.value }, null).catch((err) => console.error('welcome: saving the microphone failed', err));
             open();
@@ -228,9 +228,9 @@ const Welcome = (() => {
         });
         meter = el('div', { class: 'meter big', role: 'presentation' }, el('i'));
         status = el('p', { class: 'wm-status', role: 'status', 'aria-live': 'polite' });
-        fix = el('button', { class: 'btn', hidden: true, onclick: () => api.openExternal(MIC_PRIVACY_URL) }, 'Open microphone settings');
-        body.append(title('Your microphone.'), select, meter, el('div', { class: 'inline' }, status, fix));
-        f.actions(el('button', { class: 'btn primary', onclick: () => f.next() }, 'Continue'));
+        fix = el('button', { class: 'btn', hidden: true, onclick: () => api.openExternal(MIC_PRIVACY_URL) }, t('welcome.mic.openSettings'));
+        body.append(title(t('welcome.mic.title')), select, meter, el('div', { class: 'inline' }, status, fix));
+        f.actions(el('button', { class: 'btn primary', onclick: () => f.next() }, t('welcome.continue')));
         navigator.mediaDevices.addEventListener('devicechange', onDeviceChange);
         window.addEventListener('focus', onFocus);
         document.addEventListener('visibilitychange', onVisibility);
@@ -249,11 +249,11 @@ const Welcome = (() => {
   // ---------------------------------------------------------------- steps 3-5: placeholders
 
   // PLACEHOLDER: Task 5 replaces 'engine' (speech engine), Task 6 'shortcut' and 'try'.
-  function placeholderStep(id, name) {
+  function placeholderStep(id) {
     return {
       id,
       render(body) {
-        body.append(title('Coming next'), el('p', { class: 'sub' }, `${name} - this step is still being built. Skip for now.`));
+        body.append(title(t('welcome.placeholder.title')), el('p', { class: 'sub' }, t('welcome.placeholder.desc')));
       },
       leave() {},
     };
@@ -262,9 +262,9 @@ const Welcome = (() => {
   const STEPS = [
     languagesStep(),
     micStep(),
-    placeholderStep('engine', 'Speech engine'),
-    placeholderStep('shortcut', 'Your shortcut'),
-    placeholderStep('try', 'Try it'),
+    placeholderStep('engine'),
+    placeholderStep('shortcut'),
+    placeholderStep('try'),
   ];
 
   // ---------------------------------------------------------------- shell
@@ -279,7 +279,7 @@ const Welcome = (() => {
   }
 
   function drawDots() {
-    $('#welcome-dots').setAttribute('aria-label', `Step ${index + 1} of ${STEPS.length}`);
+    $('#welcome-dots').setAttribute('aria-label', t('welcome.step', { n: index + 1, total: STEPS.length }));
     $('#welcome-dots').replaceChildren(...STEPS.map((s, i) => el('li', {
       class: i < index ? 'done' : i === index ? 'current' : '',
       'aria-current': i === index ? 'step' : null,
@@ -305,7 +305,7 @@ const Welcome = (() => {
       })
       .catch((err) => {
         console.error(`welcome: step ${step.id} failed`, err);
-        if (current === step) toast('Something went wrong on this step. Skip it for now.');
+        if (current === step) toast(t('welcome.stepFailed'));
       });
   }
 
@@ -316,7 +316,7 @@ const Welcome = (() => {
     text: el('span', { role: 'status', 'aria-live': 'polite' }),
     pct: el('b'),
     bar: el('i'),
-    retry: el('button', { class: 'btn', onclick: () => api.loadModel().catch((err) => console.error('welcome: retry failed', err)) }, 'Try again'),
+    retry: el('button', { class: 'btn', onclick: () => api.loadModel().catch((err) => console.error('welcome: retry failed', err)) }, t('common.tryAgain')),
   };
   prog.meter = el('div', { class: 'meter' }, prog.bar);
   $('#welcome-progress').append(el('div', { class: 'grow' }, el('div', { class: 'inline' }, prog.text, prog.pct), prog.meter), prog.retry);
@@ -330,9 +330,9 @@ const Welcome = (() => {
     box.hidden = !show;
     if (!show) return;
     const label = m.models.find((x) => x.id === m.model)?.label;
-    const name = label ? `Whisper ${label}` : 'the speech model';
-    const text = status === 'downloading' ? `Downloading ${name}`
-      : status === 'loading' ? `Loading ${name}…` : `Couldn't load ${name}: ${m.error || 'unknown error'}`;
+    const name = label ? `Whisper ${label}` : t('welcome.progress.theModel');
+    const text = status === 'downloading' ? t('banner.downloading', { name })
+      : status === 'loading' ? t('banner.loading', { name }) : t('welcome.progress.failed', { name, error: m.error || t('common.unknownError') });
     if (prog.text.textContent !== text) prog.text.textContent = text;
     prog.pct.textContent = status === 'downloading' ? `${m.percent}%` : '';
     prog.meter.hidden = status === 'error';
@@ -364,7 +364,7 @@ const Welcome = (() => {
       await api.finishWelcome();
     } catch (err) {
       console.error('welcome: finish failed', err);
-      toast("Couldn't save that setup is done. The welcome flow shows again next time.");
+      toast(t('welcome.finishFailed'));
     } finally {
       busy = false;
     }

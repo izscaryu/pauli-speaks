@@ -5,6 +5,8 @@
 // terminal job) - so only in the app it was typed into, only once, and not
 // after Enter has sent it. Pure, so it can be unit tested.
 
+const { t } = require('./strings');
+
 const MAX_UNDO_CHARS = 4000;
 
 class LastPaste {
@@ -33,11 +35,11 @@ class LastPaste {
    */
   undoPlan(currentApp) {
     const p = this.last;
-    if (!p) return { error: 'Nothing to undo' };
-    if (p.sent) return { error: 'That was already sent' };
-    if (p.app && currentApp && currentApp !== p.app) return { error: `Go back to ${p.app.replace(/\.exe$/i, '')} to undo` };
+    if (!p) return { error: t('errors.nothingToUndo') };
+    if (p.sent) return { error: t('errors.alreadySent') };
+    if (p.app && currentApp && currentApp !== p.app) return { error: t('errors.goBackToUndo', { app: p.app.replace(/\.exe$/i, '') }) };
     const backspaces = [...p.text].length;
-    if (backspaces > MAX_UNDO_CHARS) return { error: 'Too long to undo by Backspace - use Ctrl+Z' };
+    if (backspaces > MAX_UNDO_CHARS) return { error: t('errors.undoTooLong') };
     this.last = null;
     return { backspaces };
   }

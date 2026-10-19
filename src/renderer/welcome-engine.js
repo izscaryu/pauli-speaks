@@ -9,9 +9,9 @@
 (() => {
   const CLOUD = 'cloud';
   const REASONS = {
-    gpu: 'Best accuracy, and your graphics card makes it fast.',
-    english: 'Fast on any PC, and good for English.',
-    'other-languages': 'Much better than Base for languages other than English.',
+    gpu: 'welcome.engine.reason.gpu',
+    english: 'welcome.engine.reason.english',
+    'other-languages': 'welcome.engine.reason.otherLanguages',
   };
 
   const { title } = Welcome;
@@ -35,7 +35,7 @@
     if (!alive) return;
     const models = state.models;
     const recommended = (rec && models.find((m) => m.id === rec.model)) || models.find((m) => m.id === settings.localModel) || models[0];
-    const reason = rec && Object.hasOwn(REASONS, rec.reason) ? REASONS[rec.reason] : 'The default for this PC.';
+    const reason = t(rec && Object.hasOwn(REASONS, rec.reason) ? REASONS[rec.reason] : 'welcome.engine.reason.default');
 
     // "Run setup again" (or a restart after the download): keep what is set up selected, so the primary
     // button never swaps a working model with one click. The recommendation stays visible as such.
@@ -43,7 +43,7 @@
     const current = settings.engine === CLOUD
       ? (onboarded ? CLOUD : null)
       : models.find((m) => m.id === settings.localModel && (m.downloaded || onboarded))?.id ?? null;
-    const currentTag = (value) => (value === current ? 'Current' : null);
+    const currentTag = (value) => (value === current ? t('welcome.engine.current') : null);
 
     let selected = current ?? recommended.id;
     let cloudOk = current === CLOUD && !!settings.cloud?.hasApiKey; // unchanged cloud setup: no new test needed
@@ -52,9 +52,9 @@
     const go = el('button', { class: 'btn primary', onclick: () => choose() });
     const cloudBox = el('div', { class: 'we-cloud', hidden: true });
     const result = el('span', { class: 'desc', role: 'status', 'aria-live': 'polite' });
-    const testBtn = el('button', { class: 'btn', onclick: () => testKey() }, 'Test');
+    const testBtn = el('button', { class: 'btn', onclick: () => testKey() }, t('common.test'));
     const keyInput = el('input', {
-      type: 'password', autocomplete: 'off', 'aria-label': 'API key', placeholder: 'gsk_…',
+      type: 'password', autocomplete: 'off', 'aria-label': t('cloud.key'), placeholder: 'gsk_…',
       oninput: () => {
         cloudOk = false;
         result.textContent = '';
@@ -65,14 +65,14 @@
 
     function refresh() {
       cloudBox.hidden = selected !== CLOUD;
-      keyInput.placeholder = settings.cloud?.hasApiKey ? '•••••••• saved - type to replace' : 'gsk_…';
+      keyInput.placeholder = settings.cloud?.hasApiKey ? t('cloud.keySaved') : 'gsk_…';
       if (selected === CLOUD) {
-        go.textContent = 'Continue';
+        go.textContent = t('welcome.continue');
         go.disabled = busy || !cloudOk;
         return;
       }
       const m = models.find((x) => x.id === selected);
-      go.textContent = m.downloaded ? 'Continue' : `Download and continue (${m.size})`;
+      go.textContent = m.downloaded ? t('welcome.continue') : t('welcome.engine.download', { size: m.size });
       go.disabled = busy;
     }
 
@@ -85,10 +85,10 @@
     async function testKey() {
       if (busy || testBtn.disabled) return;
       const typed = keyInput.value.trim();
-      if (!typed && !settings.cloud?.hasApiKey) return setResult('Paste your API key first.', 'bad');
+      if (!typed && !settings.cloud?.hasApiKey) return setResult(t('welcome.engine.pasteKey'), 'bad');
       cloudOk = false;
       testBtn.disabled = true;
-      setResult('Testing…');
+      setResult(t('common.testing'));
       refresh();
       try {
         if (typed) {
@@ -98,10 +98,10 @@
         const r = await api.testCloud();
         if (!alive) return;
         cloudOk = !!r.ok;
-        setResult(r.ok ? 'Connected' : r.error, r.ok ? 'good' : 'bad');
+        setResult(r.ok ? t('cloud.connected') : r.error, r.ok ? 'good' : 'bad');
       } catch (err) {
         console.error('welcome: testing the cloud key failed', err);
-        if (alive) setResult("Couldn't test the key. Try again.", 'bad');
+        if (alive) setResult(t('welcome.engine.testFailed'), 'bad');
       } finally {
         testBtn.disabled = false;
         if (alive) refresh();
@@ -117,7 +117,7 @@
         await save(selected === CLOUD ? { engine: 'cloud' } : { engine: 'local', localModel: selected }, null);
       } catch (err) {
         console.error('welcome: saving the speech engine failed', err);
-        toast("Couldn't save your choice. Try again.");
+        toast(t('welcome.saveFailed'));
         busy = false;
         if (alive) refresh();
         return;
@@ -129,29 +129,29 @@
       selected = value;
       refresh();
     };
-    const sizeOrDownloaded = (m) => (m.downloaded ? 'Downloaded' : m.size);
+    const sizeOrDownloaded = (m) => (m.downloaded ? t('models.downloaded') : m.size);
     const others = models.filter((m) => m !== recommended);
     const more = el('details', { class: 'we-more', open: selected !== recommended.id || null },
-      el('summary', {}, 'Other options'),
+      el('summary', {}, t('welcome.engine.moreOptions')),
       ...others.map((m) => card({
-        value: m.id, checked: m.id === selected, title: `Whisper ${m.label}`, badges: [currentTag(m.id)], desc: m.note, state: sizeOrDownloaded(m), onpick,
+        value: m.id, checked: m.id === selected, title: `Whisper ${m.label}`, badges: [currentTag(m.id)], desc: modelNoteText(m), state: sizeOrDownloaded(m), onpick,
       })),
       card({
-        value: CLOUD, checked: selected === CLOUD, title: 'Cloud (Groq, free key)', badges: [currentTag(CLOUD)],
-        desc: 'Your audio is sent to Groq to be transcribed.', state: '', onpick,
+        value: CLOUD, checked: selected === CLOUD, title: t('welcome.engine.cloud'), badges: [currentTag(CLOUD)],
+        desc: t('welcome.engine.cloudDesc'), state: '', onpick,
       }));
 
     cloudBox.append(
-      el('div', { class: 'row' }, el('div', { class: 'title' }, 'API key'), keyInput),
+      el('div', { class: 'row' }, el('div', { class: 'title' }, t('cloud.key')), keyInput),
       el('div', { class: 'row' },
-        el('div', { class: 'desc' }, 'Free key at ', el('a', { href: 'https://console.groq.com/keys', target: '_blank', rel: 'noreferrer' }, 'console.groq.com/keys'), '.'),
+        el('div', { class: 'desc' }, ...I18n.nodes('welcome.engine.freeKey', { link: el('a', { href: 'https://console.groq.com/keys', target: '_blank', rel: 'noreferrer' }, 'console.groq.com/keys') })),
         el('div', { class: 'inline' }, result, testBtn)));
 
     body.append(
-      title('Pick your speech engine.'),
+      title(t('welcome.engine.title')),
       el('div', { class: 'we-list', role: 'radiogroup', 'aria-labelledby': 'welcome-title' },
         el('div', { class: 'we-rec' }, card({
-          value: recommended.id, checked: selected === recommended.id, title: `Whisper ${recommended.label}`, badges: ['Recommended', currentTag(recommended.id)],
+          value: recommended.id, checked: selected === recommended.id, title: `Whisper ${recommended.label}`, badges: [t('welcome.engine.recommended'), currentTag(recommended.id)],
           desc: reason, state: sizeOrDownloaded(recommended), onpick,
         })),
         more,

@@ -13,8 +13,8 @@ const HistoryAudio = (() => {
 
   function show(button, on) {
     button.innerHTML = on ? STOP : PLAY;
-    button.title = on ? 'Stop' : 'Play the recording';
-    button.setAttribute('aria-label', on ? 'Stop the recording' : 'Play the recording');
+    button.title = t(on ? 'history.audio.stop' : 'history.audio.play');
+    button.setAttribute('aria-label', t(on ? 'history.audio.stopLabel' : 'history.audio.play'));
   }
 
   function stop() {
@@ -36,12 +36,12 @@ const HistoryAudio = (() => {
     } catch (err) {
       console.error('reading the recording failed', err);
     }
-    if (!bytes) return toast('That recording is no longer available');
+    if (!bytes) return toast(t('history.audio.gone'));
     const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
     const audio = new Audio(url);
     playing = { id: entry.id, audio, url, button };
     audio.addEventListener('ended', stop);
-    audio.addEventListener('error', () => { stop(); toast("Couldn't play the recording"); });
+    audio.addEventListener('error', () => { stop(); toast(t('history.audio.playFailed')); });
     show(button, true);
     audio.play().catch(() => { if (playing && playing.audio === audio) stop(); });
   }
@@ -62,16 +62,16 @@ const HistoryAudio = (() => {
   /** Retry on a normal entry: the recording is transcribed again and replaces the text. */
   function retryButton(entry) {
     if (!entry.hasAudio) return null;
-    const button = el('button', { class: 'icon-btn', title: 'Transcribe the recording again', 'aria-label': 'Transcribe the recording again', html: REDO });
+    const button = el('button', { class: 'icon-btn', title: t('history.audio.again'), 'aria-label': t('history.audio.again'), html: REDO });
     button.addEventListener('click', async () => {
       button.disabled = true;
-      toast('Transcribing…');
+      toast(t('common.transcribing'));
       try {
         const r = await api.retryHistory(entry.id);
-        toast(r.copied ? 'Copied the new text' : r.error);
+        toast(r.copied ? t('history.audio.copiedNew') : r.error);
       } catch (err) {
         console.error('retrying failed', err);
-        toast("Couldn't transcribe. Try again.");
+        toast(t('history.audio.failed'));
       } finally {
         button.disabled = false;
       }

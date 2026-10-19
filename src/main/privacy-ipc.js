@@ -18,6 +18,7 @@
 //   }
 
 const { modelsOnDisk, deleteModels, RETENTIONS } = require('./privacy');
+const { t } = require('./strings');
 
 const message = (err) => String((err && err.message) || err);
 
@@ -30,9 +31,9 @@ function registerPrivacyIpc(ipcMain, deps) {
   });
 
   ipcMain.handle('privacy:delete-models', async () => {
-    if (deps.dictationActive()) return { ok: false, error: 'Finish your dictation first.' };
-    if (deps.fileActive?.()) return { ok: false, error: 'Wait until the file transcription has finished.' };
-    if (deps.modelsBusy?.()) return { ok: false, error: 'Wait until the model has finished downloading or loading.' };
+    if (deps.dictationActive()) return { ok: false, error: t('errors.finishDictation') };
+    if (deps.fileActive?.()) return { ok: false, error: t('errors.waitFile') };
+    if (deps.modelsBusy?.()) return { ok: false, error: t('errors.waitModel') };
     const root = deps.modelsDir();
     const found = modelsOnDisk(root, deps.catalog());
     if (!found.length) return { ok: true, removed: [], failed: [] };
@@ -40,17 +41,17 @@ function registerPrivacyIpc(ipcMain, deps) {
       await deps.unloadModels();
     } catch (err) {
       log.warn('privacy: stopping the speech engine failed:', message(err));
-      return { ok: false, error: `Couldn't stop the speech engine: ${message(err)}` };
+      return { ok: false, error: t('errors.stopEngine', { error: message(err) }) };
     }
     const { removed, failed } = deleteModels(root, found);
     for (const f of failed) log.warn(`privacy: deleting model ${f.id} failed:`, f.error);
     if (removed.length) deps.afterModelsDeleted();
-    return { ok: failed.length === 0, removed, failed, ...(failed.length ? { error: "Some model files couldn't be deleted. Close other programs using them and try again." } : {}) };
+    return { ok: failed.length === 0, removed, failed, ...(failed.length ? { error: t('errors.modelsNotDeleted') } : {}) };
   });
 
   ipcMain.handle('privacy:delete-all', () => {
     // the dictation in progress owns its crash file and its audio: deleting them under it would lose or resurrect data
-    if (deps.dictationActive()) return { ok: false, errors: [], error: 'Finish your dictation first.' };
+    if (deps.dictationActive()) return { ok: false, errors: [], error: t('errors.finishDictation') };
     const result = deps.deleteAll();
     for (const e of result.errors) log.warn(`privacy: deleting ${e.part} failed:`, e.error);
     return result;

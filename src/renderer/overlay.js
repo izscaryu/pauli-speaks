@@ -1,5 +1,6 @@
 'use strict';
-// Floating status pill + microphone recorder + read-aloud voice.
+// Floating status pill + microphone recorder + read-aloud voice. Text: t() from i18n.js, which swaps its
+// strings in place when the language changes (this window records, so it never reloads).
 // The pill window is non-focusable (it never steals focus from the app you
 // are dictating into) and click-through except while hovering the pill.
 
@@ -49,7 +50,7 @@ function render(state) {
     pill.classList.add('with-text');
     label.textContent = state.text;
   }
-  if (state.state === 'reading') label.textContent = 'Reading aloud';
+  if (state.state === 'reading') label.textContent = t('overlay.reading');
   if (state.state === 'message') {
     label.textContent = state.text;
     messageTimer = setTimeout(() => render({ ...ui, state: 'idle', kind: null, action: null }), state.ms || 2600);
@@ -58,8 +59,9 @@ function render(state) {
   const action = state.state === 'message' && state.action ? state.action : null;
   actionBtn.hidden = !action;
   if (action) {
-    actionBtn.textContent = action.label;
-    actionBtn.setAttribute('aria-label', action.label === 'Undo' ? 'Undo the cancel and transcribe' : 'Retry the transcription');
+    const undo = String(action.id).startsWith('undo-');
+    actionBtn.textContent = t(undo ? 'overlay.undo' : 'common.retry');
+    actionBtn.setAttribute('aria-label', t(undo ? 'overlay.undoLabel' : 'overlay.retryLabel'));
   }
   if (state.state !== 'idle') tip.hidden = true;
 
@@ -76,7 +78,7 @@ function render(state) {
 function showNoSound() {
   const on = noSound && ui.state === 'listening';
   pill.classList.toggle('warn', on || (ui.state === 'message' && ui.kind === 'warn'));
-  if (on) label.textContent = 'No sound. Is your mic muted?';
+  if (on) label.textContent = t('overlay.noSound');
 }
 
 function setNoSound(on) {
@@ -91,10 +93,9 @@ window.pauli.onOverlayState(render);
 pill.addEventListener('mouseenter', () => {
   window.pauli.setOverlayHover(true);
   if (ui.state === 'idle' && ui.shortcut) {
-    tip.innerHTML = '';
     const b = document.createElement('b');
     b.textContent = ui.shortcut;
-    tip.append('Click or hold ', b, ' to dictate');
+    tip.replaceChildren(...I18n.nodes('overlay.tip', { keys: b }));
     tip.hidden = false;
   }
 });
@@ -116,11 +117,11 @@ actionBtn.addEventListener('click', () => {
 
 function animate() {
   if (ui.state === 'listening') {
-    const t = performance.now() / 160;
+    const phase = performance.now() / 160;
     const l = Math.min(1, level * 9);
     for (let i = 0; i < BARS; i++) {
       const shape = Math.sin((i / (BARS - 1)) * Math.PI);
-      const jitter = 0.65 + 0.35 * Math.sin(t + i * 1.7);
+      const jitter = 0.65 + 0.35 * Math.sin(phase + i * 1.7);
       bars[i].style.height = `${4 + Math.round(18 * l * shape * jitter)}px`;
     }
     const secs = Math.floor((performance.now() - listeningSince) / 1000);
@@ -226,12 +227,12 @@ function concat(list) {
 
 function micErrorMessage(err) {
   if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
-    return 'Microphone blocked - allow mic access in Windows Settings > Privacy > Microphone';
+    return t('overlay.mic.blocked');
   }
   if (err && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) {
-    return 'Microphone not found - pick another one in Pauli Speaks settings';
+    return t('overlay.mic.notFound');
   }
-  return `Microphone error: ${err && err.message ? err.message : err}`;
+  return t('mic.error', { error: err && err.message ? err.message : String(err) });
 }
 
 /**

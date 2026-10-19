@@ -12,13 +12,11 @@
   const { title } = Welcome;
   const DICTATE_ID = 'dictate-1';
   const WAIT_MS = 10000; // no shortcut event for this long: say so
-  const FIRST_WORDS = "'Hello, this is my first dictation'";
 
   /** The binding the flow talks about: dictate-1, else the first plain dictate shortcut. */
   const talkBinding = () => (settings.bindings || []).find((b) => b.id === DICTATE_ID)
     || firstBinding('dictate', (b) => b.trigger !== 'doubleTap');
 
-  const joinNames = (names) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`);
   const logFail = (what) => (err) => console.error(`welcome: ${what} failed`, err);
 
   // ---------------------------------------------------------------- step 4: shortcut
@@ -121,7 +119,7 @@
         await save({ bindings: settings.bindings.map((x) => (x.id === b.id ? { ...x, behaviour: value } : x)) }, null);
       } catch (err) {
         console.error('welcome: saving the shortcut behaviour failed', err);
-        toast("Couldn't save your choice. Try again.");
+        toast(t('welcome.saveFailed'));
       }
       if (alive) draw();
     }
@@ -132,15 +130,15 @@
       const toggles = !!b && b.behaviour === 'toggle';
       const card = (name, hint, extra) => el('button', { class: 'we-card', disabled: !!recording || null, ...extra }, el('b', {}, name), el('small', {}, hint));
       cardsBox.replaceChildren(
-        card('Hold to talk', 'Double-tap still locks it hands-free.', {
+        card(t('welcome.shortcut.hold'), t('welcome.shortcut.holdHint'), {
           'aria-pressed': String(holds),
           onclick: () => b && b.behaviour !== 'both' && setBehaviour('both'),
         }),
-        card('Press to start, press to stop', 'Nothing to hold down.', {
+        card(t('welcome.shortcut.toggle'), t('welcome.shortcut.toggleHint'), {
           'aria-pressed': String(toggles),
           onclick: () => b && b.behaviour !== 'toggle' && setBehaviour('toggle'),
         }),
-        card('Use a mouse button', 'A side button or a pedal.', { onclick: openRecorder }));
+        card(t('welcome.shortcut.mouse'), t('welcome.shortcut.mouseHint'), { onclick: openRecorder }));
     }
 
     function drawRecorder() {
@@ -148,19 +146,19 @@
       if (!recording) return recBox.replaceChildren();
       const r = recording;
       const kids = [
-        r.keys.length ? el('span', { class: 'chips' }, keyChips(r.keys)) : el('span', { class: 'prompt' }, 'Press keys, a pedal or a mouse button…'),
+        r.keys.length ? el('span', { class: 'chips' }, keyChips(r.keys)) : el('span', { class: 'prompt' }, t('shortcuts.rec.prompt')),
         el('span', { class: 'spacer' }),
       ];
       if (r.warning) {
         kids.push(
-          el('button', { class: 'btn', onclick: () => api.retryShortcut().catch(logFail('retrying the shortcut')) }, 'Try another'),
-          el('button', { class: 'btn primary', onclick: () => api.confirmShortcut().catch(logFail('confirming the shortcut')) }, 'Use anyway'),
-          el('div', { class: 'msg warn', role: 'alert' }, r.warning));
+          el('button', { class: 'btn', onclick: () => api.retryShortcut().catch(logFail('retrying the shortcut')) }, t('shortcuts.rec.tryAnother')),
+          el('button', { class: 'btn primary', onclick: () => api.confirmShortcut().catch(logFail('confirming the shortcut')) }, t('shortcuts.rec.useAnyway')),
+          el('div', { class: 'msg warn', role: 'alert' }, shortcutMessage(r.warning)));
       } else {
         kids.push(
-          el('span', { class: 'hint' }, 'Esc cancels · Backspace clears'),
-          el('button', { class: 'btn quiet', onclick: () => closeRecorder(true) }, 'Cancel'));
-        if (r.error) kids.push(el('div', { class: 'msg error', role: 'alert' }, r.error));
+          el('span', { class: 'hint' }, t('shortcuts.rec.hint')),
+          el('button', { class: 'btn quiet', onclick: () => closeRecorder(true) }, t('common.cancel')));
+        if (r.error) kids.push(el('div', { class: 'msg error', role: 'alert' }, shortcutMessage(r.error)));
       }
       recBox.replaceChildren(...kids);
       recBox.focus({ preventScroll: true });
@@ -170,20 +168,19 @@
       if (!alive) return;
       keysBox.replaceChildren(...bindingChips(talkBinding()));
       const broken = hookError === true && !works;
-      const text = works ? 'That works.' : broken ? "Pauli Speaks can't see your shortcut." : 'Press it now to check it works.';
+      const text = t(works ? 'welcome.shortcut.works' : broken ? 'notices.hook.title' : 'welcome.shortcut.pressNow');
       if (status.textContent !== text) status.textContent = text;
       status.className = `wm-status ${works ? 'good' : broken ? 'bad' : ''}`;
       const notes = [];
-      if (!works && conflicts.length) notes.push(`${joinNames(conflicts)} ${conflicts.length > 1 ? 'are' : 'is'} running and may use the same shortcut.`);
-      if (!works && waited && !broken) notes.push('Nothing arrived. Another app may be using this shortcut.');
+      if (!works && conflicts.length) notes.push(t('welcome.shortcut.conflict', { names: I18n.list(conflicts), count: conflicts.length }));
+      if (!works && waited && !broken) notes.push(t('welcome.shortcut.nothing'));
       const show = (notes.length > 0 || broken) && !recording;
       hints.replaceChildren(...(show ? [
         ...notes.map((t) => el('p', { class: 'desc' }, t)),
         // Recording another shortcut needs the same hook, so offer the troubleshooting steps instead.
         broken
-          ? el('p', { class: 'desc' }, 'Dictation by shortcut will not work until this is fixed. ',
-            el('a', { href: HomeNotices.TROUBLESHOOTING_URL, target: '_blank' }, 'Read the troubleshooting steps'))
-          : el('button', { class: 'btn', onclick: openRecorder }, 'Record another shortcut'),
+          ? el('p', { class: 'desc' }, ...I18n.nodes('notices.hook.desc', { link: el('a', { href: HomeNotices.TROUBLESHOOTING_URL, target: '_blank' }, t('notices.hook.link')) }))
+          : el('button', { class: 'btn', onclick: openRecorder }, t('welcome.shortcut.record')),
       ] : []));
       drawCards();
       drawRecorder();
@@ -201,10 +198,10 @@
         keysBox = el('div', { class: 'we-keys' });
         status = el('p', { class: 'wm-status', role: 'status', 'aria-live': 'polite' });
         hints = el('div', { class: 'we-hints', role: 'status', 'aria-live': 'polite' });
-        cardsBox = el('div', { class: 'we-cards', role: 'group', 'aria-label': 'How you use it' });
+        cardsBox = el('div', { class: 'we-cards', role: 'group', 'aria-label': t('welcome.shortcut.how') });
         recBox = el('div', { class: 'bind recording', id: 'we-rec-row', tabindex: '-1', 'aria-live': 'polite', hidden: true });
-        body.append(title('Your shortcut.'), keysBox, status, hints, recBox, cardsBox);
-        f.actions(el('button', { class: 'btn primary', onclick: () => f.next() }, 'Continue'));
+        body.append(title(t('welcome.shortcut.title')), keysBox, status, hints, recBox, cardsBox);
+        f.actions(el('button', { class: 'btn primary', onclick: () => f.next() }, t('welcome.continue')));
         offRecording = api.onShortcutRecording(onRecording);
         offSettings = api.onSettings(() => draw());
         window.addEventListener('focus', onFocus);
@@ -253,15 +250,13 @@
         const b = talkBinding();
         const keys = el('span', { class: 'chips' }, bindingChips(b));
         const line = el('p', { class: 'sub we-line', id: 'we-try-line' },
-          ...(b && b.behaviour === 'toggle'
-            ? ['Press ', keys, `, say ${FIRST_WORDS}, and press it again.`]
-            : ['Hold ', keys, `, say ${FIRST_WORDS}, and let go.`]));
+          ...I18n.nodes(b && b.behaviour === 'toggle' ? 'welcome.try.toggle' : 'welcome.try.hold', { keys }, { words: t('welcome.try.words') }));
         const box = el('textarea', {
           class: 'we-try',
           rows: '4',
-          'aria-label': 'Try dictating here',
+          'aria-label': t('welcome.try.label'),
           'aria-describedby': 'we-try-line',
-          placeholder: 'Your words will appear here.',
+          placeholder: t('welcome.try.placeholder'),
           oninput: () => {
             if (alive && !finished && box.value.trim()) tips();
           },
@@ -269,18 +264,13 @@
         const tips = () => {
           finished = true;
           body.replaceChildren(
-            title("You're ready."),
+            title(t('welcome.try.ready')),
             el('ul', { class: 'we-tips' },
-              ...[
-                'Double-tap the shortcut for hands-free.',
-                'Esc cancels.',
-                "Say 'send it' to press Enter.",
-                'Change shortcuts on the Shortcuts page.',
-              ].map((t) => el('li', {}, t))));
-          f.actions(el('button', { class: 'btn primary', onclick: () => f.finish() }, 'Done'));
+              ...['welcome.try.tip.handsFree', 'welcome.try.tip.cancel', 'welcome.try.tip.send', 'welcome.try.tip.shortcuts'].map((key) => el('li', {}, t(key)))));
+          f.actions(el('button', { class: 'btn primary', onclick: () => f.finish() }, t('welcome.done')));
           $('#welcome-title')?.focus({ preventScroll: true });
         };
-        body.append(title('Try it.'), line, box);
+        body.append(title(t('welcome.try.title')), line, box);
         f.actions();
         // The shell moves focus to the heading once render() is done; the box needs it for the paste.
         setTimeout(() => alive && !finished && box.focus({ preventScroll: true }), 0);

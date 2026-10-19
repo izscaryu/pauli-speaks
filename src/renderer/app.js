@@ -1,4 +1,5 @@
 'use strict';
+// The main window. Text goes through t() (i18n.js, loaded first); dates and numbers through I18n.
 
 const api = window.pauli;
 const $ = (sel) => document.querySelector(sel);
@@ -6,26 +7,28 @@ const $ = (sel) => document.querySelector(sel);
 const KEY_LABELS = {
   Ctrl: 'Ctrl', CtrlRight: 'RCtrl', Alt: 'Alt', AltRight: 'RAlt', Shift: 'Shift',
   ShiftRight: 'RShift', Meta: 'Win', MetaRight: 'RWin', Escape: 'Esc', CapsLock: 'Caps',
-  Mouse3: 'Mouse 3', Mouse4: 'Mouse 4', Mouse5: 'Mouse 5', Space: 'Space', Backquote: '`',
+  Mouse3: t('keys.mouse', { n: 3 }), Mouse4: t('keys.mouse', { n: 4 }), Mouse5: t('keys.mouse', { n: 5 }), Space: t('keys.space'), Backquote: '`',
 };
 const ORDER = ['Ctrl', 'CtrlRight', 'Meta', 'MetaRight', 'Alt', 'AltRight', 'Shift', 'ShiftRight'];
 // The Shortcuts page, grouped as in docs/design/redesign-concept.html. talk = per-shortcut Hold / Toggle / Both.
+// Titles and descriptions: action.<action>.title / .desc in the locale files.
 const ACTION_INFO = [
-  { action: 'dictate', group: 'start', title: 'Dictate', desc: 'Talk, and your words land where the cursor is.', talk: true, min: 1 },
-  { action: 'translate', group: 'start', title: 'Talk & translate', desc: 'Dictate into your translation language. Add it to a held talk shortcut to switch mid-sentence.', talk: true },
-  { action: 'command', group: 'start', title: 'Command mode', desc: 'Say what to do with the selected text, or what to write.', talk: true },
-  { action: 'cancel', group: 'during', title: 'Cancel', desc: 'Throw away what you just said, or stop reading. Works mid-chord.', min: 1, max: 1 },
-  { action: 'cycleMode', group: 'during', title: 'Switch mode', desc: 'Reserved for Modes, which arrive in a later version.', badge: 'Soon' },
-  { action: 'pasteLast', group: 'after', title: 'Paste last transcript', desc: 'Type your last dictation again.' },
-  { action: 'copyLast', group: 'after', title: 'Copy last transcript', desc: 'Put your last dictation on the clipboard.', badge: 'New' },
-  { action: 'undoLast', group: 'after', title: 'Undo last dictation', desc: 'Removes the text Pauli Speaks just typed, in the app it typed it into.', badge: 'New' },
-  { action: 'pressEnter', group: 'after', title: 'Press Enter', desc: 'Send the chat message. While you dictate, it finishes and sends.', badge: 'New' },
-  { action: 'readAloud', group: 'after', title: 'Read aloud', desc: 'Hear the selected text. Press again, or Esc, to stop.' },
+  { action: 'dictate', group: 'start', talk: true, min: 1 },
+  { action: 'translate', group: 'start', talk: true },
+  { action: 'command', group: 'start', talk: true },
+  { action: 'cancel', group: 'during', min: 1, max: 1 },
+  { action: 'cycleMode', group: 'during', badge: 'soon' },
+  { action: 'pasteLast', group: 'after' },
+  { action: 'copyLast', group: 'after', badge: 'new' },
+  { action: 'undoLast', group: 'after', badge: 'new' },
+  { action: 'pressEnter', group: 'after', badge: 'new' },
+  { action: 'readAloud', group: 'after' },
 ];
-const ACTION_TITLE = Object.fromEntries(ACTION_INFO.map((a) => [a.action, a.title]));
+const actionTitle = (action) => t(`action.${action}.title`);
 const MAX_BINDINGS = 4;
-const BEHAVIOURS = [['hold', 'Hold', 'Talk while you hold it'], ['toggle', 'Toggle', 'Press to start, press again to finish'], ['both', 'Both', 'Hold to talk, or double-tap to keep listening']];
-const MOUSE_NOTE = { Mouse3: 'Also middle-clicks in other apps', Mouse4: 'Also goes Back in browsers', Mouse5: 'Also goes Forward in browsers' };
+const BEHAVIOURS = ['hold', 'toggle', 'both'];
+const behaviourName = (value) => t(`behaviour.${value}.name`);
+const MOUSE_NOTE = new Set(['Mouse3', 'Mouse4', 'Mouse5']);
 const VC_PRESETS = {
   enter: { action: 'key', arg: 'Enter' },
   tab: { action: 'key', arg: 'Tab' },
@@ -35,15 +38,12 @@ const VC_PRESETS = {
   text: { action: 'insert' },
   snippet: { action: 'snippet' },
 };
-const STYLE_LABELS = { normal: 'Normal', casual: 'Casual · no final full stop', formal: 'Formal · always punctuated', code: 'Code · no capitals or full stop' };
+const STYLES = ['normal', 'casual', 'formal', 'code'];
+// The languages Pauli Speaks offers for dictation, named in the UI language.
 const LANGUAGES = [
-  ['en', 'English'], ['hr', 'Croatian'], ['de', 'German'], ['es', 'Spanish'], ['fr', 'French'],
-  ['it', 'Italian'], ['pt', 'Portuguese'], ['nl', 'Dutch'], ['pl', 'Polish'], ['sr', 'Serbian'],
-  ['bs', 'Bosnian'], ['sl', 'Slovenian'], ['cs', 'Czech'], ['sk', 'Slovak'], ['hu', 'Hungarian'],
-  ['ro', 'Romanian'], ['uk', 'Ukrainian'], ['ru', 'Russian'], ['tr', 'Turkish'], ['sv', 'Swedish'],
-  ['da', 'Danish'], ['no', 'Norwegian'], ['fi', 'Finnish'], ['el', 'Greek'], ['ar', 'Arabic'],
-  ['hi', 'Hindi'], ['ja', 'Japanese'], ['ko', 'Korean'], ['zh', 'Chinese'],
-];
+  'en', 'hr', 'de', 'es', 'fr', 'it', 'pt', 'nl', 'pl', 'sr', 'bs', 'sl', 'cs', 'sk', 'hu', 'ro', 'uk', 'ru', 'tr', 'sv',
+  'da', 'no', 'fi', 'el', 'ar', 'hi', 'ja', 'ko', 'zh',
+].map((c) => [c, I18n.languageName(c)]);
 const LANG_NAME = Object.fromEntries(LANGUAGES);
 const ICONS = {
   copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
@@ -77,11 +77,27 @@ function keyChips(keys) {
     const ib = ORDER.indexOf(b);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
   });
-  if (!sorted.length) return [el('span', { class: 'key empty' }, 'Not set')];
+  if (!sorted.length) return [el('span', { class: 'key empty' }, t('shortcuts.notSet'))];
   return sorted.map((k) => el('kbd', { class: 'key' }, KEY_LABELS[k] || k.replace(/^Digit/, '')));
 }
 
 const keyText = (keys) => [...keys].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)).map((k) => KEY_LABELS[k] || k.replace(/^Digit/, '')).join(' + ');
+
+/** "Ctrl + Win", or "Ctrl double-tap" for a double-tap binding. */
+const bindingText = (keys, doubleTap) => (doubleTap ? t('shortcuts.withDoubleTap', { keys: keyText(keys) }) : keyText(keys));
+
+/** A shortcut-rules message from the main process ({ code, params }) in the UI language. */
+function shortcutMessage(m) {
+  if (!m || typeof m !== 'object') return m ? String(m) : '';
+  const p = m.params || {};
+  return t(`shortcuts.msg.${m.code}`, {
+    ...p,
+    keys: Array.isArray(p.keys) ? keyText(p.keys) : p.keys,
+    action: p.action ? actionTitle(p.action) : undefined,
+    what: p.what ? t(`shortcuts.common.${p.what}`) : undefined,
+    reason: p.reason ? t(`shortcuts.reserved.${p.reason}`) : undefined,
+  });
+}
 
 /** First binding of an action that passes `test`, or null. */
 const firstBinding = (action, test = () => true) => (settings.bindings || []).find((b) => b.action === action && test(b)) || null;
@@ -89,36 +105,39 @@ const firstBinding = (action, test = () => true) => (settings.bindings || []).fi
 /** Keycaps for a binding: a double-tap shows its key twice-marked. */
 function bindingChips(b) {
   if (!b) return keyChips([]);
-  return b.trigger === 'doubleTap' ? [...keyChips(b.keys), el('span', { class: 'tap', title: 'Double-tap' }, '×2')] : keyChips(b.keys);
+  return b.trigger === 'doubleTap' ? [...keyChips(b.keys), el('span', { class: 'tap', title: t('shortcuts.doubleTap') }, '×2')] : keyChips(b.keys);
 }
 const code = (c) => (c || '??').toUpperCase();
 
 let toastTimer = null;
 function toast(text) {
-  const t = $('#toast');
-  t.textContent = text;
-  t.hidden = false;
+  const box = $('#toast');
+  box.textContent = text;
+  box.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (t.hidden = true), 1800);
+  toastTimer = setTimeout(() => (box.hidden = true), 1800);
 }
 
-async function save(patch, message = 'Saved') {
+async function save(patch, message = t('common.saved')) {
   settings = await api.updateSettings(patch);
   if (message) toast(message);
 }
 
-const fmtNum = (n) => (n >= 10000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString());
+const fmtNum = (n) => (n >= 10000 ? I18n.num(n, { notation: 'compact', maximumFractionDigits: 1 }) : I18n.num(n));
+const timeOf = (d) => I18n.date(d, { hour: '2-digit', minute: '2-digit' });
+const modelSlug = (id) => String(id).split('/').pop();
+const modelNoteText = (m) => t(`models.note.${modelSlug(m.id)}`);
 
 function modelLabel() {
-  if (settings.engine === 'cloud') return `Cloud · ${settings.cloud.model}`;
+  if (settings.engine === 'cloud') return t('engine.cloudLabel', { model: settings.cloud.model });
   const m = modelState?.models.find((x) => x.id === settings.localModel);
   const gpu = modelState?.status === 'ready' && modelState.device === 'dml' ? ' · GPU' : '';
   return `Whisper ${m ? m.label : settings.localModel}${gpu}`;
 }
 
 function translationLabel() {
-  const t = settings.translation;
-  return t.always ? `Always → ${code(t.target)}` : `On shortcut → ${code(t.target)}`;
+  const tr = settings.translation;
+  return t(tr.always ? 'side.translateAlways' : 'side.translateShortcut', { code: code(tr.target) });
 }
 
 // ------------------------------------------------------------------ navigation
@@ -142,7 +161,7 @@ function renderStrip() {
   $('#hf-chips').replaceChildren(...bindingChips(firstBinding('dictate', (b) => b.behaviour === 'toggle')));
   $('#tr-chips').replaceChildren(...bindingChips(firstBinding('translate')));
   $('#cancel-chips').replaceChildren(...bindingChips(firstBinding('cancel')));
-  $('#tr-label').textContent = `Talk → ${LANG_NAME[settings.translation.target] || code(settings.translation.target)}`;
+  $('#tr-label').textContent = t('home.strip.translate', { language: LANG_NAME[settings.translation.target] || code(settings.translation.target) });
   $('#side-engine').textContent = modelLabel();
   $('#side-translate').textContent = translationLabel();
 }
@@ -151,26 +170,28 @@ function renderLive() {
   const live = $('#live');
   const { status, locked, translateTo, mode } = dictation;
   live.className = `live ${status === 'listening' ? 'listening' : status === 'processing' ? 'processing' : ''}`;
-  let text = 'Ready';
-  if (status === 'listening' && mode === 'command') text = 'Command';
-  else if (status === 'listening') text = `${locked ? 'Hands-free' : 'Listening'}${translateTo ? ` → ${code(translateTo)}` : ''}`;
-  else if (status === 'processing') text = 'Transcribing';
-  else if (settings?.translation.always) text = `Ready → ${code(settings.translation.target)}`;
+  let text = t('live.ready');
+  if (status === 'listening' && mode === 'command') text = t('live.command');
+  else if (status === 'listening') {
+    text = t(locked ? 'live.handsFree' : 'live.listening');
+    if (translateTo) text = t('live.to', { state: text, code: code(translateTo) });
+  } else if (status === 'processing') text = t('live.transcribing');
+  else if (settings?.translation.always) text = t('live.to', { state: text, code: code(settings.translation.target) });
   $('#live-text').textContent = text;
 }
 
 async function renderStats() {
   const st = await api.getStats();
   $('#st-words').textContent = fmtNum(st.words);
-  $('#st-wpm').textContent = st.wpm;
+  $('#st-wpm').textContent = I18n.num(st.wpm);
   $('#st-saved').textContent = fmtNum(st.minutesSaved);
   $('#st-count').textContent = fmtNum(st.dictations);
-  $('#st-streak').textContent = st.streak || 0;
+  $('#st-streak').textContent = I18n.num(st.streak || 0);
   const max = Math.max(1, ...(st.daily || []).map((d) => d.words));
   const todayKey = (st.daily || []).at(-1)?.date;
   $('#week-bars').replaceChildren(...(st.daily || []).map((d) => {
     const date = new Date(`${d.date}T12:00:00`);
-    const label = `${date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}: ${d.words.toLocaleString()} words`;
+    const label = t('home.week.bar', { date: I18n.date(date, { weekday: 'short', day: 'numeric' }), count: d.words });
     return el('div', { class: `wbar${d.date === todayKey ? ' today' : ''}`, 'data-tip': label, 'aria-label': label, role: 'img' },
       el('i', { style: `height:${Math.max(2, Math.round((d.words / max) * 100))}%` }));
   }));
@@ -193,7 +214,7 @@ function historyItem(item) {
       ? el('span', { class: 'tag tr' }, `${code(item.language)} → ${code(item.translatedTo)}`)
       : item.language ? el('span', { class: 'tag' }, code(item.language)) : null,
     item.app ? el('span', { class: 'tag app' }, item.app.replace(/\.exe$/i, '')) : null,
-    `${item.words} words · ${secs}s · ${item.engine}`);
+    t('history.meta', { count: item.words, secs, engine: item.engine }));
   const body = el('div', {},
     item.instruction ? el('div', { class: 'instr' }, `“${item.instruction}”`) : null,
     el('p', {}, item.text), meta);
@@ -203,18 +224,18 @@ function historyItem(item) {
       class: 'linkish',
       onclick: (e) => {
         orig.hidden = !orig.hidden;
-        e.target.textContent = orig.hidden ? 'Show original' : 'Hide original';
+        e.target.textContent = t(orig.hidden ? 'history.showOriginal' : 'history.hideOriginal');
       },
-    }, 'Show original'));
+    }, t('history.showOriginal')));
     body.insertBefore(orig, meta);
   }
   return el('div', { class: 'item' },
-    el('time', { datetime: item.createdAt }, d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })),
+    el('time', { datetime: item.createdAt }, timeOf(d)),
     body,
     el('div', { class: 'actions' },
       ...HistoryAudio.buttons(item), // history-audio.js
-      el('button', { class: 'icon-btn', title: 'Copy', 'aria-label': 'Copy transcript', html: ICONS.copy, onclick: async () => { await api.copy(item.text); toast('Copied'); } }),
-      el('button', { class: 'icon-btn danger', title: 'Delete', 'aria-label': 'Delete transcript', html: ICONS.trash, onclick: () => api.deleteHistory(item.id) })));
+      el('button', { class: 'icon-btn', title: t('common.copy'), 'aria-label': t('history.copyLabel'), html: ICONS.copy, onclick: async () => { await api.copy(item.text); toast(t('common.copied')); } }),
+      el('button', { class: 'icon-btn danger', title: t('common.delete'), 'aria-label': t('history.deleteLabel'), html: ICONS.trash, onclick: () => api.deleteHistory(item.id) })));
 }
 
 function renderHistory() {
@@ -224,7 +245,7 @@ function renderHistory() {
     ? historyItems.filter((i) => (i.text || '').toLowerCase().includes(q) || (i.original || '').toLowerCase().includes(q))
     : historyItems;
   if (!items.length) {
-    box.replaceChildren(el('div', { class: 'empty' }, q ? 'No transcripts match.' : 'Nothing yet. Hold your talk shortcut and say something.'));
+    box.replaceChildren(el('div', { class: 'empty' }, t(q ? 'history.noMatch' : 'history.empty')));
     return;
   }
   const out = [];
@@ -236,8 +257,8 @@ function renderHistory() {
     const day = d.toDateString();
     if (day !== lastDay) {
       lastDay = day;
-      out.push(el('div', { class: 'day' }, day === today ? 'Today' : day === yesterday ? 'Yesterday'
-        : d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })));
+      out.push(el('div', { class: 'day' }, day === today ? t('history.today') : day === yesterday ? t('history.yesterday')
+        : I18n.date(d, { weekday: 'long', month: 'short', day: 'numeric' })));
     }
     out.push(historyItem(item));
   }
@@ -246,7 +267,7 @@ function renderHistory() {
 
 $('#history-search').addEventListener('input', renderHistory);
 $('#clear-history').addEventListener('click', async () => {
-  if (confirm('Delete all transcripts? This cannot be undone.')) await api.clearHistory();
+  if (confirm(t('history.clearConfirm'))) await api.clearHistory();
 });
 
 let slowNoteDismissed = false; // the "Large v3 Turbo is slow" note, hidden for this session
@@ -255,13 +276,13 @@ function modelNote() {
   if (settings.engine !== 'local') return null;
   const m = modelState.models.find((x) => x.id === settings.localModel);
   if (m && !m.downloaded && modelState.status === 'idle') {
-    return [el('div', { class: 'grow' }, el('strong', {}, 'The speech model is not downloaded yet.'), el('span', { class: 'desc' }, 'One-time download. After this it runs offline.')),
-      el('button', { class: 'btn primary', onclick: () => api.loadModel() }, `Download Whisper ${m.label} (${m.size})`)];
+    return [el('div', { class: 'grow' }, el('strong', {}, t('banner.model.notDownloaded')), el('span', { class: 'desc' }, t('banner.model.oneTime'))),
+      el('button', { class: 'btn primary', onclick: () => api.loadModel() }, t('banner.model.download', { name: `Whisper ${m.label}`, size: m.size }))];
   }
   if (modelState.offerSmaller && modelState.model === settings.localModel && !slowNoteDismissed) {
-    return [el('div', { class: 'grow' }, el('strong', {}, 'Your graphics card couldn\'t be used, so Whisper Large v3 Turbo is slow on this PC.')),
-      el('button', { class: 'btn', onclick: () => save({ localModel: 'onnx-community/whisper-small' }, 'Switched to Whisper Small') }, 'Use Whisper Small'),
-      el('button', { class: 'btn', onclick: () => { slowNoteDismissed = true; renderBanner(); } }, 'Dismiss')];
+    return [el('div', { class: 'grow' }, el('strong', {}, t('banner.model.slow'))),
+      el('button', { class: 'btn', onclick: () => save({ localModel: 'onnx-community/whisper-small' }, t('models.switched', { name: 'Whisper Small' })) }, t('banner.model.useSmall')),
+      el('button', { class: 'btn', onclick: () => { slowNoteDismissed = true; renderBanner(); } }, t('common.dismiss'))];
   }
   return null;
 }
@@ -273,7 +294,7 @@ function renderBanner() {
   const jobs = [];
   if (settings.engine === 'local') jobs.push({ name: modelLabel(), ...modelState, retry: api.loadModel, again: () => HomeNotices.canRedownload() });
   const tr = modelState.translator;
-  if (tr && tr.status !== 'idle' && tr.status !== 'ready') jobs.push({ name: 'Translator (NLLB-200)', ...tr, retry: api.loadTranslator });
+  if (tr && tr.status !== 'idle' && tr.status !== 'ready') jobs.push({ name: t('banner.translatorName'), ...tr, retry: api.loadTranslator });
   const job = jobs.find((j) => j.status === 'error') || jobs.find((j) => j.status === 'downloading' || j.status === 'loading');
   if (!job) {
     const note = modelNote();
@@ -287,9 +308,9 @@ function renderBanner() {
   banner.classList.toggle('error', job.status === 'error');
   if (job.status === 'error') {
     banner.replaceChildren(
-      el('div', { class: 'grow' }, el('strong', {}, `Couldn't load ${job.name}`), el('span', { class: 'desc' }, job.error || '')),
-      el('button', { class: 'btn', onclick: () => job.retry() }, 'Retry'),
-      ...(job.again?.() ? [el('button', { class: 'btn', onclick: HomeNotices.redownload }, 'Download again')] : []));
+      el('div', { class: 'grow' }, el('strong', {}, t('banner.loadFailed', { name: job.name })), el('span', { class: 'desc' }, job.error || '')),
+      el('button', { class: 'btn', onclick: () => job.retry() }, t('common.retry')),
+      ...(job.again?.() ? [el('button', { class: 'btn', onclick: HomeNotices.redownload }, t('banner.downloadAgain'))] : []));
     side.hidden = true;
     return;
   }
@@ -297,8 +318,8 @@ function renderBanner() {
   const meter = el('div', { class: 'meter' }, el('i', { style: `width:${downloading ? job.percent : 100}%` }));
   banner.replaceChildren(
     el('div', { class: 'grow' },
-      el('strong', {}, downloading ? `Downloading ${job.name}` : `Loading ${job.name}…`),
-      downloading ? el('span', { class: 'desc' }, 'One-time download. After this it runs offline.') : null,
+      el('strong', {}, t(downloading ? 'banner.downloading' : 'banner.loading', { name: job.name })),
+      downloading ? el('span', { class: 'desc' }, t('banner.model.oneTime')) : null,
       downloading ? meter : null),
     ...(downloading ? [el('b', {}, `${job.percent}%`)] : []));
   side.hidden = !downloading;
@@ -311,14 +332,14 @@ function renderDictionary() {
   const list = $('#dict-list');
   const entries = settings.dictionary || [];
   if (!entries.length) {
-    list.replaceChildren(el('div', { class: 'empty' }, 'No words yet.'));
+    list.replaceChildren(el('div', { class: 'empty' }, t('dictionary.empty')));
     return;
   }
   list.replaceChildren(...entries.map((e, i) =>
     el('div', { class: 'dict-item' },
       el('span', { class: 'from' }, e.from), el('span', { class: 'arrow' }, '→'), el('strong', {}, e.to),
-      el('button', { class: 'icon-btn danger', title: 'Remove', 'aria-label': `Remove ${e.from}`, html: ICONS.trash,
-        onclick: () => save({ dictionary: entries.filter((_, j) => j !== i) }, 'Removed') }))));
+      el('button', { class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('common.removeItem', { name: e.from }), html: ICONS.trash,
+        onclick: () => save({ dictionary: entries.filter((_, j) => j !== i) }, t('common.removed')) }))));
 }
 
 $('#dict-form').addEventListener('submit', async (e) => {
@@ -327,7 +348,7 @@ $('#dict-form').addEventListener('submit', async (e) => {
   const to = $('#dict-to').value.trim();
   if (!from || !to) return;
   const rest = (settings.dictionary || []).filter((d) => d.from.toLowerCase() !== from.toLowerCase());
-  await save({ dictionary: [...rest, { from, to }] }, 'Added');
+  await save({ dictionary: [...rest, { from, to }] }, t('common.added'));
   $('#dict-from').value = '';
   $('#dict-to').value = '';
   $('#dict-from').focus();
@@ -339,14 +360,14 @@ function renderSnippets() {
   const list = $('#snip-list');
   const entries = settings.snippets || [];
   if (!entries.length) {
-    list.replaceChildren(el('div', { class: 'empty' }, 'No snippets yet. Try "my email" → your address.'));
+    list.replaceChildren(el('div', { class: 'empty' }, t('snippets.empty')));
     return;
   }
   list.replaceChildren(...entries.map((s, i) =>
     el('div', { class: 'snip-item' },
       el('strong', {}, `“${s.trigger}”`), el('span', { class: 'body' }, s.text),
-      el('button', { class: 'icon-btn danger', title: 'Remove', 'aria-label': `Remove snippet ${s.trigger}`, html: ICONS.trash,
-        onclick: () => save({ snippets: entries.filter((_, j) => j !== i) }, 'Removed') }))));
+      el('button', { class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('snippets.removeLabel', { name: s.trigger }), html: ICONS.trash,
+        onclick: () => save({ snippets: entries.filter((_, j) => j !== i) }, t('common.removed')) }))));
 }
 
 $('#snip-form').addEventListener('submit', async (e) => {
@@ -355,7 +376,7 @@ $('#snip-form').addEventListener('submit', async (e) => {
   const text = $('#snip-text').value;
   if (!trigger || !text.trim()) return;
   const rest = (settings.snippets || []).filter((s) => s.trigger.toLowerCase() !== trigger.toLowerCase());
-  await save({ snippets: [...rest, { trigger, text }] }, 'Snippet added');
+  await save({ snippets: [...rest, { trigger, text }] }, t('snippets.added'));
   $('#snip-trigger').value = '';
   $('#snip-text').value = '';
   $('#snip-trigger').focus();
@@ -394,18 +415,19 @@ async function transcribeFile(file) {
   meter.firstElementChild.style.width = '0%';
   fileJob = { name: file.name };
   try {
-    status.textContent = 'Decoding audio…';
+    status.textContent = t('files.decoding');
     const audio = await decodeToMono16k(file);
     const minutes = audio.length / 16000 / 60;
-    status.textContent = `Transcribing ${minutes < 1 ? `${Math.round(minutes * 60)} s` : `${minutes.toFixed(1)} min`} of audio…`;
+    const duration = minutes < 1 ? t('files.seconds', { n: Math.round(minutes * 60) }) : t('files.minutes', { n: Number(minutes.toFixed(1)) });
+    status.textContent = t('files.transcribing', { duration });
     const t0 = performance.now();
     const result = await api.transcribeFile(audio, $('#file-translate').checked);
     fileJob = { name: file.name, ...result };
-    $('#file-text').value = result.text || '(no speech found)';
-    status.textContent = `Done in ${Math.round((performance.now() - t0) / 1000)} s · ${result.segments.length} segments${result.language ? ` · ${code(result.language)}` : ''}${result.translatedTo ? ` → ${code(result.translatedTo)}` : ''}`;
+    $('#file-text').value = result.text || t('files.noSpeech');
+    status.textContent = `${t('files.done', { secs: Math.round((performance.now() - t0) / 1000), count: result.segments.length })}${result.language ? ` · ${code(result.language)}` : ''}${result.translatedTo ? ` → ${code(result.translatedTo)}` : ''}`;
     ['#file-copy', '#file-txt', '#file-srt'].forEach((s) => ($(s).disabled = !result.text));
   } catch (err) {
-    status.textContent = `Couldn't transcribe: ${String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`;
+    status.textContent = t('files.failed', { error: String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '') });
     fileJob = null;
   } finally {
     $('#drop').classList.remove('busy');
@@ -440,13 +462,13 @@ drop.addEventListener('drop', (e) => {
 });
 $('#file-copy').addEventListener('click', async () => {
   await api.copy($('#file-text').value);
-  toast('Copied');
+  toast(t('common.copied'));
 });
 for (const format of ['txt', 'srt']) {
   $(`#file-${format}`).addEventListener('click', async () => {
     if (!lastFile) return;
     const r = await api.saveTranscript({ name: lastFile.name, format, text: $('#file-text').value, segments: lastFile.segments });
-    if (r.saved) toast(`Saved ${r.filePath.split(/[\\/]/).pop()}`);
+    if (r.saved) toast(t('files.saved', { name: r.filePath.split(/[\\/]/).pop() }));
   });
 }
 
@@ -470,47 +492,47 @@ function saveBindings(bindings, message) {
 }
 
 function behaviourControl(b) {
-  if (b.trigger === 'doubleTap') return el('span', { class: 'desc', title: 'A double-tap always toggles' }, 'Toggle');
+  if (b.trigger === 'doubleTap') return el('span', { class: 'desc', title: t('shortcuts.doubleTapToggles') }, behaviourName('toggle'));
   const label = keyText(b.keys);
-  return el('div', { class: 'segmented small three', role: 'group', 'aria-label': `Behaviour for ${label}` },
-    ...BEHAVIOURS.map(([value, name, hint]) => el('button', {
+  return el('div', { class: 'segmented small three', role: 'group', 'aria-label': t('shortcuts.behaviourFor', { keys: label }) },
+    ...BEHAVIOURS.map((value) => el('button', {
       class: b.behaviour === value ? 'active' : '',
-      title: hint,
+      title: t(`behaviour.${value}.hint`),
       'aria-pressed': String(b.behaviour === value),
-      onclick: () => b.behaviour !== value && saveBindings(settings.bindings.map((x) => (x.id === b.id ? { ...x, behaviour: value } : x)), `${label}: ${name.toLowerCase()}`),
-    }, name)));
+      onclick: () => b.behaviour !== value && saveBindings(settings.bindings.map((x) => (x.id === b.id ? { ...x, behaviour: value } : x)), t('shortcuts.behaviourSaved', { keys: label, behaviour: behaviourName(value) })),
+    }, behaviourName(value))));
 }
 
 function bindRow(info, b, count) {
-  const label = keyText(b.keys) + (b.trigger === 'doubleTap' ? ' double-tap' : '');
+  const label = bindingText(b.keys, b.trigger === 'doubleTap');
   const remove = () => {
-    if (count <= (info.min || 0)) return toast(`${info.title} needs at least one shortcut.`);
-    saveBindings(settings.bindings.filter((x) => x.id !== b.id), `Removed ${label}`);
+    if (count <= (info.min || 0)) return toast(t('shortcuts.needsOne', { action: actionTitle(info.action) }));
+    saveBindings(settings.bindings.filter((x) => x.id !== b.id), t('common.removedItem', { name: label }));
   };
-  const mouse = b.keys.find((k) => MOUSE_NOTE[k]);
-  const note = b.trigger === 'doubleTap' ? 'Double-tap' : mouse ? MOUSE_NOTE[mouse] : /^F(1[3-9]|2[0-4])$/.test(b.keys[0]) && b.keys.length === 1 ? 'Pedal or macro key' : null;
+  const mouse = b.keys.find((k) => MOUSE_NOTE.has(k));
+  const note = b.trigger === 'doubleTap' ? t('shortcuts.doubleTap') : mouse ? t(`shortcuts.mouseNote.${mouse}`) : /^F(1[3-9]|2[0-4])$/.test(b.keys[0]) && b.keys.length === 1 ? t('shortcuts.pedal') : null;
   return el('li', { class: 'bind' },
     el('span', { class: 'chips' }, bindingChips(b)),
     note ? el('span', { class: 'note' }, note) : null,
     el('span', { class: 'spacer' }),
     info.talk ? behaviourControl(b) : null,
-    info.max === 1 ? el('button', { class: 'btn quiet', onclick: () => startRec(info.action, b.id) }, 'Change') : null,
-    el('button', { class: 'icon-btn danger', title: 'Remove', 'aria-label': `Remove ${label}`, html: ICONS.x, onclick: remove }));
+    info.max === 1 ? el('button', { class: 'btn quiet', onclick: () => startRec(info.action, b.id) }, t('shortcuts.change')) : null,
+    el('button', { class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('common.removeItem', { name: label }), html: ICONS.x, onclick: remove }));
 }
 
 function recRow(info) {
   const kids = [rec.keys.length
     ? el('span', { class: 'chips' }, keyChips(rec.keys))
-    : el('span', { class: 'prompt' }, 'Press keys, a pedal or a mouse button…')];
+    : el('span', { class: 'prompt' }, t('shortcuts.rec.prompt'))];
   kids.push(el('span', { class: 'spacer' }));
   if (rec.warning) {
-    kids.push(el('button', { class: 'btn', onclick: () => api.retryShortcut() }, 'Try another'));
-    kids.push(el('button', { class: 'btn primary', onclick: () => api.confirmShortcut() }, 'Use anyway'));
-    kids.push(el('div', { class: 'msg warn', role: 'alert' }, rec.warning));
+    kids.push(el('button', { class: 'btn', onclick: () => api.retryShortcut() }, t('shortcuts.rec.tryAnother')));
+    kids.push(el('button', { class: 'btn primary', onclick: () => api.confirmShortcut() }, t('shortcuts.rec.useAnyway')));
+    kids.push(el('div', { class: 'msg warn', role: 'alert' }, shortcutMessage(rec.warning)));
   } else {
-    kids.push(el('span', { class: 'hint' }, info.action === 'cancel' ? 'Saves when you let go' : 'Esc cancels · Backspace clears'));
-    kids.push(el('button', { class: 'btn quiet', onclick: cancelRec }, 'Cancel'));
-    if (rec.error) kids.push(el('div', { class: 'msg error', role: 'alert' }, rec.error));
+    kids.push(el('span', { class: 'hint' }, t(info.action === 'cancel' ? 'shortcuts.rec.savesOnRelease' : 'shortcuts.rec.hint')));
+    kids.push(el('button', { class: 'btn quiet', onclick: cancelRec }, t('common.cancel')));
+    if (rec.error) kids.push(el('div', { class: 'msg error', role: 'alert' }, shortcutMessage(rec.error)));
   }
   return el('li', { class: 'bind recording', id: 'rec-row', tabindex: '-1', 'aria-live': 'polite' }, ...kids);
 }
@@ -525,15 +547,15 @@ function actionBlock(info) {
   return el('div', { class: 'action' },
     el('div', { class: 'action-head' },
       el('div', { class: 'grow' },
-        el('div', { class: 'title' }, info.title, info.badge ? el('span', { class: 'badge' }, info.badge) : null),
-        el('div', { class: 'desc' }, info.desc)),
+        el('div', { class: 'title' }, actionTitle(info.action), info.badge ? el('span', { class: 'badge' }, t(`badge.${info.badge}`)) : null),
+        el('div', { class: 'desc' }, t(`action.${info.action}.desc`))),
       single ? null : el('button', {
         class: 'btn',
         disabled: list.length >= max || recording,
-        'aria-label': `Add shortcut for ${info.title}`,
+        'aria-label': t('shortcuts.addFor', { action: actionTitle(info.action) }),
         onclick: () => startRec(info.action),
-      }, `+ Add${list.length ? ` (${list.length} of ${max})` : ''}`)),
-    items.length ? el('ul', { class: 'binds' }, items) : el('div', { class: 'desc muted' }, 'Not set. Add one if you want it.'));
+      }, list.length ? t('shortcuts.addCount', { n: list.length, max }) : t('shortcuts.add'))),
+    items.length ? el('ul', { class: 'binds' }, items) : el('div', { class: 'desc muted' }, t('shortcuts.notSetDesc')));
 }
 
 function renderShortcuts() {
@@ -541,7 +563,7 @@ function renderShortcuts() {
   for (const group of ['start', 'during', 'after']) {
     const blocks = ACTION_INFO.filter((a) => a.group === group).map(actionBlock);
     if (group === 'start') {
-      blocks.push(el('div', { class: 'legend' }, ...BEHAVIOURS.map(([, name, hint]) => el('span', {}, el('b', {}, name), ` ${hint.toLowerCase()}.`))));
+      blocks.push(el('div', { class: 'legend' }, ...BEHAVIOURS.map((value) => el('span', {}, el('b', {}, behaviourName(value)), ` ${t(`behaviour.${value}.legend`)}`))));
     }
     $(`#g-${group}`).replaceChildren(...blocks);
   }
@@ -554,8 +576,7 @@ api.onShortcutRecording((e) => {
     const was = rec;
     rec = null;
     if (!e.cancelled && e.keys) {
-      const what = (ACTION_TITLE[was.action] || was.action).toLowerCase();
-      toast(`${keyText(e.keys)}${e.binding && e.binding.trigger === 'doubleTap' ? ' double-tap' : ''} → ${what}`);
+      toast(t('shortcuts.saved', { keys: bindingText(e.keys, e.binding && e.binding.trigger === 'doubleTap'), action: actionTitle(was.action) }));
     }
   } else if (e.cleared) rec = { ...rec, keys: [], error: null, warning: null };
   else if (e.warning) rec = { ...rec, keys: e.keys, error: null, warning: e.warning };
@@ -573,11 +594,11 @@ document.addEventListener('keydown', (e) => {
 }, true));
 
 $('#sc-reset').addEventListener('click', async () => {
-  if (!confirm('Put every shortcut back to how Pauli Speaks came? Your own shortcuts are removed.')) return;
+  if (!confirm(t('shortcuts.resetConfirm'))) return;
   rec = null;
   settings = await api.resetShortcuts();
   renderAll();
-  toast('Shortcuts reset');
+  toast(t('shortcuts.resetDone'));
 });
 
 // ----- "Test a key, pedal or mouse button": the main-process hook reports what it sees
@@ -588,9 +609,9 @@ tester.addEventListener('blur', () => api.setKeyTest(false));
 window.addEventListener('blur', () => document.activeElement === tester && tester.blur());
 api.onKeyTest((d) => {
   $('#tester-keys').replaceChildren(...keyChips(d.keys), ...(d.doubleTap ? [el('span', { class: 'tap' }, '×2')] : []));
-  const what = `${keyText(d.keys)}${d.doubleTap ? ' double-tap' : ''}`;
-  const beh = d.behaviour ? ` (${BEHAVIOURS.find(([v]) => v === d.behaviour)[1].toLowerCase()})` : '';
-  $('#tester-out').textContent = d.action ? `${what} → ${ACTION_TITLE[d.action] || d.action}${beh}` : `${what} → not used by Pauli Speaks`;
+  const what = bindingText(d.keys, d.doubleTap);
+  const beh = d.behaviour ? ` (${behaviourName(d.behaviour)})` : '';
+  $('#tester-out').textContent = d.action ? `${what} → ${actionTitle(d.action)}${beh}` : t('tester.unused', { keys: what });
 });
 
 // ----- links and command line
@@ -598,40 +619,40 @@ api.onKeyTest((d) => {
 function renderRemoteLinks(info) {
   const exe = info.packaged ? `"${info.exePath}"` : '"Pauli Speaks.exe"';
   const lines = [
-    [`${info.protocol}://dictate/toggle`, info.portable ? 'Links work only in the installed app' : 'Start or stop'],
-    [`${info.protocol}://dictate/start`, 'Start hands-free'],
-    [`${info.protocol}://dictate/stop`, 'Finish and paste'],
-    [`${exe} --toggle`, 'Also --start, --stop, --cancel, --paste-last, --copy-last, --undo-last, --press-enter'],
+    [`${info.protocol}://dictate/toggle`, t(info.portable ? 'remote.portable' : 'remote.toggle')],
+    [`${info.protocol}://dictate/start`, t('remote.start')],
+    [`${info.protocol}://dictate/stop`, t('remote.stop')],
+    [`${exe} --toggle`, t('remote.flags', { flags: '--start, --stop, --cancel, --paste-last, --copy-last, --undo-last, --press-enter' })],
   ];
   $('#remote-links').replaceChildren(...lines.map(([text, desc]) => el('div', { class: 'link' },
     el('code', {}, text),
-    el('button', { class: 'icon-btn', title: 'Copy', 'aria-label': `Copy ${text}`, html: ICONS.copy, onclick: async () => { await api.copy(text); toast('Copied'); } }),
+    el('button', { class: 'icon-btn', title: t('common.copy'), 'aria-label': t('common.copyItem', { name: text }), html: ICONS.copy, onclick: async () => { await api.copy(text); toast(t('common.copied')); } }),
     el('span', { class: 'desc' }, desc))));
 }
 
 // ----- voice commands
 
 function describeCommand(c) {
-  if (c.action === 'key') return `Press ${c.arg}`;
-  if (c.action === 'undo') return 'Remove the last dictation';
-  if (c.action === 'snippet') return `Insert snippet “${c.arg}”`;
-  if (c.arg === '\n') return 'Insert a line break';
-  if (c.arg === '\n\n') return 'Insert a blank line';
-  return `Type “${c.arg.replace(/\n/g, '↵')}”`;
+  if (c.action === 'key') return t('voice.does.key', { key: c.arg });
+  if (c.action === 'undo') return t('voice.do.undo');
+  if (c.action === 'snippet') return t('voice.does.snippet', { name: c.arg });
+  if (c.arg === '\n') return t('voice.do.newline');
+  if (c.arg === '\n\n') return t('voice.do.paragraph');
+  return t('voice.does.type', { text: c.arg.replace(/\n/g, '↵') });
 }
 
 function renderVoiceCommands() {
   const list = settings.voiceCommands || [];
   const removePhrase = (i, p) => {
     const next = list.map((c, j) => (j === i ? { ...c, phrases: c.phrases.filter((x) => x !== p) } : c)).filter((c) => c.phrases.length);
-    save({ voiceCommands: next }, `Removed “${p}”`);
+    save({ voiceCommands: next }, t('voice.removed', { phrase: p }));
   };
   $('#vc-list').replaceChildren(...(list.length ? list.map((c, i) => el('div', { class: 'vc-row' },
     el('div', { class: 'phrases' }, ...c.phrases.map((p) => el('span', { class: 'phrase' }, `“${p}”`,
-      el('button', { title: 'Remove', 'aria-label': `Remove “${p}”`, html: ICONS.x, onclick: () => removePhrase(i, p) })))),
+      el('button', { title: t('common.remove'), 'aria-label': t('voice.removeLabel', { phrase: p }), html: ICONS.x, onclick: () => removePhrase(i, p) })))),
     el('span', { class: 'arrow', 'aria-hidden': 'true' }, '→'),
-    el('span', { class: 'does', title: c.action === 'key' || c.action === 'undo' ? 'Only at the start or end of what you say' : 'Anywhere in what you say' }, describeCommand(c)),
-  )) : [el('div', { class: 'empty' }, 'No voice commands. Add one below.')]));
+    el('span', { class: 'does', title: t(c.action === 'key' || c.action === 'undo' ? 'voice.edgeOnly' : 'voice.anywhere') }, describeCommand(c)),
+  )) : [el('div', { class: 'empty' }, t('voice.empty'))]));
   const snip = $('#vc-snippet');
   snip.replaceChildren(...(settings.snippets || []).map((s) => el('option', { value: s.trigger }, s.trigger)));
   $('#vc-form').classList.toggle('off', !settings.voiceCommandsEnabled);
@@ -649,64 +670,84 @@ $('#vc-form').addEventListener('submit', async (e) => {
   const phrase = $('#vc-say').value.replace(/\s+/g, ' ').trim();
   if (!phrase) return;
   const list = settings.voiceCommands || [];
-  if (list.some((c) => c.phrases.some((p) => p.toLowerCase() === phrase.toLowerCase()))) return toast(`“${phrase}” is already a voice command`);
+  if (list.some((c) => c.phrases.some((p) => p.toLowerCase() === phrase.toLowerCase()))) return toast(t('voice.exists', { phrase }));
   const preset = VC_PRESETS[$('#vc-do').value];
   const typed = $('#vc-text').value.replace(/\\n/g, '\n'); // a one-line field: "\n" means a line break
   const arg = preset.action === 'snippet' ? $('#vc-snippet').value : preset.action === 'insert' && preset.arg === undefined ? typed : preset.arg;
   if ((preset.action === 'snippet' || preset.action === 'insert') && !arg) {
-    return toast(preset.action === 'snippet' ? 'Add a snippet on the Dictionary page first' : 'Type the text to insert');
+    return toast(t(preset.action === 'snippet' ? 'voice.needSnippet' : 'voice.needText'));
   }
   const same = list.findIndex((c) => c.action === preset.action && c.arg === arg);
   const next = same >= 0
     ? list.map((c, i) => (i === same ? { ...c, phrases: [...c.phrases, phrase] } : c))
     : [...list, { phrases: [phrase], action: preset.action, arg }];
-  await save({ voiceCommands: next }, `Say “${phrase}”: ${describeCommand({ action: preset.action, arg }).toLowerCase()}`);
+  await save({ voiceCommands: next }, t('voice.added', { phrase, action: describeCommand({ action: preset.action, arg }) }));
   $('#vc-say').value = '';
   $('#vc-text').value = '';
   $('#vc-say').focus();
 });
 
+// ------------------------------------------------------------------ settings: app language
+
+function renderUiLanguage() {
+  const select = $('#ui-language');
+  select.replaceChildren(el('option', { value: 'system' }, t('settings.language.system')),
+    ...I18n.languages.map((l) => el('option', { value: l.code, lang: l.code }, l.name)));
+  select.value = I18n.languages.some((l) => l.code === settings.uiLanguage) ? settings.uiLanguage : 'system';
+}
+$('#ui-language').addEventListener('change', (e) => save({ uiLanguage: e.target.value }, null));
+
+// The main process switched the language: start this page over in it, on the page that was open.
+I18n.onChange(() => {
+  try {
+    sessionStorage.setItem('pauli.page', document.querySelector('.nav.active')?.dataset.page || 'home');
+  } catch {
+    // no session storage: Home is fine
+  }
+  location.reload();
+});
+
 // ------------------------------------------------------------------ settings: translation
 
 function renderTranslation() {
-  const t = settings.translation;
-  const tr = modelState?.translator;
-  $('#tr-always').checked = t.always;
-  const supported = tr ? tr.languages : LANGUAGES.map(([c]) => c);
+  const tr = settings.translation;
+  const nllb = modelState?.translator;
+  $('#tr-always').checked = tr.always;
+  const supported = nllb ? nllb.languages : LANGUAGES.map(([c]) => c);
   const select = $('#tr-target');
   select.replaceChildren(...LANGUAGES.filter(([c]) => supported.includes(c)).map(([c, n]) => el('option', { value: c }, n)));
-  select.value = t.target;
+  select.value = tr.target;
 
-  const needsBest = t.target !== 'en';
+  const needsBest = tr.target !== 'en';
   const turbo = settings.engine === 'local' && /turbo/i.test(settings.localModel);
-  const quality = needsBest ? 'best' : t.quality;
+  const quality = needsBest ? 'best' : tr.quality;
   document.querySelectorAll('#tr-quality button').forEach((b) => {
     b.classList.toggle('active', b.dataset.quality === quality);
     b.disabled = needsBest && b.dataset.quality === 'fast';
   });
   $('#tr-quality-desc').textContent = needsBest
-    ? 'Translating into languages other than English always uses the offline translator.'
+    ? t('translation.quality.otherLanguages')
     : quality === 'fast'
-      ? `Whisper translates while it listens, so nothing extra is downloaded. Best with Whisper Small or larger.${turbo ? ' Large v3 Turbo can\'t translate, so the offline translator is used instead.' : ''}`
-      : 'Transcribes first, then translates with NLLB-200. More accurate, about 2–3 s slower.';
+      ? `${t('translation.quality.fastDesc')}${turbo ? ` ${t('translation.quality.turboNote')}` : ''}`
+      : t('translation.quality.bestDesc');
 
   const usesNllb = needsBest || quality === 'best' || turbo;
   $('#tr-model-row').hidden = !usesNllb;
-  if (tr) {
-    const busy = tr.status === 'downloading' || tr.status === 'loading';
-    $('#tr-model-desc').textContent = tr.status === 'downloading' ? `Downloading… ${tr.percent}%`
-      : tr.status === 'loading' ? 'Loading…'
-      : tr.status === 'ready' ? 'Ready'
-      : tr.status === 'error' ? `Error: ${tr.error}`
-      : tr.downloaded ? 'Downloaded - loads on first use' : `NLLB-200, ${tr.size}, one-time download`;
+  if (nllb) {
+    const busy = nllb.status === 'downloading' || nllb.status === 'loading';
+    $('#tr-model-desc').textContent = nllb.status === 'downloading' ? t('translation.model.downloading', { percent: nllb.percent })
+      : nllb.status === 'loading' ? t('common.loading')
+      : nllb.status === 'ready' ? t('translation.model.ready')
+      : nllb.status === 'error' ? t('translation.model.error', { error: nllb.error })
+      : nllb.downloaded ? t('translation.model.downloaded') : t('translation.model.size', { size: nllb.size });
     const btn = $('#tr-download');
-    btn.hidden = tr.status === 'ready' || (tr.downloaded && tr.status === 'idle');
+    btn.hidden = nllb.status === 'ready' || (nllb.downloaded && nllb.status === 'idle');
     btn.disabled = busy;
-    btn.textContent = tr.status === 'error' ? 'Retry' : 'Download';
+    btn.textContent = t(nllb.status === 'error' ? 'common.retry' : 'common.download');
   }
 }
 
-$('#tr-always').addEventListener('change', (e) => save({ translation: { always: e.target.checked } }, e.target.checked ? 'Translation on' : 'Translation off'));
+$('#tr-always').addEventListener('change', (e) => save({ translation: { always: e.target.checked } }, t(e.target.checked ? 'translation.on' : 'translation.off')));
 $('#tr-target').addEventListener('change', (e) => save({ translation: { target: e.target.value } }));
 document.querySelectorAll('#tr-quality button').forEach((b) =>
   b.addEventListener('click', () => save({ translation: { quality: b.dataset.quality } })));
@@ -720,21 +761,21 @@ function renderEngine() {
   $('#cloud-settings').hidden = settings.engine !== 'cloud';
   $('#cloud-url').value = settings.cloud.baseUrl;
   $('#cloud-model').value = settings.cloud.model;
-  $('#cloud-key').placeholder = settings.cloud.hasApiKey ? '•••••••• saved - type to replace' : 'gsk_…';
+  $('#cloud-key').placeholder = settings.cloud.hasApiKey ? t('cloud.keySaved') : 'gsk_…';
 }
 document.querySelectorAll('#engine button').forEach((b) => b.addEventListener('click', () => save({ engine: b.dataset.engine })));
 $('#cloud-url').addEventListener('change', (e) => save({ cloud: { baseUrl: e.target.value.trim() || 'https://api.groq.com/openai/v1' } }));
 $('#cloud-model').addEventListener('change', (e) => save({ cloud: { model: e.target.value.trim() || 'whisper-large-v3-turbo' } }));
 $('#cloud-key').addEventListener('change', async (e) => {
-  await save({ cloud: { apiKey: e.target.value } }, e.target.value ? 'API key saved (encrypted)' : 'API key removed');
+  await save({ cloud: { apiKey: e.target.value } }, t(e.target.value ? 'cloud.keySavedToast' : 'cloud.keyRemoved'));
   e.target.value = '';
 });
 $('#cloud-test').addEventListener('click', async () => {
   const out = $('#cloud-result');
-  out.textContent = 'Testing…';
+  out.textContent = t('common.testing');
   out.style.color = '';
   const r = await api.testCloud();
-  out.textContent = r.ok ? 'Connected' : r.error;
+  out.textContent = r.ok ? t('cloud.connected') : r.error;
   out.style.color = r.ok ? 'var(--ok)' : 'var(--signal)';
 });
 
@@ -742,17 +783,17 @@ function renderModels() {
   if (!modelState) return;
   $('#models').replaceChildren(...modelState.models.map((m) => {
     const active = m.id === settings.localModel;
-    let state = m.downloaded ? 'Downloaded' : m.size;
-    let cls = m.downloaded ? '' : '';
+    let state = m.downloaded ? t('models.downloaded') : m.size;
+    let cls = '';
     if (active && modelState.model === m.id) {
       if (modelState.status === 'downloading') [state, cls] = [`${modelState.percent}%`, 'busy'];
-      else if (modelState.status === 'loading') [state, cls] = ['Loading…', 'busy'];
-      else if (modelState.status === 'ready') [state, cls] = ['In use', 'ok'];
-      else if (modelState.status === 'error') state = 'Error';
+      else if (modelState.status === 'loading') [state, cls] = [t('common.loading'), 'busy'];
+      else if (modelState.status === 'ready') [state, cls] = [t('models.inUse'), 'ok'];
+      else if (modelState.status === 'error') state = t('models.error');
     }
     return el('label', { class: 'model' },
-      el('input', { type: 'radio', name: 'model', checked: active, onchange: () => save({ localModel: m.id }, `Switched to Whisper ${m.label}`) }),
-      el('div', {}, el('div', { class: 'title' }, `Whisper ${m.label}`), el('div', { class: 'desc' }, m.note)),
+      el('input', { type: 'radio', name: 'model', checked: active, onchange: () => save({ localModel: m.id }, t('models.switched', { name: `Whisper ${m.label}` })) }),
+      el('div', {}, el('div', { class: 'title' }, `Whisper ${m.label}`), el('div', { class: 'desc' }, modelNoteText(m))),
       el('span', { class: `state ${cls}` }, state));
   }));
 }
@@ -760,7 +801,7 @@ function renderModels() {
 function renderLanguages() {
   const chosen = settings.languages || [];
   $('#languages').replaceChildren(
-    el('button', { class: chosen.length === 0 ? 'active' : '', onclick: () => save({ languages: [] }) }, 'Auto'),
+    el('button', { class: chosen.length === 0 ? 'active' : '', onclick: () => save({ languages: [] }) }, t('speech.languages.auto')),
     ...LANGUAGES.map(([c, name]) => el('button', {
       class: chosen.includes(c) ? 'active' : '',
       onclick: () => save({ languages: chosen.includes(c) ? chosen.filter((x) => x !== c) : [...chosen, c] }),
@@ -771,16 +812,16 @@ function renderAcceleration() {
   const accel = settings.acceleration === 'cpu' ? 'cpu' : 'auto';
   document.querySelectorAll('#accel button').forEach((b) => b.classList.toggle('active', b.dataset.accel === accel));
   const m = modelState;
-  let desc = 'Uses the graphics card (DirectML) when there is one - usually 2-3x faster.';
+  let desc = t('accel.desc.default');
   if (m && m.status === 'ready') {
     desc = m.device === 'dml'
-      ? 'Running on your graphics card (DirectML).'
-      : accel === 'cpu' ? 'Running on the processor.' : `Running on the processor${m.gpuError ? ` - the GPU couldn't be used (${m.gpuError})` : ''}.`;
+      ? t('accel.desc.gpu')
+      : accel === 'cpu' || !m.gpuError ? t('accel.desc.cpu') : t('accel.desc.cpuFallback', { error: m.gpuError });
   }
   $('#accel-desc').textContent = desc;
 }
 document.querySelectorAll('#accel button').forEach((b) =>
-  b.addEventListener('click', () => save({ acceleration: b.dataset.accel }, b.dataset.accel === 'cpu' ? 'Using the CPU' : 'Using the GPU when available')));
+  b.addEventListener('click', () => save({ acceleration: b.dataset.accel }, t(b.dataset.accel === 'cpu' ? 'accel.usingCpu' : 'accel.usingGpu'))));
 
 $('#auto-stop').addEventListener('change', (e) => save({ autoStopSilence: Number(e.target.value) }));
 
@@ -791,16 +832,16 @@ let recentApps = [];
 function renderAppStyles() {
   const st = settings.appStyles;
   $('#styles-on').checked = st.enabled;
-  const styleSelect = (value, onchange) => el('select', { onchange },
-    ...Object.entries(STYLE_LABELS).map(([k, v]) => el('option', { value: k, selected: k === value }, v)));
+  const styleOptions = (value) => STYLES.map((k) => el('option', { value: k, selected: k === value }, t(`styles.option.${k}`)));
   $('#app-rules').replaceChildren(...st.rules.map((r, i) =>
     el('div', { class: 'rule' },
       el('span', {}, r.app),
-      styleSelect(r.style, (e) => save({ appStyles: { rules: st.rules.map((x, j) => (j === i ? { ...x, style: e.target.value } : x)) } })),
-      el('button', { class: 'icon-btn danger', title: 'Remove', 'aria-label': `Remove ${r.app}`, html: ICONS.trash,
-        onclick: () => save({ appStyles: { rules: st.rules.filter((_, j) => j !== i) } }, 'Removed') }))));
+      el('select', { 'aria-label': t('styles.style'), onchange: (e) => save({ appStyles: { rules: st.rules.map((x, j) => (j === i ? { ...x, style: e.target.value } : x)) } }) },
+        ...styleOptions(r.style)),
+      el('button', { class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('common.removeItem', { name: r.app }), html: ICONS.trash,
+        onclick: () => save({ appStyles: { rules: st.rules.filter((_, j) => j !== i) } }, t('common.removed')) }))));
   const sel = $('#rule-style');
-  if (!sel.options.length) sel.replaceChildren(...Object.entries(STYLE_LABELS).map(([k, v]) => el('option', { value: k }, v)));
+  if (!sel.options.length) sel.replaceChildren(...styleOptions('normal'));
   const known = new Set(st.rules.map((r) => r.app.toLowerCase()));
   $('#recent-apps').replaceChildren(...recentApps.filter((a) => !known.has(a.toLowerCase())).map((a) => el('option', { value: a })));
 }
@@ -811,7 +852,7 @@ $('#rule-form').addEventListener('submit', (e) => {
   if (!app) return;
   const name = app.endsWith('.exe') ? app : `${app}.exe`;
   const rules = settings.appStyles.rules.filter((r) => r.app.toLowerCase() !== name);
-  save({ appStyles: { rules: [...rules, { app: name, style: $('#rule-style').value }] } }, `Added ${name}`);
+  save({ appStyles: { rules: [...rules, { app: name, style: $('#rule-style').value }] } }, t('common.addedItem', { name }));
   $('#rule-app').value = '';
 });
 
@@ -820,37 +861,39 @@ $('#rule-form').addEventListener('submit', (e) => {
 function renderCommand() {
   $('#cmd-chips').replaceChildren(...bindingChips(firstBinding('command')));
   if (document.activeElement !== $('#cmd-model')) $('#cmd-model').value = settings.command.model;
-  $('#cmd-key-state').textContent = settings.cloud.hasApiKey ? 'API key saved.' : 'No API key yet - add one under Speech recognition → Cloud API.';
+  $('#cmd-key-state').textContent = t(settings.cloud.hasApiKey ? 'command.keySaved' : 'command.noKey');
 }
 $('#cmd-model').addEventListener('change', (e) => save({ command: { model: e.target.value.trim() || 'llama-3.3-70b-versatile' } }));
 $('#cmd-test').addEventListener('click', async () => {
   const out = $('#cmd-result');
-  out.textContent = 'Testing…';
+  out.textContent = t('common.testing');
   out.style.color = '';
   const r = await api.testCommand();
-  out.textContent = r.ok ? `Works ("hello" → "${r.output}")` : r.error;
+  out.textContent = r.ok ? t('command.works', { output: r.output }) : r.error;
   out.style.color = r.ok ? 'var(--ok)' : 'var(--signal)';
 });
 
 // ----- read aloud
 
+const rateText = (rate) => `${I18n.num(Number(rate), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}×`;
+
 function renderReadAloud() {
   $('#read-chips').replaceChildren(...bindingChips(firstBinding('readAloud')));
   const voices = speechSynthesis.getVoices();
   const select = $('#tts-voice');
-  select.replaceChildren(el('option', { value: '' }, 'System default'),
+  select.replaceChildren(el('option', { value: '' }, t('common.systemDefault')),
     ...voices.map((v) => el('option', { value: v.name }, `${v.name} (${v.lang})`)));
   select.value = voices.some((v) => v.name === settings.readAloud.voice) ? settings.readAloud.voice : '';
   $('#tts-rate').value = settings.readAloud.rate;
-  $('#tts-rate-value').textContent = `${Number(settings.readAloud.rate).toFixed(1)}×`;
+  $('#tts-rate-value').textContent = rateText(settings.readAloud.rate);
 }
 speechSynthesis.addEventListener('voiceschanged', () => settings && renderReadAloud());
 $('#tts-voice').addEventListener('change', (e) => save({ readAloud: { voice: e.target.value } }));
-$('#tts-rate').addEventListener('input', (e) => ($('#tts-rate-value').textContent = `${Number(e.target.value).toFixed(1)}×`));
+$('#tts-rate').addEventListener('input', (e) => ($('#tts-rate-value').textContent = rateText(e.target.value)));
 $('#tts-rate').addEventListener('change', (e) => save({ readAloud: { rate: Number(e.target.value) } }));
 $('#tts-test').addEventListener('click', () => {
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance('Hi, this is Pauli Speaks reading your selected text.');
+  const u = new SpeechSynthesisUtterance(t('readAloud.sample'));
   const v = speechSynthesis.getVoices().find((x) => x.name === settings.readAloud.voice);
   if (v) u.voice = v;
   u.rate = settings.readAloud.rate;
@@ -867,10 +910,10 @@ async function renderMics() {
   } catch {
     // no permission yet
   }
-  const opts = [el('option', { value: 'default' }, 'System default')];
+  const opts = [el('option', { value: 'default' }, t('common.systemDefault'))];
   for (const d of devices) {
     if (d.deviceId === 'default' || d.deviceId === 'communications') continue;
-    opts.push(el('option', { value: d.deviceId }, d.label || 'Microphone'));
+    opts.push(el('option', { value: d.deviceId }, d.label || t('mic.unnamed')));
   }
   select.replaceChildren(...opts);
   select.value = devices.some((d) => d.deviceId === settings.microphoneId) ? settings.microphoneId : 'default';
@@ -907,9 +950,9 @@ $('#mic-test').addEventListener('click', async (e) => {
     ctx.close();
     await renderMics();
   } catch (err) {
-    toast(`Microphone error: ${err.message}`);
+    toast(t('mic.error', { error: err.message }));
   } finally {
-    stream?.getTracks().forEach((t) => t.stop());
+    stream?.getTracks().forEach((track) => track.stop());
     meter.hidden = true;
     btn.disabled = false;
   }
@@ -928,11 +971,11 @@ document.querySelectorAll('[data-setting]').forEach((input) =>
 document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => api.openPath(b.dataset.open)));
 $('#diagnostics-copy').addEventListener('click', async () => {
   const r = await api.copyDiagnostics();
-  toast(r.ok ? 'Diagnostic info copied. Paste it into your bug report.' : `Couldn't copy: ${r.error}`);
+  toast(r.ok ? t('diagnostics.copied') : t('diagnostics.copyFailed', { error: r.error }));
 });
 $('#diagnostics-report').addEventListener('click', async () => {
   const r = await api.reportProblem();
-  toast(r.ok ? 'Diagnostic info copied. Paste it into the form that just opened.' : `Couldn't copy: ${r.error}`);
+  toast(r.ok ? t('diagnostics.copiedForm') : t('diagnostics.copyFailed', { error: r.error }));
 });
 
 // ------------------------------------------------------------------ wiring
@@ -942,6 +985,7 @@ function renderAll() {
   renderLive();
   renderShortcuts();
   renderVoiceCommands();
+  renderUiLanguage();
   renderTranslation();
   renderEngine();
   renderModels();
@@ -964,20 +1008,21 @@ function renderUpdate(u) {
   if (!u) return;
   const ready = u.status === 'ready';
   $('#update-banner').hidden = !ready;
-  $('#update-banner-title').textContent = ready ? `Pauli Speaks ${u.version} is ready` : '';
+  $('#update-banner-title').textContent = ready ? t('update.readyTitle', { version: u.version }) : '';
   document.querySelectorAll('[data-update-install]').forEach((b) => (b.hidden = !ready));
   $('#update-title').textContent = `Pauli Speaks ${u.current}`;
-  const desc = {
-    disabled: 'Automatic updates run in the installed app (not when started with npm start).',
-    idle: 'Updates install automatically from GitHub.',
-    checking: 'Checking for updates…',
-    'up-to-date': "You're on the latest version.",
-    available: `Version ${u.version} is out. Portable copies don't update themselves: download the new one from GitHub.`,
-    downloading: `Downloading ${u.version || 'update'}… ${u.percent || 0}%`,
-    ready: `Version ${u.version} is downloaded. Restart to install it, or it installs the next time you quit.`,
-    error: `Couldn't check for updates: ${u.error}`,
-  }[u.status] || '';
-  $('#update-desc').textContent = desc;
+  const vars = { version: u.version, percent: u.percent || 0, error: u.error };
+  const key = {
+    disabled: 'update.status.disabled',
+    idle: 'update.status.idle',
+    checking: 'update.status.checking',
+    'up-to-date': 'update.status.upToDate',
+    available: 'update.status.available',
+    downloading: u.version ? 'update.status.downloading' : 'update.status.downloadingAny',
+    ready: 'update.status.ready',
+    error: 'update.status.error',
+  }[u.status];
+  $('#update-desc').textContent = key ? t(key, vars) : '';
   $('#update-check').disabled = ['checking', 'downloading', 'disabled'].includes(u.status) || ready;
   $('#update-meter').hidden = u.status !== 'downloading';
   $('#update-meter').firstElementChild.style.width = `${u.percent || 0}%`;
@@ -994,14 +1039,25 @@ function showPage(page) {
 }
 api.onNavigate(showPage);
 
+/** The page that was open before a language switch reloaded the window, once. */
+function pageBeforeReload() {
+  try {
+    const page = sessionStorage.getItem('pauli.page');
+    sessionStorage.removeItem('pauli.page');
+    return page;
+  } catch {
+    return null;
+  }
+}
+
 async function init() {
   const [s, m, info, status] = await Promise.all([api.getSettings(), api.getModelState(), api.appInfo(), api.getDictationStatus()]);
   settings = s;
   modelState = m;
   dictation = status;
   const hour = new Date().getHours();
-  $('#greeting').textContent = hour < 5 ? 'Good evening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  $('#about-version').textContent = `Version ${info.version} · free · speech by OpenAI Whisper, translation by Meta NLLB-200`;
+  $('#greeting').textContent = t(hour < 5 ? 'home.greeting.evening' : hour < 12 ? 'home.greeting.morning' : hour < 18 ? 'home.greeting.afternoon' : 'home.greeting.evening');
+  $('#about-version').textContent = t('about.version', { version: info.version });
   renderRemoteLinks(info);
   if (info.portable) {
     document.querySelectorAll('[data-portable]').forEach((e) => (e.hidden = false));
@@ -1011,6 +1067,8 @@ async function init() {
   renderAll();
   renderStats();
   loadHistory();
+  const back = pageBeforeReload();
+  if (back) showPage(back);
   if (!settings.onboarded) Welcome.start();
   HomeNotices.start();
   Privacy.start();

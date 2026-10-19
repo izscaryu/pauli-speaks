@@ -12,17 +12,17 @@
       <img src="../../assets/icon.png" alt="" width="30" height="30" />
       <strong>Pauli Speaks</strong>
     </div>
-    <nav aria-label="Sections">
-      <button class="nav active" data-page="home"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Transcripts</button>
-      <button class="nav" data-page="shortcuts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>Shortcuts</button>
-      <button class="nav" data-page="files"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M10 17v-5l4 2.5z"/></svg>Files</button>
-      <button class="nav" data-page="dictionary"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/></svg>Dictionary</button>
-      <button class="nav" data-page="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Settings</button>
-      <button class="nav" data-page="about"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>About</button>
+    <nav aria-label="Sections" data-i18n-aria-label="nav.label">
+      <button class="nav active" data-page="home"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i18n="nav.home">Transcripts</span></button>
+      <button class="nav" data-page="shortcuts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg><span data-i18n="nav.shortcuts">Shortcuts</span></button>
+      <button class="nav" data-page="files"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M10 17v-5l4 2.5z"/></svg><span data-i18n="nav.files">Files</span></button>
+      <button class="nav" data-page="dictionary"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/></svg><span data-i18n="nav.dictionary">Dictionary</span></button>
+      <button class="nav" data-page="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span data-i18n="nav.settings">Settings</span></button>
+      <button class="nav" data-page="about"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span data-i18n="nav.about">About</span></button>
     </nav>
     <div class="side-status">
-      <div class="side-row"><span class="label">Engine</span><span id="side-engine">–</span></div>
-      <div class="side-row"><span class="label">Translate</span><span id="side-translate">Off</span></div>
+      <div class="side-row"><span class="label" data-i18n="side.engine">Engine</span><span id="side-engine">–</span></div>
+      <div class="side-row"><span class="label" data-i18n="side.translate">Translate</span><span id="side-translate">–</span></div>
       <div id="side-progress" class="meter" hidden><i></i></div>
     </div>
   </aside>
@@ -32,12 +32,12 @@
     <section class="page" id="page-welcome" hidden aria-labelledby="welcome-title">
       <header class="welcome-top">
         <ol id="welcome-dots" class="welcome-dots"></ol>
-        <button id="welcome-later" class="btn quiet">Finish later</button>
+        <button id="welcome-later" class="btn quiet" data-i18n="welcome.later">Finish later</button>
       </header>
       <section id="welcome-step" class="panel welcome-step"></section>
       <div id="welcome-progress" class="banner welcome-progress" hidden></div>
       <footer class="welcome-actions">
-        <button id="welcome-skip" class="btn quiet">Skip</button>
+        <button id="welcome-skip" class="btn quiet" data-i18n="welcome.skip">Skip</button>
         <span id="welcome-step-actions" class="inline"></span>
       </footer>
     </section>
@@ -46,15 +46,15 @@
     <section class="page" id="page-home">
       <header class="topbar">
         <div>
-          <h1 id="greeting">Transcripts</h1>
-          <p class="sub" id="topline">Speak anywhere. Your words land where the cursor is.</p>
+          <h1 id="greeting" data-i18n="nav.home">Transcripts</h1>
+          <p class="sub" id="topline" data-i18n="home.topline">Speak anywhere. Your words land where the cursor is.</p>
         </div>
-        <div id="live" class="live" role="status" aria-live="polite"><span class="dot"></span><span id="live-text">Ready</span></div>
+        <div id="live" class="live" role="status" aria-live="polite"><span class="dot"></span><span id="live-text" data-i18n="live.ready">Ready</span></div>
       </header>
 
       <div id="update-banner" class="banner update" hidden>
-        <div class="grow"><strong id="update-banner-title">Update ready</strong><span class="desc">Restart Pauli Speaks to finish updating. It takes a few seconds.</span></div>
-        <button class="btn primary" data-update-install>Restart now</button>
+        <div class="grow"><strong id="update-banner-title"></strong><span class="desc" data-i18n="update.banner.desc">Restart Pauli Speaks to finish updating. It takes a few seconds.</span></div>
+        <button class="btn primary" data-update-install data-i18n="update.banner.restart">Restart now</button>
       </div>
       <div id="hook-banner" class="banner error" hidden></div>
       <div id="model-banner" class="banner" hidden></div>
@@ -64,35 +64,35 @@
       <div id="setup-card" class="banner setup" hidden></div>
       <section id="whatsnew-card" class="panel whatsnew" hidden></section>
 
-      <div class="keys-strip" aria-label="Shortcuts">
-        <div class="kitem"><span id="ptt-chips" class="chips"></span><span>Hold to talk</span></div>
-        <div class="kitem"><span id="hf-chips" class="chips"></span><span>Hands-free</span></div>
-        <div class="kitem"><span id="tr-chips" class="chips"></span><span id="tr-label">Talk &amp; translate</span></div>
-        <div class="kitem"><span id="cancel-chips" class="chips"></span><span>Cancel</span></div>
+      <div class="keys-strip" aria-label="Shortcuts" data-i18n-aria-label="nav.shortcuts">
+        <div class="kitem"><span id="ptt-chips" class="chips"></span><span data-i18n="home.strip.hold">Hold to talk</span></div>
+        <div class="kitem"><span id="hf-chips" class="chips"></span><span data-i18n="home.strip.handsFree">Hands-free</span></div>
+        <div class="kitem"><span id="tr-chips" class="chips"></span><span id="tr-label"></span></div>
+        <div class="kitem"><span id="cancel-chips" class="chips"></span><span data-i18n="action.cancel.title">Cancel</span></div>
       </div>
 
       <div class="statline">
-        <div><b id="st-words">0</b><span>words</span></div>
-        <div><b id="st-wpm">0</b><span>wpm</span></div>
-        <div><b id="st-saved">0</b><span>min saved</span></div>
-        <div><b id="st-count">0</b><span>dictations</span></div>
-        <div><b id="st-streak">0</b><span>day streak</span></div>
-        <figure class="week" aria-label="Words per day, last 7 days">
+        <div><b id="st-words">0</b><span data-i18n="home.stats.words">words</span></div>
+        <div><b id="st-wpm">0</b><span data-i18n="home.stats.wpm">wpm</span></div>
+        <div><b id="st-saved">0</b><span data-i18n="home.stats.saved">min saved</span></div>
+        <div><b id="st-count">0</b><span data-i18n="home.stats.dictations">dictations</span></div>
+        <div><b id="st-streak">0</b><span data-i18n="home.stats.streak">day streak</span></div>
+        <figure class="week" aria-label="Words per day, last 7 days" data-i18n-aria-label="home.week.label">
           <div id="week-bars" class="week-bars"></div>
-          <figcaption>Words · last 7 days</figcaption>
+          <figcaption data-i18n="home.week.caption">Words · last 7 days</figcaption>
         </figure>
       </div>
 
       <label class="pad">
-        <span class="pad-label">Scratchpad</span>
-        <textarea id="try-box" rows="3" placeholder="Click here, hold the talk shortcut and say something…"></textarea>
+        <span class="pad-label" data-i18n="home.pad.label">Scratchpad</span>
+        <textarea id="try-box" rows="3" placeholder="Click here, hold the talk shortcut and say something…" data-i18n-placeholder="home.pad.placeholder"></textarea>
       </label>
 
       <section class="panel">
         <div class="panel-head">
-          <h2>History</h2>
-          <input id="history-search" type="search" placeholder="Search transcripts" aria-label="Search transcripts" />
-          <button id="clear-history" class="btn quiet">Clear</button>
+          <h2 data-i18n="history.title">History</h2>
+          <input id="history-search" type="search" placeholder="Search transcripts" aria-label="Search transcripts" data-i18n-placeholder="history.search" data-i18n-aria-label="history.search" />
+          <button id="clear-history" class="btn quiet" data-i18n="history.clear">Clear</button>
         </div>
         <div id="history" class="history"></div>
       </section>
@@ -102,62 +102,62 @@
     <section class="page" id="page-shortcuts" hidden>
       <header class="topbar">
         <div>
-          <h1>Shortcuts &amp; commands</h1>
-          <p class="sub">Choose how you start, steer and finish dictation. Up to four shortcuts per action.</p>
+          <h1 data-i18n="shortcuts.title">Shortcuts &amp; commands</h1>
+          <p class="sub" data-i18n="shortcuts.sub">Choose how you start, steer and finish dictation. Up to four shortcuts per action.</p>
         </div>
-        <button id="sc-reset" class="btn">Reset to defaults</button>
+        <button id="sc-reset" class="btn" data-i18n="shortcuts.reset">Reset to defaults</button>
       </header>
 
-      <div id="tester" class="tester" tabindex="0" aria-label="Test a key, pedal or mouse button. Focus here, then press something.">
+      <div id="tester" class="tester" tabindex="0" aria-label="Test a key, pedal or mouse button. Focus here, then press something." data-i18n-aria-label="tester.label">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>
         <div class="grow">
-          <div class="title">Test a key, pedal or mouse button</div>
-          <div id="tester-out" class="desc" aria-live="polite">Click here, then press something. You see exactly what Pauli Speaks' keyboard hook sees. Shortcuts pause while you test.</div>
+          <div class="title" data-i18n="tester.title">Test a key, pedal or mouse button</div>
+          <div id="tester-out" class="desc" aria-live="polite" data-i18n="tester.desc">Click here, then press something. You see exactly what Pauli Speaks' keyboard hook sees. Shortcuts pause while you test.</div>
         </div>
         <span id="tester-keys" class="chips"></span>
       </div>
 
-      <h2 class="group-title">Start talking</h2>
-      <section class="panel flush" id="g-start" aria-label="Start talking"></section>
-      <h2 class="group-title">While talking</h2>
-      <section class="panel flush" id="g-during" aria-label="While talking"></section>
-      <h2 class="group-title">After talking</h2>
-      <section class="panel flush" id="g-after" aria-label="After talking"></section>
+      <h2 class="group-title" data-i18n="shortcuts.group.start">Start talking</h2>
+      <section class="panel flush" id="g-start" aria-label="Start talking" data-i18n-aria-label="shortcuts.group.start"></section>
+      <h2 class="group-title" data-i18n="shortcuts.group.during">While talking</h2>
+      <section class="panel flush" id="g-during" aria-label="While talking" data-i18n-aria-label="shortcuts.group.during"></section>
+      <h2 class="group-title" data-i18n="shortcuts.group.after">After talking</h2>
+      <section class="panel flush" id="g-after" aria-label="After talking" data-i18n-aria-label="shortcuts.group.after"></section>
 
-      <div class="group-head"><h2 class="group-title">More ways to start</h2><span class="desc">For pedals, Stream Deck, mice and scripts.</span></div>
+      <div class="group-head"><h2 class="group-title" data-i18n="shortcuts.more.title">More ways to start</h2><span class="desc" data-i18n="shortcuts.more.desc">For pedals, Stream Deck, mice and scripts.</span></div>
       <section class="panel">
         <div class="rows">
-          <div class="row"><div><div class="title">Double-tap a modifier</div><div class="desc">Press Add above, then tap Ctrl, Alt or Shift twice quickly - within 0.4 s, nothing else pressed. A double-tap always toggles.</div></div></div>
-          <div class="row"><div><div class="title">Foot pedals and macro keys</div><div class="desc">Set the pedal or Stream Deck key to send F13-F24: no app uses them. A pedal that sends press and release separately works as Hold.</div></div></div>
-          <div class="row"><div><div class="title">Mouse buttons</div><div class="desc">Middle click and the side buttons work as shortcuts, but they still do their usual job too (Back, Forward) - Windows doesn't let Pauli Speaks block them yet.</div></div></div>
+          <div class="row"><div><div class="title" data-i18n="shortcuts.more.doubleTap.title">Double-tap a modifier</div><div class="desc" data-i18n="shortcuts.more.doubleTap.desc">Press Add above, then tap Ctrl, Alt or Shift twice quickly - within 0.4 s, nothing else pressed. A double-tap always toggles.</div></div></div>
+          <div class="row"><div><div class="title" data-i18n="shortcuts.more.pedals.title">Foot pedals and macro keys</div><div class="desc" data-i18n="shortcuts.more.pedals.desc">Set the pedal or Stream Deck key to send F13-F24: no app uses them. A pedal that sends press and release separately works as Hold.</div></div></div>
+          <div class="row"><div><div class="title" data-i18n="shortcuts.more.mouse.title">Mouse buttons</div><div class="desc" data-i18n="shortcuts.more.mouse.desc">Middle click and the side buttons work as shortcuts, but they still do their usual job too (Back, Forward) - Windows doesn't let Pauli Speaks block them yet.</div></div></div>
           <div class="row stack">
-            <div><div class="title">Links and command line</div><div class="desc">Point Stream Deck, AutoHotkey, foot-pedal software or a script at these. Links can only start and stop dictation, because any web page can open a link; pasting and key presses need the command line.</div></div>
+            <div><div class="title" data-i18n="shortcuts.more.links.title">Links and command line</div><div class="desc" data-i18n="shortcuts.more.links.desc">Point Stream Deck, AutoHotkey, foot-pedal software or a script at these. Links can only start and stop dictation, because any web page can open a link; pasting and key presses need the command line.</div></div>
             <div id="remote-links" class="links"></div>
           </div>
         </div>
       </section>
 
-      <div class="group-head"><h2 class="group-title">Voice commands</h2><span class="desc">Say these while dictating. Add your own in any language.</span></div>
+      <div class="group-head"><h2 class="group-title" data-i18n="voice.title">Voice commands</h2><span class="desc" data-i18n="voice.sub">Say these while dictating. Add your own in any language.</span></div>
       <section class="panel">
         <label class="row">
-          <div><div class="title">Voice commands</div><div class="desc">Line breaks and snippets work anywhere. Actions like "send it" only count at the very start or end, so "I'll send it tomorrow" stays as text.</div></div>
+          <div><div class="title" data-i18n="voice.title">Voice commands</div><div class="desc" data-i18n="voice.desc">Line breaks and snippets work anywhere. Actions like "send it" only count at the very start or end, so "I'll send it tomorrow" stays as text.</div></div>
           <span class="switch"><input type="checkbox" data-setting="voiceCommandsEnabled" /><span></span></span>
         </label>
         <div id="vc-list" class="vc-list"></div>
         <form id="vc-form" class="vc-form">
-          <input id="vc-say" placeholder="When I say… (pošalji)" aria-label="Phrase" required />
-          <select id="vc-do" aria-label="Action">
-            <option value="enter">Press Enter</option>
-            <option value="tab">Press Tab</option>
-            <option value="newline">Insert a line break</option>
-            <option value="paragraph">Insert a blank line</option>
-            <option value="undo">Remove the last dictation</option>
-            <option value="text">Type text…</option>
-            <option value="snippet">Insert a snippet…</option>
+          <input id="vc-say" placeholder="When I say… (pošalji)" aria-label="Phrase" data-i18n-placeholder="voice.form.say" data-i18n-aria-label="voice.form.phrase" required />
+          <select id="vc-do" aria-label="Action" data-i18n-aria-label="voice.form.action">
+            <option value="enter" data-i18n="voice.do.enter">Press Enter</option>
+            <option value="tab" data-i18n="voice.do.tab">Press Tab</option>
+            <option value="newline" data-i18n="voice.do.newline">Insert a line break</option>
+            <option value="paragraph" data-i18n="voice.do.paragraph">Insert a blank line</option>
+            <option value="undo" data-i18n="voice.do.undo">Remove the last dictation</option>
+            <option value="text" data-i18n="voice.do.text">Type text…</option>
+            <option value="snippet" data-i18n="voice.do.snippet">Insert a snippet…</option>
           </select>
-          <input id="vc-text" placeholder="Text to type (\n = new line)" aria-label="Text to type" hidden />
-          <select id="vc-snippet" aria-label="Snippet" hidden></select>
-          <button class="btn primary" type="submit">Add</button>
+          <input id="vc-text" placeholder="Text to type (\n = new line)" aria-label="Text to type" data-i18n-placeholder="voice.form.text" data-i18n-aria-label="voice.form.textLabel" hidden />
+          <select id="vc-snippet" aria-label="Snippet" data-i18n-aria-label="voice.form.snippet" hidden></select>
+          <button class="btn primary" type="submit" data-i18n="common.add">Add</button>
         </form>
       </section>
     </section>
@@ -166,30 +166,30 @@
     <section class="page" id="page-files" hidden>
       <header class="topbar">
         <div>
-          <h1>Transcribe a file</h1>
-          <p class="sub">Audio or video - voice memos, lectures, meetings, interviews. Runs on this PC like dictation.</p>
+          <h1 data-i18n="files.title">Transcribe a file</h1>
+          <p class="sub" data-i18n="files.sub">Audio or video - voice memos, lectures, meetings, interviews. Runs on this PC like dictation.</p>
         </div>
       </header>
       <label id="drop" class="drop">
         <input id="file-input" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.flac,.webm,.mp4,.mkv,.mov" />
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
-        <span><b>Drop a file here</b> or click to choose</span>
-        <small>mp3, m4a, wav, ogg, flac, webm, mp4, mov…</small>
+        <span data-i18n="files.drop"><b data-i18n-slot="drop" data-i18n="files.dropHere">Drop a file here</b> or click to choose</span>
+        <small data-i18n="files.formats">mp3, m4a, wav, ogg, flac, webm, mp4, mov…</small>
       </label>
       <div class="inline">
-        <label class="inline check"><input type="checkbox" id="file-translate" /> Translate into <span id="file-target">English</span></label>
+        <label class="inline check"><input type="checkbox" id="file-translate" /> <span data-i18n="files.translate">Translate into <span id="file-target" data-i18n-slot="language">English</span></span></label>
       </div>
       <section id="file-job" class="panel" hidden>
         <div class="panel-head">
-          <h2 id="file-name">File</h2>
+          <h2 id="file-name"></h2>
           <span id="file-status" class="desc"></span>
         </div>
         <div id="file-meter" class="meter big"><i></i></div>
-        <textarea id="file-text" rows="12" readonly placeholder="The transcript will appear here…"></textarea>
+        <textarea id="file-text" rows="12" readonly placeholder="The transcript will appear here…" data-i18n-placeholder="files.placeholder"></textarea>
         <div class="inline">
-          <button id="file-copy" class="btn" disabled>Copy</button>
-          <button id="file-txt" class="btn" disabled>Save .txt</button>
-          <button id="file-srt" class="btn" disabled>Save subtitles (.srt)</button>
+          <button id="file-copy" class="btn" disabled data-i18n="common.copy">Copy</button>
+          <button id="file-txt" class="btn" disabled data-i18n="files.saveTxt">Save .txt</button>
+          <button id="file-srt" class="btn" disabled data-i18n="files.saveSrt">Save subtitles (.srt)</button>
         </div>
       </section>
     </section>
@@ -198,28 +198,28 @@
     <section class="page" id="page-dictionary" hidden>
       <header class="topbar">
         <div>
-          <h1>Dictionary &amp; snippets</h1>
-          <p class="sub">Teach Pauli Speaks your words, and give it shortcuts for text you type a lot.</p>
+          <h1 data-i18n="dictionary.pageTitle">Dictionary &amp; snippets</h1>
+          <p class="sub" data-i18n="dictionary.sub">Teach Pauli Speaks your words, and give it shortcuts for text you type a lot.</p>
         </div>
       </header>
       <section class="panel">
-        <h2>Dictionary</h2>
-        <p class="desc">Names, brands and jargon. They're also given to Whisper as hints, so it hears them right the first time.</p>
+        <h2 data-i18n="nav.dictionary">Dictionary</h2>
+        <p class="desc" data-i18n="dictionary.desc">Names, brands and jargon. They're also given to Whisper as hints, so it hears them right the first time.</p>
         <form id="dict-form" class="dict-form">
-          <input id="dict-from" placeholder="When I say… (polyspeaks)" required />
+          <input id="dict-from" placeholder="When I say… (polyspeaks)" aria-label="When I say…" data-i18n-placeholder="dictionary.from" data-i18n-aria-label="dictionary.fromLabel" required />
           <span class="arrow" aria-hidden="true">→</span>
-          <input id="dict-to" placeholder="Write… (Pauli Speaks)" required />
-          <button class="btn primary" type="submit">Add</button>
+          <input id="dict-to" placeholder="Write… (Pauli Speaks)" aria-label="Write…" data-i18n-placeholder="dictionary.to" data-i18n-aria-label="dictionary.toLabel" required />
+          <button class="btn primary" type="submit" data-i18n="common.add">Add</button>
         </form>
         <div id="dict-list" class="rows"></div>
       </section>
       <section class="panel">
-        <h2>Snippets</h2>
-        <p class="desc">Say the trigger phrase and the full text is typed instead - your email, address, signature, a standard reply.</p>
+        <h2 data-i18n="snippets.title">Snippets</h2>
+        <p class="desc" data-i18n="snippets.desc">Say the trigger phrase and the full text is typed instead - your email, address, signature, a standard reply.</p>
         <form id="snip-form" class="snip-form">
-          <input id="snip-trigger" placeholder="Trigger phrase (my email)" required />
-          <textarea id="snip-text" rows="2" placeholder="Text to insert (name@example.com)" required></textarea>
-          <button class="btn primary" type="submit">Add</button>
+          <input id="snip-trigger" placeholder="Trigger phrase (my email)" aria-label="Trigger phrase" data-i18n-placeholder="snippets.trigger" data-i18n-aria-label="snippets.triggerLabel" required />
+          <textarea id="snip-text" rows="2" placeholder="Text to insert (name@example.com)" aria-label="Text to insert" data-i18n-placeholder="snippets.text" data-i18n-aria-label="snippets.textLabel" required></textarea>
+          <button class="btn primary" type="submit" data-i18n="common.add">Add</button>
         </form>
         <div id="snip-list" class="rows"></div>
       </section>
@@ -229,137 +229,147 @@
     <section class="page" id="page-settings" hidden>
       <header class="topbar">
         <div>
-          <h1>Settings</h1>
-          <p class="sub">Saved automatically. <a href="https://github.com/izscaryu/pauli-speaks/blob/main/PRIVACY.md" target="_blank">Privacy: what stays on your PC</a></p>
+          <h1 data-i18n="nav.settings">Settings</h1>
+          <p class="sub" data-i18n="settings.sub">Saved automatically. <a href="https://github.com/izscaryu/pauli-speaks/blob/main/PRIVACY.md" target="_blank" data-i18n-slot="link" data-i18n="settings.privacyLink">Privacy: what stays on your PC</a></p>
         </div>
       </header>
 
       <section class="panel">
-        <div class="panel-head"><h2>Shortcuts</h2></div>
+        <h2 data-i18n="settings.language.title">Language</h2>
         <div class="rows">
-          <div class="row"><div><div class="title">Shortcuts and voice commands have their own page</div><div class="desc">Up to four shortcuts per action, hold or toggle, mouse buttons, pedals and links.</div></div><button class="btn" data-go="shortcuts">Open</button></div>
-          <div class="row"><div><div class="title">Guided setup</div><div class="desc">Languages, microphone, speech engine and shortcut, step by step.</div></div><button id="run-setup" class="btn">Run setup again</button></div>
+          <div class="row">
+            <div><div class="title" data-i18n="settings.language.app">App language</div><div class="desc" data-i18n="settings.language.desc">The language of this window, the bar and the tray menu. The languages you dictate in are under Speech recognition.</div></div>
+            <select id="ui-language" aria-label="App language" data-i18n-aria-label="settings.language.app"></select>
+          </div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Translation</h2>
+        <div class="panel-head"><h2 data-i18n="nav.shortcuts">Shortcuts</h2></div>
+        <div class="rows">
+          <div class="row"><div><div class="title" data-i18n="settings.shortcuts.title">Shortcuts and voice commands have their own page</div><div class="desc" data-i18n="settings.shortcuts.desc">Up to four shortcuts per action, hold or toggle, mouse buttons, pedals and links.</div></div><button class="btn" data-go="shortcuts" data-i18n="common.open">Open</button></div>
+          <div class="row"><div><div class="title" data-i18n="settings.setup.title">Guided setup</div><div class="desc" data-i18n="settings.setup.desc">Languages, microphone, speech engine and shortcut, step by step.</div></div><button id="run-setup" class="btn" data-i18n="settings.setup.run">Run setup again</button></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 data-i18n="translation.title">Translation</h2>
         <div class="rows">
           <label class="row">
-            <div><div class="title">Always translate</div><div class="desc">Every dictation is pasted in the target language. When off, use the translate shortcut only when you need it.</div></div>
+            <div><div class="title" data-i18n="translation.always.title">Always translate</div><div class="desc" data-i18n="translation.always.desc">Every dictation is pasted in the target language. When off, use the translate shortcut only when you need it.</div></div>
             <span class="switch"><input type="checkbox" id="tr-always" /><span></span></span>
           </label>
           <div class="row">
-            <div><div class="title">Translate into</div><div class="desc">Speech already in this language is left as is.</div></div>
-            <select id="tr-target"></select>
+            <div><div class="title" data-i18n="translation.target.title">Translate into</div><div class="desc" data-i18n="translation.target.desc">Speech already in this language is left as is.</div></div>
+            <select id="tr-target" aria-label="Translate into" data-i18n-aria-label="translation.target.title"></select>
           </div>
           <div class="row">
-            <div><div class="title">Quality</div><div id="tr-quality-desc" class="desc"></div></div>
+            <div><div class="title" data-i18n="translation.quality.title">Quality</div><div id="tr-quality-desc" class="desc"></div></div>
             <div class="segmented small" id="tr-quality">
-              <button data-quality="fast">Fast</button>
-              <button data-quality="best">Best</button>
+              <button data-quality="fast" data-i18n="translation.quality.fast">Fast</button>
+              <button data-quality="best" data-i18n="translation.quality.best">Best</button>
             </div>
           </div>
           <div class="row" id="tr-model-row">
-            <div><div class="title">Offline translator</div><div class="desc" id="tr-model-desc"></div></div>
-            <button id="tr-download" class="btn">Download</button>
+            <div><div class="title" data-i18n="translation.model.title">Offline translator</div><div class="desc" id="tr-model-desc"></div></div>
+            <button id="tr-download" class="btn" data-i18n="common.download">Download</button>
           </div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Speech recognition</h2>
+        <h2 data-i18n="speech.title">Speech recognition</h2>
         <div class="segmented" id="engine">
-          <button data-engine="local"><b>On this PC</b><small>Free · private · works offline</small></button>
-          <button data-engine="cloud"><b>Cloud API</b><small>Groq free tier · fastest</small></button>
+          <button data-engine="local"><b data-i18n="speech.local.title">On this PC</b><small data-i18n="speech.local.desc">Free · private · works offline</small></button>
+          <button data-engine="cloud"><b data-i18n="speech.cloud.title">Cloud API</b><small data-i18n="speech.cloud.desc">Groq free tier · fastest</small></button>
         </div>
         <div id="local-settings" class="rows">
           <div id="models"></div>
           <div class="row">
-            <div><div class="title">Acceleration</div><div class="desc" id="accel-desc">Use the graphics card when there is one.</div></div>
+            <div><div class="title" data-i18n="accel.title">Acceleration</div><div class="desc" id="accel-desc"></div></div>
             <div class="segmented small" id="accel">
-              <button data-accel="auto">GPU</button>
-              <button data-accel="cpu">CPU only</button>
+              <button data-accel="auto" data-i18n="accel.gpu">GPU</button>
+              <button data-accel="cpu" data-i18n="accel.cpu">CPU only</button>
             </div>
           </div>
         </div>
         <div id="cloud-settings" class="rows" hidden>
-          <div class="row"><div class="title">API base URL</div><input id="cloud-url" placeholder="https://api.groq.com/openai/v1" /></div>
-          <div class="row"><div class="title">API key</div><input id="cloud-key" type="password" placeholder="gsk_…" autocomplete="off" /></div>
-          <div class="row"><div class="title">Model</div><input id="cloud-model" placeholder="whisper-large-v3-turbo" /></div>
+          <div class="row"><div class="title" data-i18n="cloud.url">API base URL</div><input id="cloud-url" placeholder="https://api.groq.com/openai/v1" aria-label="API base URL" data-i18n-aria-label="cloud.url" /></div>
+          <div class="row"><div class="title" data-i18n="cloud.key">API key</div><input id="cloud-key" type="password" placeholder="gsk_…" autocomplete="off" aria-label="API key" data-i18n-aria-label="cloud.key" /></div>
+          <div class="row"><div class="title" data-i18n="cloud.model">Model</div><input id="cloud-model" placeholder="whisper-large-v3-turbo" aria-label="Model" data-i18n-aria-label="cloud.model" /></div>
           <div class="row">
-            <div class="desc">Free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>. Audio goes to that service only in this mode (<a href="https://github.com/izscaryu/pauli-speaks/blob/main/PRIVACY.md" target="_blank">privacy</a>).</div>
-            <div class="inline"><span id="cloud-result" class="desc"></span><button id="cloud-test" class="btn">Test</button></div>
+            <div class="desc" data-i18n="cloud.help">Free key at <a href="https://console.groq.com/keys" target="_blank" data-i18n-slot="keys">console.groq.com/keys</a>. Audio goes to that service only in this mode (<a href="https://github.com/izscaryu/pauli-speaks/blob/main/PRIVACY.md" target="_blank" data-i18n-slot="privacy" data-i18n="cloud.privacy">privacy</a>).</div>
+            <div class="inline"><span id="cloud-result" class="desc"></span><button id="cloud-test" class="btn" data-i18n="common.test">Test</button></div>
           </div>
         </div>
         <div class="row stack">
-          <div><div class="title">Languages you speak</div><div class="desc">One language is fastest. With several (or Auto) Pauli Speaks detects which one you used.</div></div>
+          <div><div class="title" data-i18n="speech.languages.title">Languages you speak</div><div class="desc" data-i18n="speech.languages.desc">One language is fastest. With several (or Auto) Pauli Speaks detects which one you used.</div></div>
           <div id="languages" class="lang-chips"></div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Dictation</h2>
+        <h2 data-i18n="dictation.title">Dictation</h2>
         <div class="rows">
-          <label class="row"><div><div class="title">Use dictionary words as hints</div><div class="desc">Whisper spells your names and terms correctly instead of guessing.</div></div><span class="switch"><input type="checkbox" data-setting="vocabularyPrompt" /><span></span></span></label>
-          <label class="row"><div><div class="title">Silence detection</div><div class="desc">Only speech is sent to the speech engine. Turn off if words get cut.</div></div><span class="switch"><input type="checkbox" data-setting="silenceDetection" /><span></span></span></label>
-          <label class="row"><div><div class="title">Live preview</div><div class="desc">Shows the words above the bar while you speak. Uses more CPU/GPU; on-this-PC engine only.</div></div><span class="switch"><input type="checkbox" data-setting="livePreview" /><span></span></span></label>
+          <label class="row"><div><div class="title" data-i18n="dictation.hints.title">Use dictionary words as hints</div><div class="desc" data-i18n="dictation.hints.desc">Whisper spells your names and terms correctly instead of guessing.</div></div><span class="switch"><input type="checkbox" data-setting="vocabularyPrompt" /><span></span></span></label>
+          <label class="row"><div><div class="title" data-i18n="dictation.silence.title">Silence detection</div><div class="desc" data-i18n="dictation.silence.desc">Only speech is sent to the speech engine. Turn off if words get cut.</div></div><span class="switch"><input type="checkbox" data-setting="silenceDetection" /><span></span></span></label>
+          <label class="row"><div><div class="title" data-i18n="dictation.preview.title">Live preview</div><div class="desc" data-i18n="dictation.preview.desc">Shows the words above the bar while you speak. Uses more CPU/GPU; on-this-PC engine only.</div></div><span class="switch"><input type="checkbox" data-setting="livePreview" /><span></span></span></label>
           <div class="row">
-            <div><div class="title">Stop hands-free after silence</div><div class="desc">Finishes a hands-free dictation automatically when you stop talking.</div></div>
-            <select id="auto-stop">
-              <option value="0">Never</option>
-              <option value="3">After 3 seconds</option>
-              <option value="5">After 5 seconds</option>
-              <option value="10">After 10 seconds</option>
+            <div><div class="title" data-i18n="dictation.autoStop.title">Stop hands-free after silence</div><div class="desc" data-i18n="dictation.autoStop.desc">Finishes a hands-free dictation automatically when you stop talking.</div></div>
+            <select id="auto-stop" aria-label="Stop hands-free after silence" data-i18n-aria-label="dictation.autoStop.title">
+              <option value="0" data-i18n="dictation.autoStop.never">Never</option>
+              <option value="3" data-i18n="dictation.autoStop.3">After 3 seconds</option>
+              <option value="5" data-i18n="dictation.autoStop.5">After 5 seconds</option>
+              <option value="10" data-i18n="dictation.autoStop.10">After 10 seconds</option>
             </select>
           </div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>App styles</h2>
-        <p class="desc">Pauli Speaks notices which app you are dictating into and adjusts the text.</p>
+        <h2 data-i18n="styles.title">App styles</h2>
+        <p class="desc" data-i18n="styles.desc">Pauli Speaks notices which app you are dictating into and adjusts the text.</p>
         <div class="rows">
-          <label class="row"><div class="title">Adapt to the app</div><span class="switch"><input type="checkbox" id="styles-on" /><span></span></span></label>
+          <label class="row"><div class="title" data-i18n="styles.adapt">Adapt to the app</div><span class="switch"><input type="checkbox" id="styles-on" /><span></span></span></label>
         </div>
         <div id="app-rules" class="rows"></div>
         <form id="rule-form" class="rule-form">
-          <input id="rule-app" placeholder="App file, e.g. chrome.exe" list="recent-apps" required />
+          <input id="rule-app" placeholder="App file, e.g. chrome.exe" aria-label="App file" list="recent-apps" data-i18n-placeholder="styles.appFile" data-i18n-aria-label="styles.appFileLabel" required />
           <datalist id="recent-apps"></datalist>
-          <select id="rule-style"></select>
-          <button class="btn" type="submit">Add app</button>
+          <select id="rule-style" aria-label="Style" data-i18n-aria-label="styles.style"></select>
+          <button class="btn" type="submit" data-i18n="styles.add">Add app</button>
         </form>
       </section>
 
       <section class="panel">
-        <h2>Command mode</h2>
-        <p class="desc">Select text anywhere, hold <span id="cmd-chips" class="chips"></span> and say what to do: "make this more formal", "translate to German", "turn this into a bulleted list". With nothing selected it writes new text for you. Uses a free Groq API key (set under Speech recognition → Cloud API).</p>
+        <h2 data-i18n="action.command.title">Command mode</h2>
+        <p class="desc" data-i18n="command.desc">Select text anywhere, hold <span id="cmd-chips" class="chips" data-i18n-slot="keys"></span> and say what to do: "make this more formal", "translate to German", "turn this into a bulleted list". With nothing selected it writes new text for you. Uses a free Groq API key (set under Speech recognition → Cloud API).</p>
         <div class="rows">
-          <div class="row"><div><div class="title">AI model</div><div class="desc">Any chat model your API provider offers.</div></div><input id="cmd-model" placeholder="llama-3.3-70b-versatile" /></div>
-          <div class="row"><div class="desc" id="cmd-key-state"></div><div class="inline"><span id="cmd-result" class="desc"></span><button id="cmd-test" class="btn">Test</button></div></div>
+          <div class="row"><div><div class="title" data-i18n="command.model.title">AI model</div><div class="desc" data-i18n="command.model.desc">Any chat model your API provider offers.</div></div><input id="cmd-model" placeholder="llama-3.3-70b-versatile" aria-label="AI model" data-i18n-aria-label="command.model.title" /></div>
+          <div class="row"><div class="desc" id="cmd-key-state"></div><div class="inline"><span id="cmd-result" class="desc"></span><button id="cmd-test" class="btn" data-i18n="common.test">Test</button></div></div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Read aloud</h2>
-        <p class="desc">Select text anywhere and press <span id="read-chips" class="chips"></span> to hear it. Press it again, or Esc, to stop.</p>
+        <h2 data-i18n="action.readAloud.title">Read aloud</h2>
+        <p class="desc" data-i18n="readAloud.desc">Select text anywhere and press <span id="read-chips" class="chips" data-i18n-slot="keys"></span> to hear it. Press it again, or Esc, to stop.</p>
         <div class="rows">
-          <div class="row"><div class="title">Voice</div><select id="tts-voice"></select></div>
+          <div class="row"><div class="title" data-i18n="readAloud.voice">Voice</div><select id="tts-voice" aria-label="Voice" data-i18n-aria-label="readAloud.voice"></select></div>
           <div class="row">
-            <div class="title">Speed <span id="tts-rate-value" class="desc"></span></div>
-            <div class="inline"><input id="tts-rate" type="range" min="0.6" max="1.8" step="0.1" /><button id="tts-test" class="btn">Try</button></div>
+            <div class="title"><span data-i18n="readAloud.speed">Speed</span> <span id="tts-rate-value" class="desc"></span></div>
+            <div class="inline"><input id="tts-rate" type="range" min="0.6" max="1.8" step="0.1" aria-label="Speed" data-i18n-aria-label="readAloud.speed" /><button id="tts-test" class="btn" data-i18n="readAloud.try">Try</button></div>
           </div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Microphone</h2>
+        <h2 data-i18n="mic.title">Microphone</h2>
         <div class="rows">
           <div class="row">
-            <div><div class="title">Input device</div><div class="desc">Test shows the live level for five seconds.</div></div>
+            <div><div class="title" data-i18n="mic.device">Input device</div><div class="desc" data-i18n="mic.desc">Test shows the live level for five seconds.</div></div>
             <div class="inline">
-              <select id="mic"></select>
-              <button id="mic-test" class="btn">Test</button>
+              <select id="mic" aria-label="Input device" data-i18n-aria-label="mic.device"></select>
+              <button id="mic-test" class="btn" data-i18n="common.test">Test</button>
             </div>
           </div>
           <div id="mic-meter" class="meter big" hidden><i></i></div>
@@ -367,49 +377,49 @@
       </section>
 
       <section class="panel">
-        <h2>Text</h2>
+        <h2 data-i18n="text.title">Text</h2>
         <div class="rows">
-          <label class="row"><div><div class="title">Remove filler words</div><div class="desc">um, uh, hmm, ovaj…</div></div><span class="switch"><input type="checkbox" data-setting="removeFillers" /><span></span></span></label>
-          <label class="row"><div class="title">Capitalize sentences</div><span class="switch"><input type="checkbox" data-setting="capitalize" /><span></span></span></label>
-          <label class="row"><div class="title">Add a space after each dictation</div><span class="switch"><input type="checkbox" data-setting="addTrailingSpace" /><span></span></span></label>
+          <label class="row"><div><div class="title" data-i18n="text.fillers.title">Remove filler words</div><div class="desc" data-i18n="text.fillers.desc">um, uh, hmm, ovaj…</div></div><span class="switch"><input type="checkbox" data-setting="removeFillers" /><span></span></span></label>
+          <label class="row"><div class="title" data-i18n="text.capitalize">Capitalize sentences</div><span class="switch"><input type="checkbox" data-setting="capitalize" /><span></span></span></label>
+          <label class="row"><div class="title" data-i18n="text.space">Add a space after each dictation</div><span class="switch"><input type="checkbox" data-setting="addTrailingSpace" /><span></span></span></label>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Behavior</h2>
+        <h2 data-i18n="behavior.title">Behavior</h2>
         <div class="rows">
-          <label class="row"><div class="title">Start and stop sounds</div><span class="switch"><input type="checkbox" data-setting="sounds" /><span></span></span></label>
-          <label class="row"><div><div class="title">Idle bar</div><div class="desc">Small bar at the bottom of the screen; click it to dictate.</div></div><span class="switch"><input type="checkbox" data-setting="showIdlePill" /><span></span></span></label>
-          <label class="row"><div class="title">Restore my clipboard after pasting</div><span class="switch"><input type="checkbox" data-setting="restoreClipboard" /><span></span></span></label>
-          <label class="row"><div><div class="title">Start with Windows</div><div class="desc" data-portable hidden>Only in the installed app. This portable copy starts when you open it.</div></div><span class="switch"><input type="checkbox" data-setting="launchAtLogin" /><span></span></span></label>
+          <label class="row"><div class="title" data-i18n="behavior.sounds">Start and stop sounds</div><span class="switch"><input type="checkbox" data-setting="sounds" /><span></span></span></label>
+          <label class="row"><div><div class="title" data-i18n="behavior.bar.title">Idle bar</div><div class="desc" data-i18n="behavior.bar.desc">Small bar at the bottom of the screen; click it to dictate.</div></div><span class="switch"><input type="checkbox" data-setting="showIdlePill" /><span></span></span></label>
+          <label class="row"><div class="title" data-i18n="behavior.clipboard">Restore my clipboard after pasting</div><span class="switch"><input type="checkbox" data-setting="restoreClipboard" /><span></span></span></label>
+          <label class="row"><div><div class="title" data-i18n="behavior.login.title">Start with Windows</div><div class="desc" data-portable hidden data-i18n="behavior.login.portable">Only in the installed app. This portable copy starts when you open it.</div></div><span class="switch"><input type="checkbox" data-setting="launchAtLogin" /><span></span></span></label>
         </div>
       </section>
 
       <section class="panel" id="privacy">
-        <h2>Privacy</h2>
-        <p class="desc">What Pauli Speaks keeps on this PC. Nothing here is sent anywhere. <a href="https://github.com/izscaryu/pauli-speaks/blob/main/PRIVACY.md" target="_blank">Read the details</a></p>
+        <h2 data-i18n="privacy.title">Privacy</h2>
+        <p class="desc" data-i18n="privacy.desc">What Pauli Speaks keeps on this PC. Nothing here is sent anywhere. <a href="https://github.com/izscaryu/pauli-speaks/blob/main/PRIVACY.md" target="_blank" data-i18n-slot="link" data-i18n="privacy.details">Read the details</a></p>
         <div class="rows">
           <div class="row">
-            <div><div class="title">Transcript history</div><div id="retention-desc" class="desc"></div></div>
-            <select id="history-retention" aria-label="Transcript history">
-              <option value="keep">Keep</option>
-              <option value="24h">Delete after 24 hours</option>
-              <option value="off">Don't keep</option>
+            <div><div class="title" data-i18n="privacy.history.title">Transcript history</div><div id="retention-desc" class="desc"></div></div>
+            <select id="history-retention" aria-label="Transcript history" data-i18n-aria-label="privacy.history.title">
+              <option value="keep" data-i18n="privacy.history.keep">Keep</option>
+              <option value="24h" data-i18n="privacy.history.24h">Delete after 24 hours</option>
+              <option value="off" data-i18n="privacy.history.off">Don't keep</option>
             </select>
           </div>
-          <label class="row"><div><div class="title">Keep recordings for 24 hours</div><div class="desc">Saves the audio of each dictation on this PC, unencrypted, so you can play it back or transcribe it again from History. Deleted after 24 hours.</div></div><span class="switch"><input type="checkbox" id="audio-history" /><span></span></span></label>
-          <label class="row"><div><div class="title">Recover dictation after a crash</div><div class="desc">Keeps a copy of the recording while you dictate, so a crash doesn't lose it. Deleted as soon as the text is pasted.</div></div><span class="switch"><input type="checkbox" data-setting="crashRecovery" /><span></span></span></label>
-          <div class="row"><div><div class="title">Downloaded models</div><div id="models-desc" class="desc"></div></div><button id="delete-models" class="btn">Delete downloaded models</button></div>
-          <div class="row"><div><div class="title">Delete all my data</div><div class="desc">Your history, recordings, dictionary, snippets and settings. Downloaded models are kept.</div></div><button id="delete-all" class="btn danger">Delete all my data</button></div>
+          <label class="row"><div><div class="title" data-i18n="privacy.recordings.title">Keep recordings for 24 hours</div><div class="desc" data-i18n="privacy.recordings.desc">Saves the audio of each dictation on this PC, unencrypted, so you can play it back or transcribe it again from History. Deleted after 24 hours.</div></div><span class="switch"><input type="checkbox" id="audio-history" /><span></span></span></label>
+          <label class="row"><div><div class="title" data-i18n="privacy.recovery.title">Recover dictation after a crash</div><div class="desc" data-i18n="privacy.recovery.desc">Keeps a copy of the recording while you dictate, so a crash doesn't lose it. Deleted as soon as the text is pasted.</div></div><span class="switch"><input type="checkbox" data-setting="crashRecovery" /><span></span></span></label>
+          <div class="row"><div><div class="title" data-i18n="privacy.models.title">Downloaded models</div><div id="models-desc" class="desc"></div></div><button id="delete-models" class="btn" data-i18n="privacy.models.delete">Delete downloaded models</button></div>
+          <div class="row"><div><div class="title" data-i18n="privacy.all.title">Delete all my data</div><div class="desc" data-i18n="privacy.all.desc">Your history, recordings, dictionary, snippets and settings. Downloaded models are kept.</div></div><button id="delete-all" class="btn danger" data-i18n="privacy.all.title">Delete all my data</button></div>
         </div>
         <div id="privacy-confirm" class="confirm" hidden></div>
       </section>
 
       <section class="panel">
-        <h2>Backup</h2>
+        <h2 data-i18n="backup.title">Backup</h2>
         <div class="rows">
-          <div class="row"><div><div class="title">Export settings</div><div class="desc">Saves your shortcuts, voice commands, dictionary, snippets and app styles to a file. API keys are never included.</div></div><button id="export-settings" class="btn">Export settings</button></div>
-          <div class="row"><div><div class="title">Import settings</div><div class="desc">Loads those settings from a backup file. They replace the ones you have now.</div></div><button id="import-settings" class="btn">Import settings</button></div>
+          <div class="row"><div><div class="title" data-i18n="backup.export.title">Export settings</div><div class="desc" data-i18n="backup.export.desc">Saves your shortcuts, voice commands, dictionary, snippets and app styles to a file. API keys are never included.</div></div><button id="export-settings" class="btn" data-i18n="backup.export.title">Export settings</button></div>
+          <div class="row"><div><div class="title" data-i18n="backup.import.title">Import settings</div><div class="desc" data-i18n="backup.import.desc">Loads those settings from a backup file. They replace the ones you have now.</div></div><button id="import-settings" class="btn" data-i18n="backup.import.title">Import settings</button></div>
         </div>
       </section>
     </section>
@@ -418,62 +428,63 @@
     <section class="page" id="page-about" hidden>
       <header class="topbar">
         <div>
-          <h1>About</h1>
+          <h1 data-i18n="nav.about">About</h1>
           <p class="sub" id="about-version"></p>
         </div>
       </header>
       <section class="panel">
-        <h2>Updates</h2>
+        <h2 data-i18n="update.title">Updates</h2>
         <div class="rows">
           <div class="row">
-            <div><div class="title" id="update-title">Pauli Speaks</div><div class="desc" id="update-desc">Updates install automatically from GitHub.</div></div>
+            <div><div class="title" id="update-title">Pauli Speaks</div><div class="desc" id="update-desc"></div></div>
             <div class="inline">
-              <button id="update-check" class="btn">Check for updates</button>
-              <button class="btn primary" data-update-install hidden>Restart to update</button>
-              <button id="update-download" class="btn primary" hidden>Download</button>
+              <button id="update-check" class="btn" data-i18n="update.check">Check for updates</button>
+              <button class="btn primary" data-update-install hidden data-i18n="update.restart">Restart to update</button>
+              <button id="update-download" class="btn primary" hidden data-i18n="common.download">Download</button>
             </div>
           </div>
           <div id="update-meter" class="meter big" hidden><i></i></div>
-          <label class="row"><div><div class="title">Get early versions</div><div class="desc">Try new versions before everyone else (pre-releases on GitHub). They may have rough edges, and you still get every regular release.</div></div><span class="switch"><input type="checkbox" data-setting="betaUpdates" /><span></span></span></label>
+          <label class="row"><div><div class="title" data-i18n="update.beta.title">Get early versions</div><div class="desc" data-i18n="update.beta.desc">Try new versions before everyone else (pre-releases on GitHub). They may have rough edges, and you still get every regular release.</div></div><span class="switch"><input type="checkbox" data-setting="betaUpdates" /><span></span></span></label>
         </div>
       </section>
       <section class="panel">
-        <h2>Something not working?</h2>
+        <h2 data-i18n="diagnostics.title">Something not working?</h2>
         <div class="rows">
           <div class="row">
-            <div><div class="title">Report a problem</div><div class="desc">Copies diagnostic info (versions, settings, the last 100 log lines) and opens a bug report on GitHub. Paste it there. It never contains what you dictated or your API key.</div></div>
+            <div><div class="title" data-i18n="diagnostics.report">Report a problem</div><div class="desc" data-i18n="diagnostics.desc">Copies diagnostic info (versions, settings, the last 100 log lines) and opens a bug report on GitHub. Paste it there. It never contains what you dictated or your API key.</div></div>
             <div class="inline">
-              <button id="diagnostics-copy" class="btn">Copy diagnostic info</button>
-              <button id="diagnostics-report" class="btn primary">Report a problem</button>
+              <button id="diagnostics-copy" class="btn" data-i18n="diagnostics.copy">Copy diagnostic info</button>
+              <button id="diagnostics-report" class="btn primary" data-i18n="diagnostics.report">Report a problem</button>
             </div>
           </div>
         </div>
       </section>
       <section class="panel prose">
-        <h2>How it works</h2>
+        <h2 data-i18n="about.how.title">How it works</h2>
         <ol>
-          <li>A low-level keyboard hook watches for your shortcut in any app. It never blocks or records other keys.</li>
-          <li>While you hold it, the microphone is recorded at 16 kHz.</li>
-          <li>When you let go, Whisper turns speech into text on your own CPU, so nothing leaves your PC.</li>
-          <li>Optionally the text is translated: Whisper's built-in translator (fast, English) or NLLB-200 (best, 30+ languages).</li>
-          <li>Fillers, voice commands and your dictionary are applied, then the text is pasted with Ctrl+V and your clipboard is put back.</li>
+          <li data-i18n="about.how.1">A low-level keyboard hook watches for your shortcut in any app. It never blocks or records other keys.</li>
+          <li data-i18n="about.how.2">While you hold it, the microphone is recorded at 16 kHz.</li>
+          <li data-i18n="about.how.3">When you let go, Whisper turns speech into text on your own CPU, so nothing leaves your PC.</li>
+          <li data-i18n="about.how.4">Optionally the text is translated: Whisper's built-in translator (fast, English) or NLLB-200 (best, 30+ languages).</li>
+          <li data-i18n="about.how.5">Fillers, voice commands and your dictionary are applied, then the text is pasted with Ctrl+V and your clipboard is put back.</li>
         </ol>
-        <p>Shortcuts use exact key-combination matching, a 500 ms tap / double-tap window, hands-free lock, Esc to cancel and Start-menu masking for Ctrl+Win.</p>
+        <p data-i18n="about.how.details">Shortcuts use exact key-combination matching, a 500 ms tap / double-tap window, hands-free lock, Esc to cancel and Start-menu masking for Ctrl+Win.</p>
         <div class="inline">
-          <button class="btn" data-open="data">Data folder</button>
-          <button class="btn" data-open="models">Models folder</button>
-          <button class="btn" data-open="logs">Logs</button>
+          <button class="btn" data-open="data" data-i18n="about.folder.data">Data folder</button>
+          <button class="btn" data-open="models" data-i18n="about.folder.models">Models folder</button>
+          <button class="btn" data-open="logs" data-i18n="about.folder.logs">Logs</button>
         </div>
       </section>
       <section class="panel prose">
-        <h2>Licence</h2>
-        <p>Pauli Speaks is free and open source (MIT). It is built on open-source components and downloads open models; NLLB-200, used for <em>Best</em> translation, is licensed for non-commercial use only.</p>
-        <p><a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md" target="_blank">Open-source licences</a> · <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE" target="_blank">MIT License</a></p>
+        <h2 data-i18n="about.licence.title">Licence</h2>
+        <p data-i18n="about.licence.desc">Pauli Speaks is free and open source (MIT). It is built on open-source components and downloads open models; NLLB-200, used for <em data-i18n-slot="best" data-i18n="translation.quality.best">Best</em> translation, is licensed for non-commercial use only.</p>
+        <p><a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" data-i18n="about.licence.notices">Open-source licences</a> · <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE" target="_blank">MIT License</a></p>
       </section>
     </section>
   </main>
 
   <div id="toast" class="toast" hidden></div>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
   <script src="welcome.js"></script>
   <script src="welcome-engine.js"></script>

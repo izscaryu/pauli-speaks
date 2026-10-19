@@ -8,31 +8,31 @@
 const FailedHistory = (() => {
   async function retry(entry, button) {
     button.disabled = true;
-    button.textContent = 'Transcribing…';
+    button.textContent = t('common.transcribing');
     const r = await api.retryHistory(entry.id);
-    toast(r.copied ? 'Copied' : r.error);
+    toast(r.copied ? t('common.copied') : r.error);
     button.disabled = false; // History redraws when the entry changes
-    button.textContent = 'Retry';
+    button.textContent = t('common.retry');
   }
 
   /** @param {{id, createdAt, durationMs, engine, error, canRetry}} entry */
   function item(entry) {
     const d = new Date(entry.createdAt);
     const secs = Math.max(1, Math.round((entry.durationMs || 0) / 1000));
-    const retryBtn = entry.canRetry ? el('button', { class: 'btn', 'aria-label': 'Retry this dictation' }, 'Retry') : null;
+    const retryBtn = entry.canRetry ? el('button', { class: 'btn', 'aria-label': t('history.failed.retryLabel') }, t('common.retry')) : null;
     retryBtn?.addEventListener('click', () => retry(entry, retryBtn));
     return el('div', { class: 'item failed' },
-      el('time', { datetime: entry.createdAt }, d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })),
+      el('time', { datetime: entry.createdAt }, I18n.date(d, { hour: '2-digit', minute: '2-digit' })),
       el('div', {},
-        el('p', {}, "Couldn't transcribe this dictation"),
+        el('p', {}, t('history.failed.title')),
         el('div', { class: 'meta' },
           el('span', { class: 'err', title: entry.error }, entry.error),
           `${secs}s · ${entry.engine}`),
         el('div', { class: 'retry-row' },
-          retryBtn || el('span', { class: 'desc' }, 'The recording is no longer available (it is only kept until Pauli Speaks closes).'),
+          retryBtn || el('span', { class: 'desc' }, t('history.failed.gone')),
           HistoryAudio.playButton(entry, { class: 'icon-btn' }))),
       el('div', { class: 'actions' },
-        el('button', { class: 'icon-btn danger', title: 'Delete', 'aria-label': 'Delete this failed dictation', html: ICONS.trash, onclick: () => api.deleteHistory(entry.id) })));
+        el('button', { class: 'icon-btn danger', title: t('common.delete'), 'aria-label': t('history.failed.deleteLabel'), html: ICONS.trash, onclick: () => api.deleteHistory(entry.id) })));
   }
 
   return { item };

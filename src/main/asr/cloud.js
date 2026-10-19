@@ -5,6 +5,7 @@
 
 const { encodeWav } = require('../audio-utils');
 const { relatedChosen } = require('../language-relatives');
+const { t } = require('../strings');
 
 /**
  * With several chosen languages, a returned language outside them is usually a mishearing (short
@@ -50,7 +51,7 @@ function pickAnswer(answers, returned, chosen) {
  *   file transcription (many pieces, any language) does not.
  */
 async function transcribeCloud(audio, { baseUrl, apiKey, model, languages = [], prompt = '', retryOutsideList = true, log = require('../logger') }) {
-  if (!apiKey) throw new Error('Add an API key in Settings > Transcription to use cloud mode.');
+  if (!apiKey) throw new Error(t('errors.cloudNeedsKey'));
   const request = async (language) => {
     const form = new FormData();
     form.append('file', new Blob([encodeWav(audio)], { type: 'audio/wav' }), 'speech.wav');
@@ -68,7 +69,7 @@ async function transcribeCloud(audio, { baseUrl, apiKey, model, languages = [], 
     });
     if (!res.ok) {
       const body = (await res.text()).slice(0, 300);
-      throw new Error(`Cloud transcription failed (HTTP ${res.status}): ${body}`);
+      throw new Error(t('errors.cloudFailed', { status: String(res.status), body }));
     }
     return res.json();
   };
@@ -130,7 +131,7 @@ function languageCode(value) {
  * whisper-large-v3 (not turbo).
  */
 async function translateCloud(audio, { baseUrl, apiKey, model }) {
-  if (!apiKey) throw new Error('Add an API key in Settings > Transcription to use cloud mode.');
+  if (!apiKey) throw new Error(t('errors.cloudNeedsKey'));
   const translateModel = /groq\.com/.test(baseUrl) ? 'whisper-large-v3' : model;
   const form = new FormData();
   form.append('file', new Blob([encodeWav(audio)], { type: 'audio/wav' }), 'speech.wav');
@@ -145,7 +146,7 @@ async function translateCloud(audio, { baseUrl, apiKey, model }) {
   });
   if (!res.ok) {
     const body = (await res.text()).slice(0, 300);
-    throw new Error(`Cloud translation failed (HTTP ${res.status}): ${body}`);
+    throw new Error(t('errors.cloudTranslationFailed', { status: String(res.status), body }));
   }
   const json = await res.json();
   return { text: String(json.text || '').trim(), language: null, translatedTo: 'en' };

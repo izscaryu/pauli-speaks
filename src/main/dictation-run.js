@@ -9,6 +9,7 @@ const { cleanTranscript, cleanUtterance, countWords } = require('./text-cleanup'
 const { resolveStyle } = require('./app-styles');
 const { shouldRunFollowUps } = require('./paste-plan');
 const { buildCommandMessages } = require('./llm');
+const { t } = require('./strings');
 
 /**
  * @param {object} d
@@ -112,11 +113,11 @@ function createDictationRun(d) {
     const scratched = after.some((c) => c.action === 'undo');
     const text = scratched ? '' : cleaned;
     d.log.info(`Transcribed in ${now() - t0}ms (${result.language || '?'}${result.translatedTo ? ` -> ${result.translatedTo}` : ''}, ${app ? app.exe : '?'}: ${style})${before.length + after.length ? `, commands: ${[...before, ...after].map((c) => c.action).join(' ')}` : ''}`);
-    if (!text.trim() && !before.length && !after.length) return d.flash('No speech detected');
+    if (!text.trim() && !before.length && !after.length) return d.flash(t('flash.noSpeech'));
     d.sendOverlayState({ state: 'idle' });
 
     for (const c of before) await typing.runVoiceAction(c, !text.trim());
-    if (scratched) return d.flash('Dropped that dictation');
+    if (scratched) return d.flash(t('flash.dropped'));
     if (!text.trim()) {
       if (typing.enterAfterPaste) await typing.pressEnterNow();
       return;
@@ -132,18 +133,18 @@ function createDictationRun(d) {
   /** Command mode: the speech is an instruction for the selected text (or a request to write something). */
   async function runCommand(audio, seconds, historyId = null) {
     const s = settings.get();
-    d.sendOverlayState({ state: 'processing', mode: 'command', text: 'Listening to your instruction…' });
+    d.sendOverlayState({ state: 'processing', mode: 'command', text: t('overlay.command.listening') });
     const r = await d.recognise(audio, 'transcribe');
     const instruction = cleanTranscript(r.text, { ...s, addTrailingSpace: false, snippets: [] });
-    if (!instruction.trim()) return d.flash('No speech detected');
+    if (!instruction.trim()) return d.flash(t('flash.noSpeech'));
     const selection = await typing.selectedText();
-    d.sendOverlayState({ state: 'processing', mode: 'command', text: selection.trim() ? 'Editing your selection…' : 'Writing…' });
+    d.sendOverlayState({ state: 'processing', mode: 'command', text: t(selection.trim() ? 'overlay.command.editing' : 'overlay.command.writing') });
     const output = await d.chatComplete(
       { baseUrl: s.cloud.baseUrl, apiKey: settings.getApiKey(), model: s.command.model },
       buildCommandMessages(instruction, selection),
     );
     if (controller.cancelled) return d.sendOverlayState({ state: 'idle' });
-    if (!output) return d.flash('The AI returned nothing - try rephrasing', 'error');
+    if (!output) return d.flash(t('flash.aiNothing'), 'error');
     d.log.info(`Command (${instruction.length} chars) on ${selection.length} chars -> ${output.length} chars`);
     const app = d.sessionApp();
     record({

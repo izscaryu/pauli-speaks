@@ -3,6 +3,8 @@
 // the voice commands said around a dictation, and the selection for command mode and read aloud.
 // Windows, the clipboard and the keyboard hook come in through `deps`, so it is unit tested with fakes.
 
+const { t } = require('./strings');
+
 /**
  * @param {object} d
  * @param {{get: () => object}} d.settings
@@ -32,7 +34,7 @@ function createTyping(d) {
     const result = await d.pasteText(text, { restoreClipboard: settings.get().restoreClipboard });
     if (result.mode === 'copy-only') {
       lastPaste.forget(); // nothing was typed, so nothing to undo
-      d.flash('Copied. Press Ctrl+V (this app runs as administrator)', 'info', 4500);
+      d.flash(t('flash.copiedAdmin'), 'info', 4500);
       return result;
     }
     const target = d.foregroundApp();
@@ -42,16 +44,16 @@ function createTyping(d) {
 
   async function pasteLast() {
     const last = history.last();
-    if (!last) return d.flash('Nothing to paste yet');
+    if (!last) return d.flash(t('flash.nothingToPaste'));
     await waitForKeysReleased();
     await paste(last.text + (settings.get().addTrailingSpace ? ' ' : ''));
   }
 
   function copyLast(notify = false) {
     const last = history.last();
-    if (!last) return notify ? d.flash('Nothing to copy yet') : undefined;
+    if (!last) return notify ? d.flash(t('flash.nothingToCopy')) : undefined;
     Promise.resolve(d.writeClipboard(last.text))
-      .then(() => notify && d.flash('Copied your last dictation'))
+      .then(() => notify && d.flash(t('flash.copiedLast')))
       .catch((err) => d.log.warn(`Copy failed: ${err.message}`));
   }
 
@@ -91,7 +93,7 @@ function createTyping(d) {
   /** A voice command said at the start or end of a dictation. */
   async function runVoiceAction(c, alone) {
     if (c.action === 'undo') {
-      if ((await undoLast()) && alone) d.flash('Removed the last dictation');
+      if ((await undoLast()) && alone) d.flash(t('flash.removedLast'));
       return;
     }
     if (c.action === 'key' && VK[c.arg]) {

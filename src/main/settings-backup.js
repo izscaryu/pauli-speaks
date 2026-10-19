@@ -5,9 +5,11 @@
 
 const { runMigrations, MIGRATIONS } = require('./settings');
 const { normalizeBindings } = require('./shortcut-rules');
+const { t } = require('./strings');
 
 const BACKUP_KEYS = Object.freeze(['bindings', 'voiceCommands', 'voiceCommandsEnabled', 'dictionary', 'snippets', 'appStyles']);
 
+// In English, for the tests; the messages themselves are errors.notBackup and errors.backupTooNew.
 const NOT_A_BACKUP = "This isn't a Pauli Speaks backup.";
 const TOO_NEW = 'This backup is from a newer Pauli Speaks. Update first.';
 
@@ -55,14 +57,14 @@ function exportBackup(data, settingsVersion, appVersion) {
 function importBackup(json, currentVersion) {
   if (!isPlainObject(json) || json.app !== 'pauli-speaks' || !isPlainObject(json.settings)
     || !Number.isInteger(json.settingsVersion) || json.settingsVersion < 1) {
-    return { ok: false, error: NOT_A_BACKUP };
+    return { ok: false, error: t('errors.notBackup') };
   }
-  if (json.settingsVersion > currentVersion) return { ok: false, error: TOO_NEW };
+  if (json.settingsVersion > currentVersion) return { ok: false, error: t('errors.backupTooNew') };
   let migrated;
   try {
     migrated = runMigrations({ ...json.settings, settingsVersion: json.settingsVersion }, MIGRATIONS, currentVersion);
   } catch {
-    return { ok: false, error: NOT_A_BACKUP };
+    return { ok: false, error: t('errors.notBackup') };
   }
   const patch = {};
   for (const key of BACKUP_KEYS) {

@@ -6,6 +6,8 @@
 //     is dropped and onExpire runs (main finishes the crash-recovery file there).
 // Only the action on the pill right now can be clicked; an older one is stale.
 
+const { t } = require('./strings');
+
 const UNDO_MS = 4000;
 
 /**
@@ -21,7 +23,7 @@ function createRetryOffers({ pending, history, onFailed = () => {}, undoMs = UND
 
   function show(kind, audioId) {
     offer = { id: `${kind}-${nextId++}`, kind, audioId };
-    return { id: offer.id, label: kind === 'retry' ? 'Retry' : 'Undo' };
+    return { id: offer.id, label: t(kind === 'retry' ? 'common.retry' : 'overlay.undo') };
   }
 
   const failedItem = (historyId) => history.list().find((i) => i.id === historyId && i.status === 'failed') || null;
@@ -80,8 +82,8 @@ function createRetryOffers({ pending, history, onFailed = () => {}, undoMs = UND
      */
     async retryInHistory(historyId, { process, transcribe, isCancelled, copy, saved = () => null, onError = () => {} }) {
       const job = forHistory(historyId) || savedJob(historyId, saved);
-      if (!job) return { error: 'That recording is no longer available' };
-      let out = { error: 'Cancelled' };
+      if (!job) return { error: t('errors.recordingGone') };
+      let out = { error: t('errors.cancelled') };
       const ran = await process(async () => {
         try {
           const entry = await transcribe(job);
@@ -90,14 +92,14 @@ function createRetryOffers({ pending, history, onFailed = () => {}, undoMs = UND
             history.resolve(job.historyId, entry);
             await copy(entry.text);
             out = { copied: true };
-          } else out = { error: 'No speech detected' };
+          } else out = { error: t('flash.noSpeech') };
           settled(job);
         } catch (err) {
           onError(err);
           out = { error: err.message };
         }
       }, job.meta);
-      return ran ? out : { error: 'Still working on the last dictation…' };
+      return ran ? out : { error: t('flash.busy') };
     },
 
     /**

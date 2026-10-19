@@ -24,12 +24,12 @@ const {
   baseLanguageCodes, classifyGpu, recommendModel, findConflicts, parseTasklistCsv, redownloadPath,
 } = require('./system-check');
 const { baseVersion, changelogSection } = require('./changelog');
-const { exportBackup, importBackup, NOT_A_BACKUP } = require('./settings-backup');
+const { exportBackup, importBackup } = require('./settings-backup');
 const { SETTINGS_VERSION } = require('./settings');
+const { t } = require('./strings');
 
 const TASKLIST_TIMEOUT_MS = 5000;
 const MAX_BACKUP_BYTES = 1024 * 1024;
-const BACKUP_FILTERS = [{ name: 'Pauli Speaks backup', extensions: ['json'] }];
 const NO_GPU = Object.freeze({ usable: false, vendor: null });
 
 /** Lower-cased image names of the running processes (Windows `tasklist`); [] on any error. */
@@ -118,12 +118,12 @@ function registerWelcomeIpc(ipcMain, deps) {
   ipcMain.handle('model:redownload', async () => {
     const wanted = (getSettings() || {}).localModel;
     const state = deps.getModelState();
-    if (!state || state.status !== 'error' || state.model !== wanted) return { ok: false, error: 'The model is not in an error state.' };
+    if (!state || state.status !== 'error' || state.model !== wanted) return { ok: false, error: t('errors.modelNotError') };
     const root = deps.modelsDir();
     const dir = redownloadPath(root, wanted);
-    if (!dir) return { ok: false, error: 'Unknown model.' };
+    if (!dir) return { ok: false, error: t('errors.unknownModel') };
     const rel = path.relative(path.resolve(root), path.resolve(dir));
-    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return { ok: false, error: 'Unknown model.' };
+    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return { ok: false, error: t('errors.unknownModel') };
     try {
       removeDir(dir);
     } catch (err) {
@@ -145,6 +145,7 @@ function registerBackupIpc(ipcMain, deps) {
   const { dialog, getWindow, getData, updateSettings, appVersion } = deps;
   const log = deps.log || { warn() {} };
   // dialog.show*Dialog(win, options) when there is a window, dialog.show*Dialog(options) when not.
+  const filters = () => [{ name: t('backup.fileType'), extensions: ['json'] }];
   const withWindow = (options) => {
     const win = getWindow && getWindow();
     return win ? [win, options] : [options];
@@ -154,7 +155,7 @@ function registerBackupIpc(ipcMain, deps) {
     try {
       const { canceled, filePath } = await dialog.showSaveDialog(...withWindow({
         defaultPath: 'pauli-speaks-settings.json',
-        filters: BACKUP_FILTERS,
+        filters: filters(),
       }));
       if (canceled || !filePath) return { ok: false, canceled: true };
       const backup = exportBackup(getData(), SETTINGS_VERSION, appVersion());
@@ -162,7 +163,7 @@ function registerBackupIpc(ipcMain, deps) {
       return { ok: true };
     } catch (err) {
       log.warn('backup: export failed:', err && err.code);
-      return { ok: false, error: "Couldn't save the file." };
+      return { ok: false, error: t('errors.fileNotSaved') };
     }
   });
 
@@ -170,17 +171,17 @@ function registerBackupIpc(ipcMain, deps) {
     try {
       const { canceled, filePaths } = await dialog.showOpenDialog(...withWindow({
         properties: ['openFile'],
-        filters: BACKUP_FILTERS,
+        filters: filters(),
       }));
       if (canceled || !filePaths || !filePaths[0]) return { ok: false, canceled: true };
       const file = filePaths[0];
-      if ((await fs.promises.stat(file)).size > MAX_BACKUP_BYTES) return { ok: false, error: 'This file is too big to be a Pauli Speaks backup.' };
+      if ((await fs.promises.stat(file)).size > MAX_BACKUP_BYTES) return { ok: false, error: t('errors.backupTooBig') };
       let json;
       try {
         // Notepad and other editors may save a UTF-8 BOM, which JSON.parse refuses.
         json = JSON.parse((await fs.promises.readFile(file, 'utf8')).replace(/^\uFEFF/, ''));
       } catch {
-        return { ok: false, error: NOT_A_BACKUP };
+        return { ok: false, error: t('errors.notBackup') };
       }
       const r = importBackup(json, SETTINGS_VERSION);
       if (!r.ok) return r;
@@ -188,7 +189,7 @@ function registerBackupIpc(ipcMain, deps) {
       return { ok: true };
     } catch (err) {
       log.warn('backup: import failed:', err && err.code);
-      return { ok: false, error: "Couldn't read the file." };
+      return { ok: false, error: t('errors.fileNotRead') };
     }
   });
 }

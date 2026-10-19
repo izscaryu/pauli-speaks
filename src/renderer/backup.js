@@ -11,7 +11,7 @@
       if (r && r.ok) toast(done);
       else if (r && r.error) toast(r.error);
     } catch {
-      toast('Something went wrong. Try again.');
+      toast(t('common.wentWrong'));
     } finally {
       button.disabled = false;
     }
@@ -19,6 +19,6 @@
 
   const exportButton = $('#export-settings');
   const importButton = $('#import-settings');
-  exportButton.addEventListener('click', () => run(exportButton, api.exportSettings, 'Settings exported.'));
-  importButton.addEventListener('click', () => run(importButton, api.importSettings, 'Settings imported.'));
+  exportButton.addEventListener('click', () => run(exportButton, api.exportSettings, t('backup.exported')));
+  importButton.addEventListener('click', () => run(importButton, api.importSettings, t('backup.imported')));
 })();

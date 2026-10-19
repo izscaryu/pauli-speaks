@@ -11,7 +11,7 @@
     <div id="preview" class="preview" hidden></div>
     <div id="tip" class="tip" hidden></div>
     <div id="pill" class="pill idle" role="status" aria-live="polite">
-      <button id="cancel" class="icon-btn cancel" title="Cancel (Esc)" aria-label="Cancel">
+      <button id="cancel" class="icon-btn cancel" title="Cancel (Esc)" aria-label="Cancel" data-i18n-title="overlay.cancelTitle" data-i18n-aria-label="common.cancel">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
       </button>
       <span class="rec" aria-hidden="true"></span>
@@ -22,11 +22,12 @@
       <div id="dots" class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
       <span id="label" class="label"></span>
       <button id="action" class="pill-action" hidden></button>
-      <button id="stop" class="icon-btn stop" title="Finish and paste" aria-label="Finish">
+      <button id="stop" class="icon-btn stop" title="Finish and paste" aria-label="Finish" data-i18n-title="remote.stop" data-i18n-aria-label="overlay.finish">
         <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="2" /></svg>
       </button>
     </div>
   </div>
+  <script src="i18n.js"></script>
   <script src="overlay.js"></script>
 </body>
 </html>

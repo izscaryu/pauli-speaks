@@ -3,6 +3,8 @@
 // OpenAI-compatible chat endpoint - by default Groq's free tier, with the same
 // API key as cloud transcription.
 
+const { t } = require('./strings');
+
 const SYSTEM_EDIT = [
   'You are the editing engine of a voice dictation app.',
   'The user selected some text and spoke an instruction about it.',
@@ -49,7 +51,7 @@ function cleanCompletion(text) {
  */
 async function chatComplete(cfg, messages) {
   if (!cfg.apiKey) {
-    throw new Error('Command mode needs an API key. Add a free Groq key in Settings > Speech recognition > Cloud API.');
+    throw new Error(t('errors.commandNeedsKey'));
   }
   const res = await fetch(`${cfg.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
     method: 'POST',
@@ -59,7 +61,7 @@ async function chatComplete(cfg, messages) {
   });
   if (!res.ok) {
     const body = (await res.text()).slice(0, 300);
-    throw new Error(`Command failed (HTTP ${res.status}): ${body}`);
+    throw new Error(t('errors.commandFailed', { status: String(res.status), body }));
   }
   const json = await res.json();
   return cleanCompletion(json.choices?.[0]?.message?.content);

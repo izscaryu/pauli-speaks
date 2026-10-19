@@ -21,6 +21,8 @@
 //     log?,
 //   }
 
+const { t } = require('./strings');
+
 const SAMPLE_RATE = 16000;
 const MIN_RECOVER_SECONDS = 0.5;
 
@@ -73,8 +75,8 @@ function registerRecoveryIpc(ipcMain, deps) {
   });
 
   ipcMain.handle('recovery:recover', async () => {
-    if (!found) return { error: 'That recording is no longer available' };
-    if (busy) return { error: 'Still working on the recovery…' };
+    if (!found) return { error: t('errors.recordingGone') };
+    if (busy) return { error: t('errors.recoveryBusy') };
     busy = true;
     try {
       const { audio, meta: saved } = found;
@@ -83,12 +85,12 @@ function registerRecoveryIpc(ipcMain, deps) {
         durationMs: Math.round((audio.length / SAMPLE_RATE) * 1000),
         engine: deps.engineLabel(), command: false, translate, app: null,
       };
-      let out = { error: 'Cancelled' };
+      let out = { error: t('errors.cancelled') };
 
       /** Nothing is lost: the audio goes to the kept recordings, History lists it as failed, the pill offers Retry. */
       const keepForRetry = (error, announce, cancelled = false) => {
         const action = deps.keep(audio, meta, error);
-        if (announce) deps.flash("Couldn't transcribe.", 'error', 6000, action);
+        if (announce) deps.flash(t('flash.couldNotTranscribe'), 'error', 6000, action);
         return { failed: true, cancelled, error };
       };
 
@@ -106,7 +108,7 @@ function registerRecoveryIpc(ipcMain, deps) {
           return;
         }
         if (!entry) {
-          out = { error: 'No speech detected' };
+          out = { error: t('flash.noSpeech') };
           return;
         }
         deps.addEntry(entry, audio);
@@ -119,7 +121,7 @@ function registerRecoveryIpc(ipcMain, deps) {
         }
       }, { translate, command: false });
       deps.settle?.();
-      if (!ran) return { error: 'Still working on the last dictation…' }; // the offer stays
+      if (!ran) return { error: t('flash.busy') }; // the offer stays
       done();
       return out;
     } finally {

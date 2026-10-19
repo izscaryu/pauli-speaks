@@ -62,6 +62,8 @@
       t: (key, vars) => fill(lookup(key, vars), vars, num),
       num,
       date: (d, opts) => new Date(d).toLocaleString(locale, opts),
+      /** "Discord, Zoom, and Teams" / "Discord i Zoom" */
+      list: (items) => new Intl.ListFormat(locale, { type: 'conjunction' }).format(items.map(String)),
       /** "German" / "Njemački": a language's name in the UI language, capitalised for lists and buttons. */
       languageName(code) {
         try {
@@ -126,6 +128,9 @@
       num: (n, opts) => current.num(n, opts),
       date: (d, opts) => current.date(d, opts),
       languageName: (code) => current.languageName(code),
+      list: (items) => current.list(items),
+      /** A sentence with elements in it: 'Free key at {link}.' + { link: <a> } → ['Free key at ', <a>, '.'] */
+      nodes: (key, slots = {}, vars) => splitSlots(current.t(key, vars)).map((p) => (typeof p === 'string' ? p : slots[p.slot] ?? `{${p.slot}}`)),
       apply: (root = win.document) => applyTo(root, current.t),
       onChange: (cb) => listeners.push(cb),
     };
