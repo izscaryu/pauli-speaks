@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  DEFAULT_MODES, normalizeModes, resolveMode, pinsMode, nextMode, newModeId, modeLabel, v6to7, MAX_MODES,
+  DEFAULT_MODES, normalizeModes, resolveMode, pinsMode, nextMode, newModeId, modeLabel, v6to7, MAX_MODES, withModesFor,
 } = require('../src/main/modes');
 
 const ids = (modes) => modes.map((m) => m.id);
@@ -212,4 +212,13 @@ test('v6 → v7: modes that are already there are kept; nothing else changes', (
   const out = v6to7({ modes, sounds: false, bindings: [V6_BINDINGS[0]] });
   assert.equal(out.modes, modes);
   assert.equal(out.sounds, false);
+});
+
+test('withModesFor: built-in modes that shortcuts point to come back (Reset to defaults), others are left alone', () => {
+  const modes = normalizeModes([{ id: 'default' }, { id: 'code', style: 'code' }]);
+  const bindings = [{ action: 'dictate', mode: 'translate' }, { action: 'dictate', mode: 'mine' }, { action: 'dictate' }];
+  const out = withModesFor(modes, bindings);
+  assert.deepEqual(ids(out), ['default', 'code', 'translate']);
+  assert.equal(out.at(-1).translateTo, 'en');
+  assert.equal(withModesFor(out, bindings), out, 'nothing missing: the same list');
 });

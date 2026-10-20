@@ -142,6 +142,12 @@ function resolveMode({ binding = null, link = null, switched = null, exe = null,
   return (name && list.find((m) => m.apps.includes(name))) || def;
 }
 
+/** `modes` plus the built-in modes that `bindings` point to but are missing (Reset to defaults after one was deleted). */
+function withModesFor(modes, bindings) {
+  const missing = DEFAULT_MODES.filter((m) => !findMode(modes, m.id) && bindings.some((b) => b.mode === m.id));
+  return missing.length ? [...modes, ...structuredClone(missing)] : modes;
+}
+
 /** Switch mode: Automatic (null) → each mode in turn → Automatic. */
 function nextMode(modes, currentId) {
   const order = [null, ...modes.map((m) => m.id)];
@@ -198,5 +204,5 @@ function v6to7(saved) {
 
 module.exports = {
   STYLES, AI_POLISH, MAX_MODES, PALETTE, DEFAULT_ID, TRANSLATE_ID, DEFAULT_MODE, DEFAULT_MODES,
-  normalizeModes, newModeId, slugify, findMode, pinsMode, resolveMode, nextMode, modeLabel, v6to7,
+  normalizeModes, newModeId, slugify, findMode, pinsMode, resolveMode, nextMode, modeLabel, v6to7, withModesFor,
 };

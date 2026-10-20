@@ -46,7 +46,7 @@ const { pasteText, pressKey, getSelectedText, writeExcluded } = require('./paste
 const { PROTOCOL, parseCommandLine } = require('./remote');
 const { createModeSession } = require('./mode-session');
 const { createFileTranscriber } = require('./files');
-const { modeLabel, DEFAULT_MODE } = require('./modes');
+const { modeLabel, withModesFor, DEFAULT_MODE } = require('./modes');
 const { buildCommandMessages, chatComplete } = require('./llm');
 const { LocalAsr } = require('./asr/local-asr');
 const { transcribeCloud, translateCloud } = require('./asr/cloud');
@@ -809,7 +809,8 @@ function registerIpc() {
   ipcMain.handle('shortcut:test', (_e, on) => setKeyTest(!!on));
   ipcMain.handle('shortcut:reset', () => {
     stopShortcutRecording();
-    settings.update({ bindings: structuredClone(DEFAULTS.bindings) });
+    const bindings = structuredClone(DEFAULTS.bindings); // Ctrl + Win + Shift opens the Translate mode: back if deleted
+    settings.update({ bindings, modes: withModesFor(settings.get().modes, bindings) });
     return settings.getPublic();
   });
   ipcMain.handle('model:state', () => publicModelState());
