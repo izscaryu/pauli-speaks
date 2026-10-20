@@ -33,6 +33,17 @@ Write the test first, watch it fail, then make it pass. Code that touches Electr
 engine takes them through a `deps` object, so it can be tested with fakes (see `dictation-flow.js` and its
 test for the pattern).
 
+## Comparing speech engines
+
+```powershell
+npm run bench -- C:\path\to\recordings --engines whisper:base,whisper:small --languages hr
+```
+
+The folder holds your recordings with what was said in each: `clip.wav` (16-bit PCM) next to `clip.txt`. Keep it
+outside the repository; the script only reads it. It prints each engine's word error rate, real-time factor and
+cold and warm start times (`--details` adds every clip). Whisper models go to a folder in your temp directory
+unless you pass `--models <folder>`. `cloud` sends the recordings to the service and needs `PAULI_BENCH_API_KEY`.
+
 ## Where things live
 
 | Path | What |
