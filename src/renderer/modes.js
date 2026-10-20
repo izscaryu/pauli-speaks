@@ -48,16 +48,19 @@ const Modes = (() => {
    * A new mode keeps the id from its first name ("new-mode") until it is named; then the id follows the name,
    * so its link reads ?mode=croatian-chat. Shortcuts already pointing to it move along.
    */
-  async function rename(m, name) {
+  function rename(m, name) {
     const fresh = new RegExp(`^${slug(t('modes.newName'))}(-\\d+)?$`).test(m.id) && (!m.name || m.name === t('modes.newName')) && name && slug(name);
     if (!fresh) return update({ name });
-    const at = settings.modes.findIndex((x) => x.id === m.id);
-    await save({ modes: settings.modes.map((x, i) => (i === at ? { ...x, id: undefined, name } : x)) });
-    selected = settings.modes[at].id;
-    if (settings.bindings.some((b) => b.mode === m.id)) {
-      await save({ bindings: settings.bindings.map((b) => (b.mode === m.id ? { ...b, mode: selected } : b)) }, null);
-    }
-    render();
+    // The new id is chosen here, before saving, so a re-render on the way never loses the selection.
+    const used = new Set(settings.modes.filter((x) => x.id !== m.id).map((x) => x.id));
+    const base = slug(name).slice(0, 36).replace(/-+$/, '') || 'mode';
+    let id = base;
+    for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
+    selected = id;
+    return save({
+      modes: settings.modes.map((x) => (x.id === m.id ? { ...x, id, name } : x)),
+      bindings: settings.bindings.map((b) => (b.mode === m.id ? { ...b, mode: id } : b)),
+    });
   }
 
   // ---------------------------------------------------------------- the editor's fields
