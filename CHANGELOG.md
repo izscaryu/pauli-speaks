@@ -10,6 +10,7 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 - Your settings come along: App styles become the Chat, Code and Formal modes with the same apps, "Always translate" becomes a translating mode, and the Talk & translate shortcut opens the new "Translate to …" mode. Your old settings file is kept as settings.v6.json.
 - Command mode listens in the language of the mode you are in.
 - Backups now carry your modes instead of app styles; a backup from an older version brings its app styles in as modes.
+- Settings → Speech shows the downloaded speech and translation models with their size and when each was last used, and deletes them one at a time.
 
 ## 1.4.0
 
