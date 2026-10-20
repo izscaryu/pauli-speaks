@@ -33,7 +33,7 @@ const { ShortcutRecorder } = require('./shortcut-recorder');
 const { LastPaste } = require('./last-paste');
 const { formatShortcut, sortKeys, VK } = require('./keys');
 const { cleanTranscript, toSrt } = require('./text-cleanup');
-const { speechLevel, splitAtPauses, SAMPLE_RATE } = require('./audio-utils');
+const { speechLevel, SAMPLE_RATE } = require('./audio-utils');
 const { gateSpeech, reportOncePerMessage, SILENCE_LEVEL } = require('./speech-gate');
 const { createRecoveryFile } = require('./recovery-file');
 const { createListeningSession } = require('./listening-session');
@@ -45,6 +45,7 @@ const { createTyping } = require('./typing');
 const { pasteText, pressKey, getSelectedText, writeExcluded } = require('./paster');
 const { PROTOCOL, parseCommandLine } = require('./remote');
 const { createModeSession } = require('./mode-session');
+const { createFileTranscriber } = require('./files');
 const { modeLabel, DEFAULT_MODE } = require('./modes');
 const { buildCommandMessages, chatComplete } = require('./llm');
 const { LocalAsr } = require('./asr/local-asr');
@@ -117,7 +118,7 @@ let flow = null; // what happens to a recording after the microphone stops (dict
 let run = null; // transcribe, clean up, paste; command mode (dictation-run.js)
 let typing = null; // paste, Enter, undo last, voice commands (typing.js)
 let reading = false;
-let fileBusy = false;
+let files = null; // Files → transcribe a file (files.js)
 let updater = null;
 let updateNotified = false;
 const audioRequests = new Map();
@@ -607,57 +608,16 @@ function stopReading() {
   sendOverlayState({ state: 'idle' });
 }
 
-// ---------------------------------------------------------------- file transcription
+// ---------------------------------------------------------------- file transcription (files.js)
 
-/**
- * Transcribe a whole audio/video file (decoded to 16 kHz mono by the renderer).
- * Long files are split at pauses into ~2 minute pieces for progress reporting.
- * @returns {Promise<{text: string, segments: {start,end,text}[], language: string|null, translatedTo: string|null}>}
- */
-async function transcribeFile(audio, { translate = false } = {}) {
-  if (fileBusy) throw new Error(t('errors.fileBusy'));
-  if (controller.status !== 'idle') throw new Error(t('errors.finishCurrent'));
-  fileBusy = true;
-  try {
-    const s = settings.get();
-    const target = s.translation.target;
-    const fast = translate && target === 'en' && !needsNllb(s);
-    const pieces = splitAtPauses(audio);
-    const segments = [];
-    let language = null;
-    for (let i = 0; i < pieces.length; i++) {
-      send(mainWindow, 'file:progress', { done: i, total: pieces.length });
-      const { start, samples } = pieces[i];
-      if (speechLevel(samples) < SILENCE_LEVEL) continue;
-      let r;
-      if (s.engine === 'cloud') {
-        r = fast ? await translateCloud(samples, cloudOpts()) : await transcribeCloud(samples, { ...cloudOpts(), prompt: '', retryOutsideList: false });
-      } else {
-        await preloadModel();
-        if (modelState.status === 'error') throw new Error(t('errors.modelFailed', { error: modelState.error }));
-        r = await asr.transcribe(samples, { ...localOpts(), prompt: '', task: fast ? 'translate' : 'transcribe', timestamps: true });
-      }
-      const dur = samples.length / SAMPLE_RATE;
-      const chunks = r.chunks && r.chunks.length ? r.chunks : [{ start: 0, end: dur, text: r.text }];
-      language ??= r.language;
-      if (translate && !r.translatedTo && r.language && r.language !== target) {
-        for (const c of chunks) if (c.text.trim()) c.text = await translateText(c.text, r.language, target);
-      }
-      for (const c of chunks) {
-        const text = cleanTranscript(c.text, { ...s, addTrailingSpace: false, snippets: [], voiceCommands: false });
-        if (text.trim()) segments.push({ start: start + c.start, end: start + Math.min(c.end, dur), text });
-      }
-    }
-    send(mainWindow, 'file:progress', { done: pieces.length, total: pieces.length });
-    return {
-      text: segments.map((x) => x.text).join(' ').replace(/[ \t]+/g, ' ').trim(),
-      segments,
-      language,
-      translatedTo: translate ? target : null,
-    };
-  } finally {
-    fileBusy = false;
+/** One piece of a file: Whisper's own English translation (fast), or a timestamped transcription. */
+async function recognisePiece(samples, fast) {
+  if (settings.get().engine === 'cloud') {
+    return fast ? translateCloud(samples, cloudOpts()) : transcribeCloud(samples, { ...cloudOpts(), prompt: '', retryOutsideList: false });
   }
+  await preloadModel();
+  if (modelState.status === 'error') throw new Error(t('errors.modelFailed', { error: modelState.error }));
+  return asr.transcribe(samples, { ...localOpts(), prompt: '', task: fast ? 'translate' : 'transcribe', timestamps: true });
 }
 
 // ---------------------------------------------------------------- shortcuts
@@ -808,7 +768,7 @@ function registerIpc() {
     catalog: () => [...MODELS.map((m) => ({ id: m.id, label: `Whisper ${m.label}`, kind: 'speech' })), { id: NLLB_MODEL, label: 'Offline translator', kind: 'translator' }],
     modelsDir,
     dictationActive: () => controller.status !== 'idle',
-    fileActive: () => fileBusy,
+    fileActive: () => files.busy,
     modelsBusy: () => [modelState.status, translatorState.status].some((st) => st === 'downloading' || st === 'loading'),
     unloadModels: () => asr.stop(),
     afterModelsDeleted: forgetModels,
@@ -899,7 +859,7 @@ function registerIpc() {
   ipcMain.handle('update:check', () => updater.check());
   ipcMain.handle('update:install', () => updater.install());
   ipcMain.handle('file:transcribe', (_e, { audio, translate }) =>
-    transcribeFile(audio instanceof Float32Array ? audio : new Float32Array(audio), { translate }));
+    files.transcribe(audio instanceof Float32Array ? audio : new Float32Array(audio), { translate }));
   ipcMain.handle('file:save', async (_e, { name, format, text, segments }) => {
     const base = String(name || 'transcript').replace(/\.[^.]+$/, '');
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
@@ -1052,6 +1012,10 @@ function init() {
     flash, copy: writeExcluded, savedRecording: (hid) => privacy.savedRecording(hid), audioIds: () => audioHistory.ids(), log,
   });
   controller.on('cancel-processing', () => sendOverlayState({ state: 'idle' }));
+  files = createFileTranscriber({
+    settings, dictationBusy: () => controller.status !== 'idle', needsNllb, recognisePiece, translateText,
+    progress: (done, total) => send(mainWindow, 'file:progress', { done, total }),
+  });
 
   keyboard = new KeyboardService();
   keyboard.on('action', onAction);
@@ -1155,7 +1119,7 @@ async function runSelfTest(dir) {
     t0 = Date.now();
     const looped = new Float32Array(samples.length * 3 + SAMPLE_RATE * 3);
     for (let i = 0; i < 3; i++) looped.set(samples, i * (samples.length + SAMPLE_RATE));
-    const file = await transcribeFile(looped);
+    const file = await files.transcribe(looped);
     report.file = { ms: Date.now() - t0, segments: file.segments.length, srt: toSrt(file.segments).split('\n').slice(0, 4).join(' | '), text: file.text };
 
     if (mainWindow) {
