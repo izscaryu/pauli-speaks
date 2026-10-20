@@ -3,13 +3,27 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { DictationController, DEBOUNCE_MS } = require('../src/main/dictation-controller');
 
+/** A stand-in for mode-session.js: the old translate action → 'translate', a pinned mode, a link, a kept mode, or Default. */
+function fakeResolve(requests) {
+  return (req = {}) => {
+    requests.push(req);
+    if (req.kept) return { id: req.kept.mode || (req.kept.translate ? 'translate' : 'default'), translateTo: req.kept.translate ? 'en' : null };
+    const b = req.binding || {};
+    if (b.action === 'translate' && !b.mode) return { id: 'translate', translateTo: 'en' };
+    const id = b.mode || req.link || 'default';
+    return { id, translateTo: id === 'translate' ? 'en' : null };
+  };
+}
+
 function setup() {
   let now = 1000;
   const timers = [];
   const calls = [];
+  const requests = [];
   let finishResolve = null;
   const controller = new DictationController(
     {
+      resolveMode: fakeResolve(requests),
       start: () => calls.push('start'),
       finish: (reason) => {
         calls.push(`finish:${reason}`);
@@ -44,7 +58,7 @@ function setup() {
     finishResolve?.();
     await new Promise((r) => setImmediate(r));
   };
-  return { controller, calls, advance, settle };
+  return { controller, calls, advance, settle, requests };
 }
 
 test('hold then release transcribes', async () => {
@@ -282,6 +296,7 @@ test('process runs kept audio like a stop: processing, in the mode it was record
     return new Promise((r) => (release = r));
   }, { translate: true, command: false });
   assert.deepEqual(seen, { status: 'processing', translate: true, command: false, cancelled: false });
+  assert.equal(controller.mode.id, 'translate', 'the mode the kept recording was made in');
   release();
   assert.equal(await done, true);
   assert.equal(controller.status, 'idle');
@@ -311,4 +326,101 @@ test('cancel during process marks it cancelled; a throwing run still ends idle',
   }, { command: true });
   await assert.rejects(done, /boom/);
   assert.equal(controller.status, 'idle');
+});
+
+// ---------------------------------------------------------------- modes
+
+test('a dictation asks for its mode once, when it starts, with the shortcut that started it', async () => {
+  const { controller, requests, advance, settle } = setup();
+  const binding = { id: 'd1', action: 'dictate', mode: 'code' };
+  controller.talkDown({ behaviour: 'both', binding });
+  assert.equal(controller.mode.id, 'code');
+  advance(100);
+  controller.talkUp({ behaviour: 'both' });
+  controller.talkDown({ behaviour: 'both', binding }); // double-tap: lock
+  assert.equal(controller.locked, true);
+  advance(2000);
+  controller.talkDown({ behaviour: 'both', binding });
+  await settle();
+  assert.equal(requests.length, 1, 'more presses of a shortcut for the same mode do not ask again');
+  assert.deepEqual(requests[0], { binding });
+});
+
+test('the status says which mode is running', () => {
+  const { controller } = setup();
+  const seen = [];
+  controller.on('status', (s) => seen.push(s));
+  controller.talkDown({ binding: { action: 'dictate', mode: 'chat' } });
+  assert.equal(seen[0].mode.id, 'chat');
+  assert.equal(seen[0].translate, false);
+});
+
+test('pressing a shortcut for another mode while one is held switches the running dictation to it', () => {
+  const { controller, calls, advance } = setup();
+  controller.talkDown({ binding: { action: 'dictate' } });
+  advance(900);
+  controller.talkDown({ binding: { action: 'dictate', mode: 'translate' } });
+  assert.equal(controller.mode.id, 'translate');
+  assert.equal(controller.translate, true);
+  assert.equal(controller.status, 'listening');
+  assert.equal(controller.locked, false);
+  assert.deepEqual(calls, ['start']);
+});
+
+test('a second Automatic shortcut does not change the mode; it works as before (lock or stop)', () => {
+  const { controller, advance } = setup();
+  controller.talkDown({ binding: { action: 'dictate', mode: 'code' } });
+  advance(100);
+  controller.talkDown({ behaviour: 'both', binding: { action: 'dictate' } });
+  assert.equal(controller.mode.id, 'code');
+  assert.equal(controller.locked, true);
+});
+
+test('command mode keeps the mode it started in (for its language)', () => {
+  const { controller, advance } = setup();
+  controller.talkDown({ binding: { action: 'dictate', mode: 'hr' } });
+  advance(700);
+  controller.talkDown({ behaviour: 'hold', kind: 'command', binding: { action: 'command' } });
+  assert.equal(controller.command, true);
+  assert.equal(controller.mode.id, 'hr');
+  assert.equal(controller.translate, false, 'command mode never translates');
+});
+
+test('links and flags start in their mode', () => {
+  const a = setup();
+  a.controller.start({ link: 'email' });
+  assert.equal(a.controller.mode.id, 'email');
+  const b = setup();
+  b.controller.toggle({ link: 'email' });
+  assert.equal(b.controller.mode.id, 'email');
+  const c = setup();
+  c.controller.toggle();
+  assert.equal(c.controller.mode.id, 'default');
+});
+
+test('setMode (Switch mode while talking) changes the running dictation and says so', () => {
+  const { controller } = setup();
+  controller.setMode({ id: 'code' });
+  assert.equal(controller.mode, null, 'nothing running: nothing to change');
+  controller.talkDown({});
+  const seen = [];
+  controller.on('status', (s) => seen.push(s));
+  controller.setMode({ id: 'code' });
+  assert.equal(controller.mode.id, 'code');
+  assert.deepEqual(seen.map((s) => [s.status, s.mode.id]), [['listening', 'code']]);
+});
+
+test('process runs a kept recording in the mode it was recorded in', async () => {
+  const { controller, requests } = setup();
+  await controller.process(async () => {}, { mode: 'chat', command: false, app: { exe: 'slack.exe' } });
+  assert.equal(controller.mode.id, 'chat');
+  assert.deepEqual(requests.at(-1), { kept: { mode: 'chat', command: false, app: { exe: 'slack.exe' } } });
+});
+
+test('without resolveMode (older callers) there is no mode, and translate is false', () => {
+  const controller = new DictationController({ start() {}, finish: async () => {}, dismiss() {} });
+  controller.pttDown();
+  assert.equal(controller.mode, null);
+  assert.equal(controller.translate, false);
+  controller.cancel(); // clears the 20-minute timer
 });

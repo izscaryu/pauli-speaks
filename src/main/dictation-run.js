@@ -1,12 +1,13 @@
 'use strict';
 // The dictation itself, once the speech gate has let a recording through (dictation-flow.js):
-//   - transcribe: speech -> text, translated when asked;
+//   - transcribe: speech -> text in the mode's language, translated when the mode says so;
 //   - runDictation: clean it up, run the voice commands said at its start / end, put it in History, paste;
 //   - runCommand: command mode, the speech is an instruction for the selected text.
+// Language, translation, style and voice commands come from the session's mode (controller.mode, modes.js).
 // Engines, windows and keys come in through `deps` (typing.js does the typing), so it is unit tested with fakes.
 
 const { cleanTranscript, cleanUtterance, countWords } = require('./text-cleanup');
-const { resolveStyle } = require('./app-styles');
+const { DEFAULT_MODE } = require('./modes');
 const { shouldRunFollowUps } = require('./paste-plan');
 const { buildCommandMessages } = require('./llm');
 const { t } = require('./strings');
@@ -14,12 +15,12 @@ const { t } = require('./strings');
 /**
  * @param {object} d
  * @param {{get: () => object, getApiKey: () => string}} d.settings
- * @param {{command: boolean, translate: boolean, cancelled: boolean}} d.controller
+ * @param {{command: boolean, mode: object|null, cancelled: boolean}} d.controller  mode: the session's (modes.js)
  * @param {import('./history').History} d.history
  * @param {ReturnType<import('./typing').createTyping>} d.typing
- * @param {(audio, task: 'transcribe'|'translate') => Promise<object>} d.recognise  the chosen engine, model loaded
+ * @param {(audio, task: 'transcribe'|'translate', opts: {languages: string[]}) => Promise<object>} d.recognise  the chosen engine, model loaded
  * @param {(text, source, target) => Promise<string>} d.translateText  NLLB
- * @param {(settings: object) => boolean} d.needsNllb
+ * @param {(settings: object, target: string) => boolean} d.needsNllb
  * @param {() => {exe: string}|null} d.sessionApp  the app in front when the dictation started
  * @param {() => string} d.engineLabel
  * @param {(historyId: string, audio: Float32Array) => void} d.saveRecording  kept when Privacy says so
@@ -35,27 +36,37 @@ function createDictationRun(d) {
   const { settings, controller, history, typing } = d;
   const now = d.now || Date.now;
 
+  /** The running dictation's mode; Default before the controller has one. */
+  const sessionMode = () => controller.mode || DEFAULT_MODE;
+
   function translatingNow() {
-    return !controller.command && !!(controller.translate || settings.get().translation.always);
+    return !controller.command && !!sessionMode().translateTo;
   }
 
+  /** The mode's language, or your languages. */
+  const languagesFor = (mode) => (mode.language ? [mode.language] : settings.get().languages);
+
+  /** Clean-up options: your settings with the mode's style and voice commands. */
+  const cleanOpts = (s, mode, more = {}) => ({ ...s, style: mode.style, voiceCommandsEnabled: s.voiceCommandsEnabled && mode.voiceCommands, ...more });
+
   /**
-   * Speech -> text, optionally translated:
+   * Speech -> text in the mode's language, translated when the mode has a target:
    *   Fast  (target English): Whisper's own translate task, one pass, no extra download
    *   Best  (or other target): transcribe, clean up, then NLLB-200 text translation
    * @returns {Promise<{text: string, language: string|null, translatedTo: string|null, original?: string}>}
    */
-  async function transcribe(audio, { translate = false } = {}) {
+  async function transcribe(audio, mode = sessionMode()) {
     const s = settings.get();
-    const target = s.translation.target;
-    const fast = translate && target === 'en' && !d.needsNllb(s);
-    const result = await d.recognise(audio, fast ? 'translate' : 'transcribe');
-    if (!translate || result.translatedTo) return result;
+    const target = controller.command ? null : mode.translateTo;
+    const languages = languagesFor(mode);
+    const fast = target === 'en' && !d.needsNllb(s, target);
+    const result = await d.recognise(audio, fast ? 'translate' : 'transcribe', { languages });
+    if (!target || result.translatedTo) return result;
 
-    const source = result.language || (s.languages.length === 1 ? s.languages[0] : null);
+    const source = result.language || (languages.length === 1 ? languages[0] : null);
     if (source === target) return result;
     // Voice commands are found in the language they were spoken in ("pošalji"), before translating.
-    const { text: original, before, after } = cleanUtterance(result.text, { ...s, addTrailingSpace: false, snippets: [] });
+    const { text: original, before, after } = cleanUtterance(result.text, cleanOpts(s, mode, { addTrailingSpace: false, snippets: [] }));
     if (!original.trim()) return result;
     const text = await d.translateText(original, source || 'en', target);
     return { ...result, text, language: source, translatedTo: target, original, before, after };
@@ -64,17 +75,17 @@ function createDictationRun(d) {
   /** What Retry / Undo need to run a kept recording again the way it was meant. */
   const keptMeta = (seconds) => ({
     durationMs: Math.round(seconds * 1000), engine: controller.command ? settings.get().command.model : d.engineLabel(),
-    command: controller.command, translate: controller.translate, app: d.sessionApp(),
+    command: controller.command, mode: sessionMode().id, translate: translatingNow(), app: d.sessionApp(),
   });
 
-  /** Text plus the voice commands said at its start / end. */
-  function dictationText(result, style) {
+  /** Text plus the voice commands said at its start / end, in the mode's style. */
+  function dictationText(result, mode = sessionMode()) {
     const s = settings.get();
-    if (!result.original) return cleanUtterance(result.text, { ...s, style });
+    if (!result.original) return cleanUtterance(result.text, cleanOpts(s, mode));
     // NLLB output was already cleaned (and its commands found) before translation: only polish it now.
     const after = result.after || [];
     const keyAfter = after.some((c) => c.action === 'key');
-    const text = cleanTranscript(result.text, { ...s, removeFillers: false, voiceCommands: false, style, addTrailingSpace: s.addTrailingSpace && !keyAfter });
+    const text = cleanTranscript(result.text, cleanOpts(s, mode, { removeFillers: false, voiceCommands: false, addTrailingSpace: s.addTrailingSpace && !keyAfter }));
     return { text, before: result.before || [], after };
   }
 
@@ -86,7 +97,7 @@ function createDictationRun(d) {
     return item;
   }
 
-  function dictationEntry(result, text, seconds, style, app) {
+  function dictationEntry(result, text, seconds, mode, app) {
     return {
       text: text.trim(),
       rawText: result.text,
@@ -97,22 +108,23 @@ function createDictationRun(d) {
       language: result.language || null,
       translatedTo: result.translatedTo || null,
       app: app ? app.exe : null,
-      style,
+      style: mode.style,
+      mode: mode.id,
     };
   }
 
   async function runDictation(audio, seconds, t0, historyId = null, recording = null) {
-    const result = await transcribe(audio, { translate: translatingNow() });
+    const mode = sessionMode();
+    const result = await transcribe(audio, mode);
     if (controller.cancelled) return d.sendOverlayState({ state: 'idle' });
 
     const s = settings.get();
     const app = d.sessionApp();
-    const style = resolveStyle(app && app.exe, s.appStyles);
-    const { text: cleaned, before, after } = dictationText(result, style);
+    const { text: cleaned, before, after } = dictationText(result, mode);
     // "scratch that" at the end throws away what was just said
     const scratched = after.some((c) => c.action === 'undo');
     const text = scratched ? '' : cleaned;
-    d.log.info(`Transcribed in ${now() - t0}ms (${result.language || '?'}${result.translatedTo ? ` -> ${result.translatedTo}` : ''}, ${app ? app.exe : '?'}: ${style})${before.length + after.length ? `, commands: ${[...before, ...after].map((c) => c.action).join(' ')}` : ''}`);
+    d.log.info(`Transcribed in ${now() - t0}ms (${result.language || '?'}${result.translatedTo ? ` -> ${result.translatedTo}` : ''}, ${app ? app.exe : '?'}: ${mode.id}, ${mode.style})${before.length + after.length ? `, commands: ${[...before, ...after].map((c) => c.action).join(' ')}` : ''}`);
     if (!text.trim() && !before.length && !after.length) return d.flash(t('flash.noSpeech'));
     d.sendOverlayState({ state: 'idle' });
 
@@ -123,7 +135,7 @@ function createDictationRun(d) {
       return;
     }
 
-    record(dictationEntry(result, text, seconds, style, app), historyId, recording);
+    record(dictationEntry(result, text, seconds, mode, app), historyId, recording);
     d.feedLanguage({ chosen: s.languages, likely: result.likelyLanguage ?? result.language });
     if (!shouldRunFollowUps(await typing.paste(text))) return; // enterAfterPaste is reset by the caller
     for (const c of after) await typing.runVoiceAction(c, false);
@@ -134,7 +146,7 @@ function createDictationRun(d) {
   async function runCommand(audio, seconds, historyId = null) {
     const s = settings.get();
     d.sendOverlayState({ state: 'processing', mode: 'command', text: t('overlay.command.listening') });
-    const r = await d.recognise(audio, 'transcribe');
+    const r = await d.recognise(audio, 'transcribe', { languages: languagesFor(sessionMode()) });
     const instruction = cleanTranscript(r.text, { ...s, addTrailingSpace: false, snippets: [] });
     if (!instruction.trim()) return d.flash(t('flash.noSpeech'));
     const selection = await typing.selectedText();
@@ -163,7 +175,7 @@ function createDictationRun(d) {
     if (shouldRunFollowUps(await typing.paste(output)) && typing.enterAfterPaste) await typing.pressEnterNow();
   }
 
-  return { translatingNow, transcribe, keptMeta, dictationText, record, dictationEntry, runDictation, runCommand };
+  return { sessionMode, translatingNow, transcribe, keptMeta, dictationText, record, dictationEntry, runDictation, runCommand };
 }
 
 module.exports = { createDictationRun };

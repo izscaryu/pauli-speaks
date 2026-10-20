@@ -98,3 +98,9 @@ test('change is emitted for addFailed and resolve', () => {
   history.resolve(f.id, entry('x'));
   assert.equal(changes, 2);
 });
+
+test('addFailed keeps the mode it was recorded in, so a retry uses it again', () => {
+  const { history } = tempHistory();
+  assert.equal(history.addFailed({ audioId: 'a1', durationMs: 1000, engine: 'x', error: 'boom', mode: 'code' }).mode, 'code');
+  assert.equal(history.addFailed({ audioId: 'a2', durationMs: 1000, engine: 'x', error: 'boom' }).mode, undefined);
+});

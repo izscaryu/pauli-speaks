@@ -43,10 +43,9 @@ function rig({ gate = async (a) => ({ audio: a, trimmed: false }), run = async (
       await run(flow, { historyId });
     },
     transcribe: async () => ({ text: 'hello there', language: 'en' }),
-    translatingNow: () => controller.translate,
-    styleFor: () => 'default',
+    sessionMode: () => controller.mode || { id: 'default', style: 'normal', translateTo: null },
     dictationText: (result) => ({ text: result.text, before: [], after: [] }),
-    dictationEntry: (result, text, seconds) => ({ text, rawText: result.text, durationMs: Math.round(seconds * 1000), words: 2 }),
+    dictationEntry: (result, text, seconds, mode) => ({ text, rawText: result.text, durationMs: Math.round(seconds * 1000), words: 2, mode: mode.id }),
     keptMeta: (seconds) => ({ durationMs: Math.round(seconds * 1000), engine: 'whisper-base', command: controller.command, translate: controller.translate, app: null }),
     takeListening: () => { const s = listening; listening = null; return s; },
     stopForUndo: () => stop(),
@@ -263,4 +262,11 @@ test('historyList marks what can be retried and played', async () => {
   assert.equal(list.find((i) => i.id === ok.id).hasAudio, undefined);
   assert.equal(list.find((i) => i.id === played.id).hasAudio, true);
   assert.deepEqual([list.find((i) => i.id === failed.id).canRetry, list.find((i) => i.id === failed.id).hasAudio], [true, false]);
+});
+
+test('transcribeKept: a kept recording becomes an entry in the mode the controller runs it in', async () => {
+  const { flow, controller } = rig();
+  controller.mode = { id: 'code', style: 'code', translateTo: null };
+  const entry = await flow.transcribeKept({ audio: audio(1), meta: { mode: 'code', app: null } });
+  assert.equal(entry.mode, 'code');
 });

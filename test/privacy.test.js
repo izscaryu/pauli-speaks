@@ -400,7 +400,7 @@ test('savedRecording turns a saved WAV back into audio plus the way it was recor
   const saved = privacy.savedRecording(item.id);
   assert.equal(saved.audio.length, 3200);
   assert.ok(Math.abs(saved.audio[10] - 0.25) < 1e-3);
-  assert.deepEqual(saved.meta, { durationMs: 2000, engine: 'base', command: false, translate: false, app: { exe: 'chrome.exe' } });
+  assert.deepEqual(saved.meta, { durationMs: 2000, engine: 'base', command: false, mode: null, translate: false, app: { exe: 'chrome.exe' } });
   assert.equal(privacy.savedRecording('nope'), null);
   const noAudio = history.add(entry('no recording'));
   assert.equal(privacy.savedRecording(noAudio.id), null);
@@ -417,4 +417,18 @@ test('C6: savedRecording runs a translated entry, or a failed translation, in tr
   for (const item of [translated, failed]) privacy.saveRecording(item.id, new Float32Array(1600));
   assert.equal(privacy.savedRecording(translated.id).meta.translate, true);
   assert.equal(privacy.savedRecording(failed.id).meta.translate, true);
+});
+
+test('savedRecording: a retry runs in the mode the entry was made in', () => {
+  const { createAudioHistory } = require('../src/main/audio-history');
+  const dir = scratch();
+  const history = new History(path.join(dir, 'history.json'));
+  const privacy = createPrivacy({ history, audioHistory: createAudioHistory(path.join(dir, 'audio')), getSettings: () => ({ audioHistory: '24h' }) });
+  const done = history.add({ ...entry('hello'), mode: 'code' });
+  const failed = history.addFailed({ audioId: 'a1', durationMs: 1000, engine: 'x', error: 'boom', mode: 'chat' });
+  const old = history.add(entry('before modes'));
+  for (const item of [done, failed, old]) privacy.saveRecording(item.id, new Float32Array(1600));
+  assert.equal(privacy.savedRecording(done.id).meta.mode, 'code');
+  assert.equal(privacy.savedRecording(failed.id).meta.mode, 'chat');
+  assert.equal(privacy.savedRecording(old.id).meta.mode, null);
 });

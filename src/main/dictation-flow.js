@@ -23,11 +23,10 @@ const BUSY = 'Still working on the last dictation…'; // flash.busy in English,
  * @param {(audio: Float32Array) => Promise<object>} d.speechGate  speech-gate.js gateSpeech with the app's options
  * @param {(audio, seconds, t0, historyId, recording) => Promise<void>} d.runDictation  transcribe, clean up, paste
  * @param {(audio, seconds, historyId) => Promise<void>} d.runCommand  command mode
- * @param {(audio, opts) => Promise<object>} d.transcribe  speech -> text (translated when asked)
- * @param {() => boolean} d.translatingNow
- * @param {(app: object|null) => string} d.styleFor  the per-app style
- * @param {(result, style) => {text: string, before: object[], after: object[]}} d.dictationText
- * @param {(result, text, seconds, style, app) => object} d.dictationEntry  a History entry
+ * @param {(audio, mode) => Promise<object>} d.transcribe  speech -> text (translated when the mode says so)
+ * @param {() => object} d.sessionMode  the mode the controller is running (for a kept recording: the one it was made in)
+ * @param {(result, mode) => {text: string, before: object[], after: object[]}} d.dictationText
+ * @param {(result, text, seconds, mode, app) => object} d.dictationEntry  a History entry
  * @param {(seconds: number) => object} d.keptMeta  how a kept recording is to be run again
  * @param {() => object|null} d.takeListening  the listening session of the cancelled dictation (main forgets it)
  * @param {(session: object|null) => Promise<Float32Array>} d.stopForUndo  the cancelled recording, with the cancel sound
@@ -121,11 +120,11 @@ function createDictationFlow(d) {
   async function transcribeKept({ audio, meta }) {
     const gate = await d.speechGate(audio);
     if (gate.skip) return null;
-    const result = await d.transcribe(gate.audio, { translate: d.translatingNow() });
-    const style = d.styleFor(meta.app);
-    const { text, after } = d.dictationText(result, style);
+    const mode = d.sessionMode();
+    const result = await d.transcribe(gate.audio, mode);
+    const { text, after } = d.dictationText(result, mode);
     if (!text.trim() || after.some((c) => c.action === 'undo')) return null;
-    return d.dictationEntry(result, text, audio.length / SAMPLE_RATE, style, meta.app);
+    return d.dictationEntry(result, text, audio.length / SAMPLE_RATE, mode, meta.app);
   }
 
   async function retryFromHistory(id) {

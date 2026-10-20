@@ -13,17 +13,22 @@
 //   Cancel                               -> dismiss (main keeps the audio 4 s for Undo)
 //   process(run) idle                    -> processing kept audio (Retry / Undo), then idle
 //   Other chord within 1s of PTT start   -> dismiss (user meant another shortcut)
-//   Translate down                       -> like PTT, but the session is translated
-//                                           (adding it to a held PTT upgrades the session)
+//   Shortcut for another mode down       -> like PTT; while one is held it switches the running
+//                                           dictation to that mode (e.g. Translate to English)
 //
 // Every shortcut carries its own behaviour, so the same rules are driven by
 // talkDown/talkUp({ behaviour, kind }):
 //   'both'   = PTT above (hold, or double-tap to lock)
 //   'toggle' = hands-free above (press to start, press again to finish)
 //   'hold'   = hold only: release stops, a quick tap is dropped at once
-// kind 'translate' / 'command' starts (or upgrades a session to) that mode.
+// kind 'command' starts (or upgrades a session to) command mode; kind 'translate' is the old Talk & translate
+// action, a Dictate shortcut for the Translate mode.
+//
+// Each dictation carries its mode (modes.js), asked for once when it starts (deps.resolveMode, mode-session.js):
+// switching apps mid-dictation doesn't change it; only another mode's shortcut or Switch mode (setMode) does.
 
 const { EventEmitter } = require('node:events');
+const { pinsMode } = require('./modes');
 
 const DEBOUNCE_MS = 500;
 const OTHER_SHORTCUT_WINDOW_MS = 1000;
@@ -35,6 +40,7 @@ class DictationController extends EventEmitter {
    * @param {() => void} deps.start          begin capturing audio
    * @param {() => Promise<void>} deps.finish stop capturing, transcribe, paste
    * @param {(reason: string) => void} deps.dismiss stop capturing, discard
+   * @param {(request: {binding?: object, link?: string, kept?: object}) => object} [deps.resolveMode] the dictation's mode
    */
   constructor(deps, { now = Date.now, timers = { setTimeout, clearTimeout } } = {}) {
     super();
@@ -43,8 +49,8 @@ class DictationController extends EventEmitter {
     this.timers = timers;
     this.status = 'idle';
     this.locked = false;
-    this.translate = false;
     this.command = false;
+    this.mode = null;
     this.startTime = 0;
     this.tapTimer = null;
     this.maxTimer = null;
@@ -54,9 +60,18 @@ class DictationController extends EventEmitter {
     return this.status === 'listening';
   }
 
+  /** The running dictation translates (its mode has a target); command mode never does. */
+  get translate() {
+    return !this.command && !!(this.mode && this.mode.translateTo);
+  }
+
+  #resolve(request) {
+    return this.deps.resolveMode ? this.deps.resolveMode(request) : null;
+  }
+
   #set(status) {
     this.status = status;
-    this.emit('status', { status, locked: this.locked, translate: this.translate, command: this.command });
+    this.emit('status', { status, locked: this.locked, translate: this.translate, command: this.command, mode: this.mode });
   }
 
   #clearTimers() {
@@ -66,10 +81,10 @@ class DictationController extends EventEmitter {
     this.maxTimer = null;
   }
 
-  #begin(locked, translate = false, command = false) {
+  #begin(locked, command = false, request = {}) {
     this.locked = locked;
-    this.translate = translate;
     this.command = command;
+    this.mode = this.#resolve(request);
     this.startTime = this.now();
     this.maxTimer = this.timers.setTimeout(() => this.stop('max-duration'), MAX_DURATION_MS);
     this.#set('listening');
@@ -87,28 +102,30 @@ class DictationController extends EventEmitter {
     this.emit('busy');
   }
 
-  /** Adding translate / command to a running session switches it to that mode. @returns {boolean} upgraded */
-  #upgrade(kind) {
-    if (kind === 'translate' && !this.translate && !this.command) {
-      this.translate = true;
-      return true;
-    }
-    if (kind === 'command' && !this.command) {
+  /** Command mode, or another mode's shortcut, added to a running session switches it. @returns {boolean} upgraded */
+  #upgrade(kind, binding) {
+    if (kind === 'command') {
+      if (this.command) return false;
       this.command = true;
-      this.translate = false;
       return true;
     }
-    return false;
+    if (this.command || !pinsMode(binding) || (this.mode && binding.mode === this.mode.id)) return false;
+    const mode = this.#resolve({ binding });
+    if (!mode || (this.mode && mode.id === this.mode.id)) return false;
+    this.mode = mode;
+    return true;
   }
 
   /**
    * A talk shortcut went down.
-   * @param {{behaviour?: 'hold'|'toggle'|'both', kind?: 'dictate'|'translate'|'command'}} opts
+   * @param {{behaviour?: 'hold'|'toggle'|'both', kind?: 'dictate'|'translate'|'command', binding?: object}} opts
+   *   binding: the shortcut, for its mode (resolveMode)
    */
-  talkDown({ behaviour = 'both', kind = 'dictate' } = {}) {
+  talkDown({ behaviour = 'both', kind = 'dictate', binding = null } = {}) {
+    if (kind === 'translate') binding = { ...binding, action: 'translate' }; // the old action: the Translate mode
     if (this.status === 'processing') return this.#busy();
-    if (this.status === 'idle') return this.#begin(behaviour === 'toggle', kind === 'translate', kind === 'command');
-    if (this.#upgrade(kind)) {
+    if (this.status === 'idle') return this.#begin(behaviour === 'toggle', kind === 'command', { binding });
+    if (this.#upgrade(kind, binding)) {
       if (behaviour === 'toggle' && !this.locked) return this.#lock();
       return this.#set('listening');
     }
@@ -160,16 +177,23 @@ class DictationController extends EventEmitter {
     return this.talkDown({ behaviour: 'toggle' });
   }
 
-  /** Toggle used by the overlay pill / tray menu / deep links. */
-  toggle() {
-    if (this.status === 'idle') return this.#begin(true);
+  /** Toggle used by the overlay pill / tray menu / deep links (`link`: a ?mode= or --mode= mode). */
+  toggle({ link = null } = {}) {
+    if (this.status === 'idle') return this.#begin(true, false, { link });
     if (this.isListening) return this.stop('toggle');
   }
 
   /** Deep link / command-line "start": a hands-free session; a held one is locked, a running one is left alone. */
-  start() {
-    if (this.status === 'idle') return this.#begin(true);
+  start({ link = null } = {}) {
+    if (this.status === 'idle') return this.#begin(true, false, { link });
     if (this.isListening && !this.locked) return this.#lock();
+  }
+
+  /** Switch mode while talking: the running dictation goes on in `mode`. */
+  setMode(mode) {
+    if (!this.isListening || !mode) return;
+    this.mode = mode;
+    this.#set('listening');
   }
 
   otherChord() {
@@ -198,16 +222,16 @@ class DictationController extends EventEmitter {
    * Retry / Undo: transcribe audio kept from an earlier dictation, like a stop does, in the
    * mode it was recorded in. Only from idle; Cancel works on it as on any processing.
    * @param {() => Promise<void>} run
-   * @param {{translate?: boolean, command?: boolean}} [mode]
+   * @param {{mode?: string, translate?: boolean, command?: boolean, app?: object}} [meta] how it was recorded
    * @returns {Promise<boolean>} false when busy (nothing ran)
    */
-  async process(run, { translate = false, command = false } = {}) {
+  async process(run, meta = {}) {
     if (this.status !== 'idle') {
       this.#busy();
       return false;
     }
-    this.translate = !!translate && !command;
-    this.command = !!command;
+    this.command = !!meta.command;
+    this.mode = this.#resolve({ kept: meta });
     this.cancelled = false;
     this.#set('processing');
     try {

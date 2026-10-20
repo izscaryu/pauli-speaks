@@ -104,13 +104,13 @@ function createRetryOffers({ pending, history, onFailed = () => {}, undoMs = UND
 
     /**
      * @param {Float32Array} audio  the whole recording (Retry runs the speech gate again)
-     * @param {{durationMs: number, engine: string, command: boolean, translate: boolean, app: object|null}} meta
+     * @param {{durationMs: number, engine: string, command: boolean, mode?: string, translate: boolean, app: object|null}} meta
      * @param {string} error
      * @returns {{id: string, label: string}} the pill's action
      */
     failed(audio, meta, error) {
       const audioId = pending.put(audio, meta);
-      onFailed(history.addFailed({ audioId, durationMs: meta.durationMs, engine: meta.engine, error, translate: !!meta.translate }), audio);
+      onFailed(history.addFailed({ audioId, durationMs: meta.durationMs, engine: meta.engine, error, translate: !!meta.translate, mode: meta.mode }), audio);
       return show('retry', audioId);
     },
 
