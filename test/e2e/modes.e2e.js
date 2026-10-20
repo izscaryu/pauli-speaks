@@ -11,6 +11,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Holds a key long enough to be push-to-talk, then lets go; `during` runs while it is held. */
 async function dictate(run, key = 'F13', during = null) {
+  // the last dictation is finished (its text is pasted a moment before it is), or this one would be "busy"
+  await waitFor(async () => (await run.page.evaluate(() => window.pauli.getDictationStatus())).status === 'idle', { what: 'an idle dictation' });
   await run.key(key, true);
   await sleep(900);
   const seen = during ? await during() : null;
