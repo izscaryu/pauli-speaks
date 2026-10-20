@@ -1,6 +1,7 @@
 'use strict';
 // IPC behind Settings → Privacy: the two delete buttons, how many saved transcripts a retention
-// choice deletes (asked before switching), and the sound of a saved recording.
+// choice deletes (asked before switching), and the sound of a saved recording. Settings → Speech lists the same
+// downloaded models, with their size and last use, and deletes them one at a time.
 // Everything Electron-specific comes in through `deps`, so a fake ipcMain can test it.
 //
 //   deps = {
@@ -30,12 +31,13 @@ function registerPrivacyIpc(ipcMain, deps) {
     return { models, bytes: models.reduce((sum, m) => sum + m.bytes, 0) };
   });
 
-  ipcMain.handle('privacy:delete-models', async () => {
+  /** Deletes the downloaded models that `pick` keeps (all of them, or one), once nothing is using them. */
+  async function remove(pick) {
     if (deps.dictationActive()) return { ok: false, error: t('errors.finishDictation') };
     if (deps.fileActive?.()) return { ok: false, error: t('errors.waitFile') };
     if (deps.modelsBusy?.()) return { ok: false, error: t('errors.waitModel') };
     const root = deps.modelsDir();
-    const found = modelsOnDisk(root, deps.catalog());
+    const found = modelsOnDisk(root, deps.catalog()).filter(pick);
     if (!found.length) return { ok: true, removed: [], failed: [] };
     try {
       await deps.unloadModels();
@@ -47,7 +49,11 @@ function registerPrivacyIpc(ipcMain, deps) {
     for (const f of failed) log.warn(`privacy: deleting model ${f.id} failed:`, f.error);
     if (removed.length) deps.afterModelsDeleted();
     return { ok: failed.length === 0, removed, failed, ...(failed.length ? { error: t('errors.modelsNotDeleted') } : {}) };
-  });
+  }
+
+  ipcMain.handle('privacy:delete-models', () => remove(() => true));
+  // Only an id from the catalog that is on disk: the window can't name a folder of its own.
+  ipcMain.handle('privacy:delete-model', (_e, id) => remove((m) => m.id === id));
 
   ipcMain.handle('privacy:delete-all', () => {
     // the dictation in progress owns its crash file and its audio: deleting them under it would lose or resurrect data

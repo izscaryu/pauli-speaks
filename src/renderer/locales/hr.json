@@ -695,5 +695,11 @@
   "translation.modes.title": "Prevodi pomoću načina rada",
   "translation.modes.desc": "Svaki način može prevoditi na svoj jezik, za jedan prečac ili u određenim aplikacijama. Jezik ispod koristi se za Datoteke.",
   "flash.modeSwitched": "Način: {name}",
-  "flash.modeAutomatic": "Način: Automatski (prema aplikaciji)"
+  "flash.modeAutomatic": "Način: Automatski (prema aplikaciji)",
+  "models.disk.title": "Preuzeti modeli: {size}",
+  "models.disk.desc": "Svaki model preuzima se jednom i ostaje dok ga ne obrišeš. Obrisani model ponovno se preuzima kad ga sljedeći put upotrijebiš.",
+  "models.disk.lastUsed": "zadnja upotreba {date}",
+  "models.disk.delete": "Obriši {name}",
+  "models.disk.confirm": "Obrisati {name} ({size})? Ponovno se preuzima kad ga sljedeći put upotrijebiš.",
+  "models.disk.deleted": "{name} obrisan"
 }

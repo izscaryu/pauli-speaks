@@ -1,5 +1,5 @@
 'use strict';
-// The app around dictation: first start, settings migration on a real file, diagnostics, and a
+// The app around dictation: first start, settings migration on a real file, diagnostics, downloaded models, and a
 // command-line flag handed over by a second launch.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -58,4 +58,22 @@ test('a second launch with --press-enter hands the flag to the running copy, whi
   const state = await waitFor(async () => { const s = await run.state(); return s.keys.length ? s : null; }, { what: 'Enter' });
   assert.deepEqual(state.keys, [{ vk: 0x0d, times: 1 }]);
   assert.equal(await Promise.race([exited.then(() => 'exited'), new Promise((r) => setTimeout(() => r('still running'), 10000))]), 'exited', 'the second copy hands over and quits');
+});
+
+test('Settings → Speech lists the downloaded models and deletes one of them', async (t) => {
+  const run = await launch();
+  t.after(run.close);
+  for (const id of ['onnx-community/whisper-base', 'Xenova/nllb-200-distilled-600M']) {
+    const dir = path.join(run.dir, 'models', ...id.split('/'));
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, '.pauli-ready'), 'x');
+    fs.writeFileSync(path.join(dir, 'model.onnx'), Buffer.alloc(4096));
+  }
+  await run.page.click('.nav[data-page="settings"]');
+  await waitFor(async () => (await run.page.$$('#model-disk .disk-item')).length === 2, { what: 'the two models' });
+  run.page.on('dialog', (d) => d.accept());
+  await run.page.click('#model-disk .icon-btn >> nth=0');
+  await waitFor(async () => (await run.page.$$eval('#model-disk .name', (e) => e.map((x) => x.textContent))).join() === 'Offline translator', { what: 'one model left' });
+  assert.equal(fs.existsSync(path.join(run.dir, 'models', 'onnx-community', 'whisper-base')), false);
+  assert.ok(fs.existsSync(path.join(run.dir, 'models', 'Xenova', 'nllb-200-distilled-600M')));
 });

@@ -633,6 +633,11 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 .start-with { display: grid; gap: 8px; }
 .mode-select { max-width: 180px; }
 
+/* ---------- Settings → Speech: downloaded models (privacy.js) */
+.model-disk { display: grid; gap: 2px; }
+.disk-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; min-height: 38px; padding: 0 4px 0 10px; border-radius: 8px; background: var(--bg); }
+.disk-item .icon-btn { width: 30px; height: 30px; }
+
 @media (max-width: 860px) {
   .modes, .field { grid-template-columns: minmax(0, 1fr); }
   .field { gap: 8px; }

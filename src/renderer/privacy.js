@@ -1,7 +1,8 @@
 'use strict';
 // Settings → Privacy: the transcript-history choice, the recordings switch, and the two delete buttons with their
 // in-page confirmation (no window.confirm). The crash-recovery switch is an ordinary data-setting toggle in app.js.
-// Loaded after app.js and home-notices.js; uses these app.js globals: api, $, el, save, settings, toast.
+// It also keeps Settings → Speech's list of downloaded models (size, last use, Delete), from the same data.
+// Loaded after app.js and home-notices.js; uses these app.js globals: api, $, el, save, settings, toast, ICONS.
 
 const Privacy = (() => {
   const RETENTION_DESC = {
@@ -67,6 +68,27 @@ const Privacy = (() => {
     $('#models-desc').textContent = models.models.length
       ? t('privacy.models.list', { names: I18n.list(models.models.map(modelName)) })
       : t('privacy.models.empty');
+    renderDisk();
+  }
+
+  /** Settings → Speech: each downloaded model with its size, when it was last used, and Delete. */
+  function renderDisk() {
+    $('#model-disk-row').hidden = !models.models.length;
+    $('#model-disk-title').textContent = t('models.disk.title', { size: size(models.bytes) });
+    $('#model-disk').replaceChildren(...models.models.map((m) => el('div', { class: 'disk-item' },
+      el('span', { class: 'name' }, modelName(m)),
+      el('span', { class: 'desc' }, `${size(m.bytes)} · ${t('models.disk.lastUsed', { date: I18n.date(m.lastUsed, { day: 'numeric', month: 'short', year: 'numeric' }) })}`),
+      el('button', {
+        class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('models.disk.delete', { name: modelName(m) }), html: ICONS.trash,
+        onclick: () => deleteOne(m),
+      }))));
+  }
+
+  async function deleteOne(m) {
+    if (!confirm(t('models.disk.confirm', { name: modelName(m), size: size(m.bytes) }))) return;
+    const r = await api.deleteModel(m.id);
+    toast(r.ok ? t('models.disk.deleted', { name: modelName(m) }) : r.error || t('privacy.models.failed'));
+    await refreshModels();
   }
 
   // ---------------------------------------------------------------- the confirmation

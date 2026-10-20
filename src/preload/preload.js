@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('pauli', {
   historyAudio: (id) => ipcRenderer.invoke('history:audio', id),
   privacyModels: () => ipcRenderer.invoke('privacy:models'),
   deleteModels: () => ipcRenderer.invoke('privacy:delete-models'),
+  deleteModel: (id) => ipcRenderer.invoke('privacy:delete-model', id),
   deleteAllData: () => ipcRenderer.invoke('privacy:delete-all'),
   retentionDrops: (retention) => ipcRenderer.invoke('privacy:retention-drops', retention),
   getStats: () => ipcRenderer.invoke('stats:get'),

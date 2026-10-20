@@ -85,15 +85,17 @@ function insideRoot(root, dir) {
  * The downloaded models, as in "Delete downloaded models".
  * @param {string} root  <userData>\models
  * @param {{id: string, label: string, kind: string}[]} catalog  the models the app knows
- * @returns {{id: string, label: string, kind: string, bytes: number}[]}
+ * @returns {{id: string, label: string, kind: string, bytes: number, lastUsed: string}[]}
+ *   lastUsed: when it was last loaded (the speech engine rewrites its ready marker on every load)
  */
 function modelsOnDisk(root, catalog) {
   const out = [];
   for (const m of catalog) {
     const dir = modelDir(root, m.id);
     try {
-      if (!insideRoot(root, dir) || !fs.existsSync(path.join(dir, READY_MARKER))) continue;
-      out.push({ ...m, bytes: folderBytes(dir) });
+      const marker = path.join(dir, READY_MARKER);
+      if (!insideRoot(root, dir) || !fs.existsSync(marker)) continue;
+      out.push({ ...m, bytes: folderBytes(dir), lastUsed: fs.statSync(marker).mtime.toISOString() });
     } catch {
       // unreadable: not listed
     }

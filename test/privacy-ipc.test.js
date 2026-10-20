@@ -40,7 +40,7 @@ function setup(over = {}) {
 
 test('registers the privacy channels', () => {
   const { handlers } = setup();
-  assert.deepEqual(Object.keys(handlers).sort(), ['history:audio', 'privacy:delete-all', 'privacy:delete-models', 'privacy:models', 'privacy:retention-drops']);
+  assert.deepEqual(Object.keys(handlers).sort(), ['history:audio', 'privacy:delete-all', 'privacy:delete-model', 'privacy:delete-models', 'privacy:models', 'privacy:retention-drops']);
 });
 
 test('privacy:models lists what is on disk with the total size', async () => {
@@ -48,6 +48,7 @@ test('privacy:models lists what is on disk with the total size', async () => {
   const r = await handlers['privacy:models']();
   assert.deepEqual(r.models.map((m) => m.label), ['Whisper Tiny', 'Offline translator']);
   assert.equal(r.bytes, 2 * (2048 + 1));
+  assert.ok(r.models.every((m) => !Number.isNaN(Date.parse(m.lastUsed))), 'when each was last loaded');
 });
 
 test('privacy:delete-models unloads the engine, deletes the listed folders and tells main', async () => {
@@ -130,4 +131,31 @@ test('history:audio gives the recording bytes, or null', async () => {
   assert.deepEqual([...bytes], [1, 2, 3]);
   assert.equal(await handlers['history:audio']({}, 'missing'), null);
   assert.equal(await handlers['history:audio']({}, { not: 'a string' }), null);
+});
+
+test('privacy:delete-model deletes one model, after unloading the engine, and leaves the others', async () => {
+  const { handlers, calls, models } = setup();
+  const r = await handlers['privacy:delete-model'](null, 'onnx-community/whisper-tiny');
+  assert.deepEqual(r, { ok: true, removed: ['onnx-community/whisper-tiny'], failed: [] });
+  assert.deepEqual(calls, ['unload', 'after']);
+  assert.equal(fs.existsSync(path.join(models, 'onnx-community', 'whisper-tiny')), false);
+  assert.ok(fs.existsSync(path.join(models, 'Xenova', 'nllb-200-distilled-600M')));
+});
+
+test('privacy:delete-model only deletes a model from the catalog that is on disk', async () => {
+  const { handlers, calls, models } = setup();
+  for (const id of ['../../etc', 'onnx-community', 42, null, 'onnx-community/whisper-small']) {
+    assert.deepEqual(await handlers['privacy:delete-model'](null, id), { ok: true, removed: [], failed: [] }, String(id));
+  }
+  assert.deepEqual(calls, []);
+  assert.ok(fs.existsSync(path.join(models, 'onnx-community', 'whisper-tiny')));
+});
+
+test('privacy:delete-model refuses while a dictation, a file or a download is running', async () => {
+  for (const over of [{ dictationActive: () => true }, { fileActive: () => true }, { modelsBusy: () => true }]) {
+    const { handlers, calls } = setup(over);
+    const r = await handlers['privacy:delete-model'](null, 'onnx-community/whisper-tiny');
+    assert.equal(r.ok, false);
+    assert.deepEqual(calls, []);
+  }
 });

@@ -686,5 +686,11 @@
   "translation.modes.title": "Translate with a mode",
   "translation.modes.desc": "Each mode can translate into its own language, for one shortcut or in certain apps. The language below is for Files.",
   "flash.modeSwitched": "Mode: {name}",
-  "flash.modeAutomatic": "Mode: Automatic (by app)"
+  "flash.modeAutomatic": "Mode: Automatic (by app)",
+  "models.disk.title": "Downloaded models: {size}",
+  "models.disk.desc": "Each model is downloaded once and kept until you delete it. A deleted model downloads again the next time you use it.",
+  "models.disk.lastUsed": "last used {date}",
+  "models.disk.delete": "Delete {name}",
+  "models.disk.confirm": "Delete {name} ({size})? It downloads again the next time you use it.",
+  "models.disk.deleted": "{name} deleted"
 }
