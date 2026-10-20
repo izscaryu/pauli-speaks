@@ -1,4 +1,4 @@
-# Runs the unit tests and the end-to-end tests on every push and pull request.
+# Runs the unit tests, the end-to-end tests and a start of the packaged app on every push and pull request.
 name: CI
 
 on:
@@ -49,3 +49,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:e2e
+
+  packaged:
+    # The packed app, as the installer and the portable exe ship it: only it lacks
+    # package.json's "build" and dev parts (1.3.0-1.5.0 broke there and nowhere else).
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build the unpacked app
+        run: npx electron-builder --win dir --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Check the packaged app starts
+        run: node scripts/smoke-packaged.js dist/win-unpacked
