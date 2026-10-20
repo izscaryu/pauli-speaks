@@ -49,7 +49,10 @@ const { createFileTranscriber } = require('./files');
 const { modeLabel, withModesFor, DEFAULT_MODE } = require('./modes');
 const { buildCommandMessages, chatComplete } = require('./llm');
 const { LocalAsr } = require('./asr/local-asr');
-const { transcribeCloud, translateCloud } = require('./asr/cloud');
+const { transcribeCloud } = require('./asr/cloud');
+const { createEngines } = require('./asr/engines');
+const { createWhisperEngine } = require('./asr/engines/whisper');
+const { createCloudEngine } = require('./asr/engines/cloud');
 const { MODELS, isModelDownloaded, canWhisperTranslate, buildPrompt } = require('./asr/whisper-local');
 const { NLLB_MODEL, NLLB_SIZE, NLLB_CODES } = require('./asr/translator-local');
 const { Updater } = require('./updater');
@@ -88,6 +91,7 @@ let history;
 let keyboard;
 let controller;
 let asr;
+let engines = null; // Whisper on this PC, or a cloud service (asr/engines/), by settings.engine
 let tray = null;
 let overlay = null;
 let mainWindow = null;
@@ -421,7 +425,8 @@ async function runPreview() {
     const audio = await requestAudio('snapshot');
     if (!controller.isListening || audio.length < SAMPLE_RATE || speechLevel(audio) < SILENCE_LEVEL) return;
     const tail = audio.subarray(Math.max(0, audio.length - SAMPLE_RATE * PREVIEW_MAX_SECONDS));
-    const r = await asr.transcribe(tail, { ...localOpts(), task: 'transcribe' });
+    const mode = run.sessionMode();
+    const r = await engines.get('local').transcribe(tail, { languages: mode.language ? [mode.language] : settings.get().languages, prompt: vocabularyPrompt() });
     if (controller.isListening && previewTimer) sendOverlayState(listeningState({ preview: r.text }));
   } catch (err) {
     log.debug(`preview failed: ${err.message}`);
@@ -526,28 +531,27 @@ function vocabularyPrompt() {
   return s.vocabularyPrompt ? buildPrompt(s.dictionary) : '';
 }
 
-function localOpts() {
-  const s = settings.get();
-  return { model: s.localModel, acceleration: s.acceleration, languages: s.languages, prompt: vocabularyPrompt() };
-}
-
-function cloudOpts() {
-  const s = settings.get();
-  return { baseUrl: s.cloud.baseUrl, apiKey: settings.getApiKey(), model: s.cloud.model, languages: s.languages, prompt: vocabularyPrompt() };
-}
-
-/** @param {{languages?: string[]}} [extra] languages: the mode's, instead of your languages */
-async function recognise(audio, task, extra = {}) {
-  if (settings.get().engine === 'cloud') {
-    const opts = { ...cloudOpts(), ...extra };
-    return task === 'translate' ? translateCloud(audio, opts) : transcribeCloud(audio, opts);
-  }
-  if (modelState.status !== 'ready') {
+/** The chosen Whisper model is loaded; a dictation waiting for it says so on the pill. Rejects when it can't be. */
+async function ensureWhisperLoaded() {
+  if (modelState.status !== 'ready' && controller.status === 'processing') {
     sendOverlayState({ state: 'processing', text: t(modelState.status === 'downloading' ? 'overlay.downloadingModel' : 'overlay.loadingModel') });
   }
   await preloadModel();
   if (modelState.status === 'error') throw new Error(t('errors.modelFailed', { error: modelState.error }));
-  return asr.transcribe(audio, { ...localOpts(), task, ...extra });
+}
+
+function createSpeechEngines() {
+  const s = () => settings.get();
+  return createEngines([
+    createWhisperEngine({ asr, ensureLoaded: ensureWhisperLoaded, options: () => ({ model: s().localModel, acceleration: s().acceleration }) }),
+    createCloudEngine({ options: () => ({ baseUrl: s().cloud.baseUrl, apiKey: settings.getApiKey(), model: s().cloud.model }) }),
+  ]);
+}
+
+/** @param {{languages?: string[]}} [extra] languages: the mode's, instead of your languages */
+function recognise(audio, task, extra = {}) {
+  const s = settings.get();
+  return engines.get(s.engine).transcribe(audio, { languages: s.languages, prompt: vocabularyPrompt(), task, ...extra });
 }
 
 async function translateText(text, source, target) {
@@ -611,14 +615,7 @@ function stopReading() {
 // ---------------------------------------------------------------- file transcription (files.js)
 
 /** One piece of a file: Whisper's own English translation (fast), or a timestamped transcription. */
-async function recognisePiece(samples, fast) {
-  if (settings.get().engine === 'cloud') {
-    return fast ? translateCloud(samples, cloudOpts()) : transcribeCloud(samples, { ...cloudOpts(), prompt: '', retryOutsideList: false });
-  }
-  await preloadModel();
-  if (modelState.status === 'error') throw new Error(t('errors.modelFailed', { error: modelState.error }));
-  return asr.transcribe(samples, { ...localOpts(), prompt: '', task: fast ? 'translate' : 'transcribe', timestamps: true });
-}
+const recognisePiece = (samples, fast) => recognise(samples, fast ? 'translate' : 'transcribe', { prompt: '', timestamps: true });
 
 // ---------------------------------------------------------------- shortcuts
 
@@ -942,6 +939,7 @@ function init() {
   });
   recovery = createRecoveryFile(path.join(app.getPath('userData'), 'recovery'));
   asr = new LocalAsr(modelsDir());
+  engines = createSpeechEngines();
   asr.on('restarted', forgetModels); // a fresh worker has nothing loaded: the next dictation loads the model again
   asr.on('progress', (p) => {
     if (p.model === NLLB_MODEL) {
