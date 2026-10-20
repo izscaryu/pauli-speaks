@@ -1,13 +1,13 @@
 'use strict';
 // Export and import of the settings a person would want on a new computer: shortcuts, voice commands,
-// dictionary, snippets and per-app styles. Never the cloud settings, so no API key can end up in a file.
+// dictionary, snippets and modes. Never the cloud settings, so no API key can end up in a file.
 // Pure functions; the dialogs and file access are in welcome-ipc.js.
 
 const { runMigrations, MIGRATIONS } = require('./settings');
 const { normalizeBindings } = require('./shortcut-rules');
 const { t } = require('./strings');
 
-const BACKUP_KEYS = Object.freeze(['bindings', 'voiceCommands', 'voiceCommandsEnabled', 'dictionary', 'snippets', 'appStyles']);
+const BACKUP_KEYS = Object.freeze(['bindings', 'voiceCommands', 'voiceCommandsEnabled', 'dictionary', 'snippets', 'modes']);
 
 // In English, for the tests; the messages themselves are errors.notBackup and errors.backupTooNew.
 const NOT_A_BACKUP = "This isn't a Pauli Speaks backup.";
@@ -34,14 +34,8 @@ const CLEAN = {
   voiceCommandsEnabled: (v) => (typeof v === 'boolean' ? v : undefined),
   dictionary: (v) => (Array.isArray(v) ? v.filter((e) => hasStrings(e, 'from', 'to')) : undefined),
   snippets: (v) => (Array.isArray(v) ? v.filter((e) => hasStrings(e, 'trigger', 'text')) : undefined),
-  // appStyles is merged field by field, so a bad field is left out and the current one stays.
-  appStyles: (v) => {
-    if (!isPlainObject(v)) return undefined;
-    const out = {};
-    if (Object.hasOwn(v, 'enabled') && typeof v.enabled === 'boolean') out.enabled = v.enabled;
-    if (Object.hasOwn(v, 'rules') && Array.isArray(v.rules)) out.rules = v.rules.filter((r) => hasStrings(r, 'app', 'style'));
-    return Object.keys(out).length ? out : undefined;
-  },
+  // Each mode is checked by normalizeModes() in settings.update().
+  modes: (v) => (Array.isArray(v) ? v.filter(isPlainObject) : undefined),
 };
 
 /** The backup file's content for the given settings data (a copy of own BACKUP_KEYS only). */
@@ -67,8 +61,10 @@ function importBackup(json, currentVersion) {
     return { ok: false, error: t('errors.notBackup') };
   }
   const patch = {};
+  // Migrating to v7 makes modes from the app styles; a backup that had neither leaves your modes alone.
+  const hasModes = Object.hasOwn(json.settings, 'modes') || Object.hasOwn(json.settings, 'appStyles');
   for (const key of BACKUP_KEYS) {
-    if (!Object.hasOwn(migrated, key)) continue;
+    if (!Object.hasOwn(migrated, key) || (key === 'modes' && !hasModes)) continue;
     const value = CLEAN[key](migrated[key]);
     if (value !== undefined) patch[key] = value;
   }

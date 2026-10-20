@@ -164,7 +164,7 @@
   "privacy.all.desc": "Your history, recordings, dictionary, snippets and settings. Downloaded models are kept.",
   "backup.title": "Backup",
   "backup.export.title": "Export settings",
-  "backup.export.desc": "Saves your shortcuts, voice commands, dictionary, snippets and app styles to a file. API keys are never included.",
+  "backup.export.desc": "Saves your shortcuts, voice commands, dictionary, snippets and modes to a file. API keys are never included.",
   "backup.import.title": "Import settings",
   "backup.import.desc": "Loads those settings from a backup file. They replace the ones you have now.",
   "update.title": "Updates",

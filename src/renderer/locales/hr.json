@@ -164,7 +164,7 @@
   "privacy.all.desc": "Tvoja povijest, snimke, rječnik, isječci i postavke. Preuzeti modeli ostaju.",
   "backup.title": "Sigurnosna kopija",
   "backup.export.title": "Izvezi postavke",
-  "backup.export.desc": "Sprema tvoje prečace, glasovne naredbe, rječnik, isječke i stilove aplikacija u datoteku. API ključevi nikad nisu uključeni.",
+  "backup.export.desc": "Sprema tvoje prečace, glasovne naredbe, rječnik, isječke i načine rada u datoteku. API ključevi nikad nisu uključeni.",
   "backup.import.title": "Uvezi postavke",
   "backup.import.desc": "Učitava te postavke iz sigurnosne kopije. One zamjenjuju postavke koje sada imaš.",
   "update.title": "Ažuriranja",

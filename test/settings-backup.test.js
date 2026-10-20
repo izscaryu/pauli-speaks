@@ -8,7 +8,7 @@ const { normalizeBindings } = require('../src/main/shortcut-rules');
 const NOT_A_BACKUP = "This isn't a Pauli Speaks backup.";
 
 test('BACKUP_KEYS lists the portable settings', () => {
-  assert.deepEqual(BACKUP_KEYS, ['bindings', 'voiceCommands', 'voiceCommandsEnabled', 'dictionary', 'snippets', 'appStyles']);
+  assert.deepEqual(BACKUP_KEYS, ['bindings', 'voiceCommands', 'voiceCommandsEnabled', 'dictionary', 'snippets', 'modes']);
 });
 
 test('exportBackup keeps the backup keys and never the cloud settings or any key', () => {
@@ -81,9 +81,9 @@ test('importBackup drops keys of the wrong type and keys that are not backup key
 
 test('importBackup accepts every backup key with the right type', () => {
   const settings = {
-    bindings: [], voiceCommands: [], voiceCommandsEnabled: false, dictionary: [], snippets: [], appStyles: { enabled: true, rules: [] },
+    bindings: [], voiceCommands: [], voiceCommandsEnabled: false, dictionary: [], snippets: [], modes: [{ id: 'default' }],
   };
-  const r = importBackup({ app: 'pauli-speaks', settingsVersion: 4, settings }, 4);
+  const r = importBackup({ app: 'pauli-speaks', settingsVersion: SETTINGS_VERSION, settings }, SETTINGS_VERSION);
   assert.equal(r.ok, true);
   assert.deepEqual(r.patch, settings);
 });
@@ -145,14 +145,12 @@ test('importBackup keeps snippets only with string trigger and text', () => {
   assert.deepEqual(r.patch.snippets, [{ trigger: 'my email', text: 'me@example.test' }]);
 });
 
-test('importBackup keeps a boolean appStyles.enabled and well-formed rules only', () => {
+test('an older backup with app styles gets modes made from its well-formed rules only', () => {
   const rules = [{ app: 'code.exe', style: 'code' }, null, 'slack.exe', { app: 'x.exe' }, { style: 'casual' }, { app: 1, style: 'code' }];
-  assert.deepEqual(importBackup(backup({ appStyles: { enabled: false, rules } }), 4).patch,
-    { appStyles: { enabled: false, rules: [{ app: 'code.exe', style: 'code' }] } });
-  // A bad field is left out, so the current value of that field stays.
-  assert.deepEqual(importBackup(backup({ appStyles: { enabled: 'yes', rules: [] } }), 4).patch, { appStyles: { rules: [] } });
-  assert.deepEqual(importBackup(backup({ appStyles: { enabled: true, rules: 'x' } }), 4).patch, { appStyles: { enabled: true } });
-  assert.deepEqual(importBackup(backup({ appStyles: { rules: 'x', enabled: 'yes' } }), 4).patch, {});
+  const { patch } = importBackup(backup({ appStyles: { enabled: true, rules }, bindings: [] }), SETTINGS_VERSION);
+  assert.deepEqual(patch.modes.map((m) => [m.id, m.apps]), [['default', []], ['code', ['code.exe']]]);
+  const off = importBackup(backup({ appStyles: { enabled: false, rules }, bindings: [] }), SETTINGS_VERSION).patch;
+  assert.deepEqual(off.modes.map((m) => [m.id, m.apps]), [['default', []], ['code', []]]);
 });
 
 test('importBackup drops voice commands that are not objects and leaves the rest to normalizeVoiceCommands', () => {
@@ -179,4 +177,29 @@ test('after a malformed import the cleanup and style code do not throw', () => {
   const settings = { dictionary: [], snippets: [], appStyles: { enabled: true, rules: [] }, ...r.patch };
   assert.doesNotThrow(() => cleanTranscript('x marks the spot', { dictionary: settings.dictionary, snippets: settings.snippets }));
   assert.equal(resolveStyle('code.exe', { ...settings.appStyles }), 'normal');
+});
+
+test('a v6 backup brings its app styles and Talk & translate shortcuts as modes', () => {
+  const r = importBackup({
+    app: 'pauli-speaks', settingsVersion: 6,
+    settings: {
+      appStyles: { enabled: true, rules: [{ app: 'slack.exe', style: 'casual' }] },
+      bindings: [{ id: 'translate-1', action: 'translate', keys: ['F13'], behaviour: 'both' }],
+    },
+  }, SETTINGS_VERSION);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.patch.modes.map((m) => m.id), ['default', 'chat', 'translate']);
+  assert.deepEqual(r.patch.modes[1].apps, ['slack.exe']);
+  assert.deepEqual(r.patch.bindings, [{ id: 'translate-1', action: 'dictate', keys: ['F13'], behaviour: 'both', mode: 'translate' }]);
+});
+
+test('a backup without app styles or modes leaves your modes alone', () => {
+  const r = importBackup({ app: 'pauli-speaks', settingsVersion: 6, settings: { dictionary: [] } }, SETTINGS_VERSION);
+  assert.deepEqual(r, { ok: true, patch: { dictionary: [] } });
+});
+
+test('modes in a backup keep only objects (settings.update() checks the rest)', () => {
+  const r = importBackup({ app: 'pauli-speaks', settingsVersion: SETTINGS_VERSION, settings: { modes: [null, 'x', { id: 'code' }] } }, SETTINGS_VERSION);
+  assert.deepEqual(r.patch, { modes: [{ id: 'code' }] });
+  assert.deepEqual(importBackup({ app: 'pauli-speaks', settingsVersion: SETTINGS_VERSION, settings: { modes: 'x' } }, SETTINGS_VERSION).patch, {});
 });
