@@ -168,15 +168,15 @@ test('importBackup keeps the current shortcuts when the imported ones are all in
   assert.deepEqual(importBackup(backup({ bindings: [null, good] }), 4).patch.bindings, normalizeBindings([good]));
 });
 
-test('after a malformed import the cleanup and style code do not throw', () => {
+test('after a malformed import the cleanup and mode code do not throw', () => {
   const { cleanTranscript } = require('../src/main/text-cleanup');
-  const { resolveStyle } = require('../src/main/app-styles');
+  const { resolveMode, normalizeModes } = require('../src/main/modes');
   const r = importBackup(backup({
     dictionary: [null, { from: 'x' }], snippets: [null], appStyles: { rules: 'x', enabled: 'yes' },
-  }), 4);
-  const settings = { dictionary: [], snippets: [], appStyles: { enabled: true, rules: [] }, ...r.patch };
+  }), SETTINGS_VERSION);
+  const settings = { dictionary: [], snippets: [], ...r.patch };
   assert.doesNotThrow(() => cleanTranscript('x marks the spot', { dictionary: settings.dictionary, snippets: settings.snippets }));
-  assert.equal(resolveStyle('code.exe', { ...settings.appStyles }), 'normal');
+  assert.equal(resolveMode({ exe: 'code.exe', modes: normalizeModes(settings.modes) }).style, 'normal');
 });
 
 test('a v6 backup brings its app styles and Talk & translate shortcuts as modes', () => {

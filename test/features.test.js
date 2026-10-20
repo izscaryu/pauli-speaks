@@ -5,7 +5,7 @@ const http = require('node:http');
 const { cleanTranscript, applySnippets, applyStyle, toSrt } = require('../src/main/text-cleanup');
 const { splitAtPauses } = require('../src/main/audio-utils');
 const { dailyStats } = require('../src/main/history');
-const { resolveStyle, DEFAULT_APP_RULES } = require('../src/main/app-styles');
+const { resolveMode, DEFAULT_MODES } = require('../src/main/modes');
 const { buildCommandMessages, cleanCompletion, chatComplete } = require('../src/main/llm');
 const { buildPrompt } = require('../src/main/asr/whisper-local');
 const { DictationController } = require('../src/main/dictation-controller');
@@ -47,14 +47,13 @@ test('code style skips capitalisation and the final full stop', () => {
   assert.equal(cleanTranscript('see you soon.', { capitalize: true, style: 'casual', addTrailingSpace: true }), 'See you soon ');
 });
 
-test('focused app resolves to a style', () => {
-  const appStyles = { enabled: true, rules: DEFAULT_APP_RULES };
-  assert.equal(resolveStyle('Code.exe', appStyles), 'code');
-  assert.equal(resolveStyle('Slack.exe', appStyles), 'casual');
-  assert.equal(resolveStyle('WINWORD.EXE', appStyles), 'formal');
-  assert.equal(resolveStyle('chrome.exe', appStyles), 'normal');
-  assert.equal(resolveStyle('Code.exe', { ...appStyles, enabled: false }), 'normal');
-  assert.equal(resolveStyle(null, appStyles), 'normal');
+test('the focused app picks a default mode, and with it a style', () => {
+  const style = (exe) => resolveMode({ exe, modes: DEFAULT_MODES }).style;
+  assert.equal(style('Code.exe'), 'code');
+  assert.equal(style('Slack.exe'), 'casual');
+  assert.equal(style('WINWORD.EXE'), 'formal');
+  assert.equal(style('chrome.exe'), 'normal');
+  assert.equal(style(null), 'normal');
 });
 
 // ---------------------------------------------------------------- vocabulary prompt
