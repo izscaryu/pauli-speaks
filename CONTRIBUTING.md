@@ -40,8 +40,10 @@ test for the pattern).
 | `src/main/main.js` | Wiring only: windows, tray, IPC, startup. Logic goes into its own module. |
 | `src/main/dictation-*.js`, `typing.js` | What happens to a recording: speech gate, transcription, clean-up, paste, Retry and Undo |
 | `src/main/keyboard.js`, `shortcut-*.js` | The global keyboard hook and exact shortcut matching |
+| `src/main/modes.js`, `mode-session.js` | Modes: language, translation, style and voice commands per shortcut, link or app, and which one a dictation uses |
+| `src/main/files.js` | Files → transcribe a whole audio or video file |
 | `src/main/asr/` | Speech engines: local Whisper in a utility process, voice-activity detection, NLLB translation, cloud |
-| `src/main/text-cleanup.js`, `voice-commands.js` | Fillers, voice commands, dictionary, snippets, per-app styles |
+| `src/main/text-cleanup.js`, `voice-commands.js` | Fillers, voice commands, dictionary, snippets, styles |
 | `src/main/privacy*.js`, `history.js`, `audio-history.js` | History, recordings and the privacy controls |
 | `src/main/diagnostics*.js` | About → Copy diagnostic info / Report a problem |
 | `src/renderer/` | The main window (`app.html`) and the floating pill (`overlay.html`) |

@@ -2,6 +2,15 @@
 
 What changed in each version of Pauli Speaks. The app shows the newest section once after an update.
 
+## 1.5.0
+
+- Modes: a mode bundles the language you speak, a language to translate into, a style and voice commands. Give a mode its own shortcut ("F13 → Croatian chat"), let it switch on by itself when an app is in front ("Outlook → formal English", "VS Code → code style"), or start it with a link or flag (`pauli-speaks://dictate/toggle?mode=code`, `--mode=code`). Set them up on the new Modes page.
+- Each Dictate shortcut has a mode: Automatic (the app in front decides) or one you pick. Dictate takes up to eight shortcuts, so each mode can have one.
+- The Switch mode shortcut works: it steps through your modes and back to Automatic, also while you talk. The pill shows the mode's colour and name while you dictate.
+- Your settings come along: App styles become the Chat, Code and Formal modes with the same apps, "Always translate" becomes a translating mode, and the Talk & translate shortcut opens the new "Translate to …" mode. Your old settings file is kept as settings.v6.json.
+- Command mode listens in the language of the mode you are in.
+- Backups now carry your modes instead of app styles; a backup from an older version brings its app styles in as modes.
+
 ## 1.4.0
 
 - Pauli Speaks speaks your language: the app, the welcome setup, the bar and the tray menu are in Croatian (Hrvatski) as well as English. It follows the Windows language; Settings → Language changes it. Dates and numbers follow it too.

@@ -108,9 +108,13 @@ empty file named `portable` next to `Pauli Speaks.exe`.
 - Multi-language: pick the languages you speak (English, Croatian, …) and it detects which one
   you used, within your list, also with the cloud engine. If you keep speaking a language that
   isn't on your list, Home asks "Sounds like <language>. Add it to your languages?" once.
-- **Speak one language, paste another**: turn on *Always translate*, or hold **Ctrl + Win + Shift**
-  (adding Shift to a held Ctrl + Win also works mid-sentence) to dictate in Croatian and paste
-  English. *Fast* uses Whisper's built-in translator (English only, no extra download). *Best*
+- **Modes**: a mode bundles language, translation, style and voice commands. Give each its own
+  shortcut ("F13 → Croatian chat"), let it switch on by itself in certain apps ("Outlook → formal
+  English", "VS Code → code style"), open it with a link (`pauli-speaks://dictate/toggle?mode=code`)
+  or step through them with *Switch mode*. The pill shows the mode while you talk.
+- **Speak one language, paste another**: hold **Ctrl + Win + Shift** (the *Translate to English*
+  mode; adding Shift to a held Ctrl + Win also works mid-sentence) to dictate in Croatian and paste
+  English, or give any mode a language to translate into. *Fast* uses Whisper's built-in translator (English only, no extra download). *Best*
   uses Meta's NLLB-200 offline (30+ target languages, ~900 MB one-time download, ~2–3 s per
   sentence).
 - Cleanup: removes "um/uh", sentence capitalization, and a personal dictionary for names and
@@ -122,8 +126,9 @@ empty file named `portable` next to `Pauli Speaks.exe`.
 - **GPU acceleration** via DirectML (any DX12 GPU), with an automatic CPU fallback: 2–3× faster
   (Whisper Small: 3.1 s → 1.5 s for 7.6 s of speech on an RTX 3060 laptop).
 - **Snippets**: say "my email" and your address is typed.
-- **App styles**: no capitals or final full stop in code editors and terminals, no final full stop
-  in chat apps, and always-punctuated text in Outlook and Word. Editable per app.
+- **Styles per mode**: the built-in Code, Chat and Formal modes leave out capitals and the final
+  full stop in code editors and terminals, the final full stop in chat apps, and always punctuate in
+  Outlook and Word. Change their apps on the Modes page.
 - **Command mode** (Ctrl + Win + Alt): select text and say "make this more formal" or "translate to
   German", or say what to write with nothing selected. Uses a free Groq key.
 - **Read aloud** (Shift + Alt + S): reads the selected text with Windows voices.
@@ -134,7 +139,7 @@ empty file named `portable` next to `Pauli Speaks.exe`.
 - Floating status pill with a live waveform, start/stop sounds, history with copy, and
   stats (words, WPM, time saved).
 - **Settings backup**: *Settings → Backup* exports your shortcuts, voice commands, dictionary,
-  snippets and app styles to a file and imports them again. API keys are never included.
+  snippets and modes to a file and imports them again. API keys are never included.
 - Home warns you if the shortcut can't be seen, if another dictation app is running, or if the
   speech model needs downloading again, and shows what's new after an update.
 - Restores your clipboard after pasting, runs in the tray, and can start with Windows.
@@ -221,6 +226,7 @@ remote.js   pauli-speaks:// links and --flags, from startup argv and second-inst
 | `src/main/keyboard.js` | Global hook adapter + Start-menu masking for Win-key shortcuts |
 | `src/main/shortcut-engine.js` | Exact key-set matching, double-taps, stale-key eviction |
 | `src/main/dictation-controller.js` | Push-to-talk / hands-free state machine |
+| `src/main/modes.js`, `mode-session.js` | Modes: the data model, which mode a dictation uses, Switch mode, the settings migration |
 | `src/main/shortcut-rules.js` | Actions, limits, validation (reserved, duplicates, warnings) |
 | `src/main/shortcut-recorder.js` | The recorder behind *+ Add* on the Shortcuts page |
 | `src/main/voice-commands.js` | Editable voice commands and their matching |
