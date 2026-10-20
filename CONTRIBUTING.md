@@ -27,6 +27,7 @@ same shortcut: two copies both react to it.
 ```powershell
 npm test            # unit tests (node:test), a few seconds
 npm run test:e2e    # end-to-end: starts the real app with fake keys, a fake paster and a fake speech engine
+npm run test:packaged  # builds dist/win-unpacked and checks the packed app starts (tray, floating bar, keyboard hook)
 ```
 
 Write the test first, watch it fail, then make it pass. Code that touches Electron, Windows or the speech
