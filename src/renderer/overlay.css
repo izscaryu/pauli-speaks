@@ -113,6 +113,10 @@ html, body {
 .pill.listening .rec { display: block; }
 .pill.listening.locked .timer { display: block; }
 .pill.listening .badge:not([hidden]) { display: block; }
+.chip { display: none; align-items: center; gap: 6px; max-width: 150px; padding: 3px 8px 3px 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: var(--text); font: 600 11.5px/1.2 "Segoe UI", system-ui, sans-serif; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.chip span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pill.listening .chip:not([hidden]) { display: inline-flex; }
 
 .dots { display: none; gap: 5px; padding: 0 6px; }
 .dots i {

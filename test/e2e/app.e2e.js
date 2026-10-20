@@ -22,7 +22,7 @@ test('an older settings file is migrated in place, and the old one is kept as a 
   const file = path.join(run.dir, 'settings.json');
   const migrated = await waitFor(() => {
     const s = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return s.settingsVersion === 6 ? s : null;
+    return s.settingsVersion === 7 ? s : null;
   }, { what: 'the migrated settings' });
   assert.equal(migrated.silenceDetection, true);
   assert.equal(migrated.crashRecovery, true);

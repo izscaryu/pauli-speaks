@@ -598,6 +598,46 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 .whatsnew-body ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 20px; text-wrap: pretty; }
 .whatsnew .panel-head { justify-content: space-between; }
 
+/* ---------- Modes (modes.js) */
+.nav .count { margin-left: auto; color: var(--ink-3); font-size: 12px; font-weight: 400; }
+.page#page-modes { max-width: 1000px; }
+.modes { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+.mode-list { list-style: none; margin: 0; padding: 6px; display: grid; gap: 2px; }
+.mode-item { width: 100%; display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.mode-item:hover { background: var(--surface-2); }
+.mode-item[aria-current="true"] { background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.mode-item b { display: block; font-weight: 600; }
+.mode-item .sub { display: block; font-size: 12px; line-height: 16px; color: var(--ink-3); margin-top: 2px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; }
+.dot.big { width: 14px; height: 14px; margin: 0; flex: none; }
+.mode-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
+.mode-head h2 { margin-right: auto; color: var(--ink); font-size: 18px; font-weight: 650; letter-spacing: 0; text-transform: none; }
+.field { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); }
+.field .lbl { font-weight: 600; }
+.field .lbl small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-3); text-wrap: pretty; }
+.field .ctl { min-width: 0; }
+.field input[type=text], .field select { width: 100%; max-width: 320px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch { width: 26px; height: 26px; border: 2px solid transparent; border-radius: 50%; cursor: pointer; box-shadow: inset 0 0 0 2px var(--surface); }
+.swatch[aria-checked="true"] { border-color: var(--ink); }
+.swatch:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.app-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.app-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 4px 0 10px; border-radius: 8px; background: var(--surface-2); font: 12.5px/1 var(--mono); }
+.app-chip button { width: 22px; height: 22px; border: 0; border-radius: 4px; background: transparent; color: var(--ink-3); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.app-chip button:hover { background: var(--line); color: var(--ink); }
+.app-chip svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.app-add { display: inline-flex; gap: 6px; }
+.field .app-add input[type=text] { width: 200px; }
+.recent-apps { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; flex-basis: 100%; }
+.btn.small { min-height: 26px; padding: 2px 8px; font: 12px/1 var(--mono); }
+.start-with { display: grid; gap: 8px; }
+.mode-select { max-width: 180px; }
+
+@media (max-width: 860px) {
+  .modes, .field { grid-template-columns: minmax(0, 1fr); }
+  .field { gap: 8px; }
+}
+
 @media (max-width: 860px) {
   main { padding: 22px 20px 40px; }
   .row { grid-template-columns: 1fr; }

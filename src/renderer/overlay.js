@@ -9,6 +9,7 @@ const wave = document.getElementById('wave');
 const label = document.getElementById('label');
 const tip = document.getElementById('tip');
 const badge = document.getElementById('badge');
+const chip = document.getElementById('chip');
 const timer = document.getElementById('timer');
 const previewEl = document.getElementById('preview');
 const actionBtn = document.getElementById('action');
@@ -40,6 +41,13 @@ function render(state) {
   badge.hidden = !((state.state === 'listening' || state.state === 'processing') && (command || state.translateTo));
   badge.textContent = command ? '✦ AI' : state.translateTo ? `→ ${state.translateTo.toUpperCase()}` : '';
   badge.classList.toggle('ai', command);
+  // The mode chip (colour + name) while listening: a mode a shortcut, link, Switch mode or the app picked.
+  const modeChip = state.state === 'listening' && state.chip ? state.chip : null;
+  chip.hidden = !modeChip;
+  if (modeChip) {
+    chip.firstElementChild.style.background = modeChip.color;
+    chip.lastElementChild.textContent = modeChip.name;
+  }
 
   pill.className = 'pill';
   pill.classList.add(state.state === 'message' ? 'message' : state.state);

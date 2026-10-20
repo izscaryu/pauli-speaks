@@ -13,11 +13,10 @@ const ORDER = ['Ctrl', 'CtrlRight', 'Meta', 'MetaRight', 'Alt', 'AltRight', 'Shi
 // The Shortcuts page, grouped as in docs/design/redesign-concept.html. talk = per-shortcut Hold / Toggle / Both.
 // Titles and descriptions: action.<action>.title / .desc in the locale files.
 const ACTION_INFO = [
-  { action: 'dictate', group: 'start', talk: true, min: 1 },
-  { action: 'translate', group: 'start', talk: true },
+  { action: 'dictate', group: 'start', talk: true, min: 1, max: 8 }, // one per mode (Talk & translate is one of them since 1.5)
   { action: 'command', group: 'start', talk: true },
   { action: 'cancel', group: 'during', min: 1, max: 1 },
-  { action: 'cycleMode', group: 'during', badge: 'soon' },
+  { action: 'cycleMode', group: 'during', badge: 'new' },
   { action: 'pasteLast', group: 'after' },
   { action: 'copyLast', group: 'after', badge: 'new' },
   { action: 'undoLast', group: 'after', badge: 'new' },
@@ -135,9 +134,20 @@ function modelLabel() {
   return `Whisper ${m ? m.label : settings.localModel}${gpu}`;
 }
 
+/** The first Dictate shortcut whose mode translates, and that mode. */
+function translateBinding() {
+  for (const b of settings.bindings || []) {
+    const m = b.action === 'dictate' && b.mode ? Modes.find(b.mode) : null;
+    if (m && m.translateTo) return { b, m };
+  }
+  return null;
+}
+
 function translationLabel() {
-  const tr = settings.translation;
-  return t(tr.always ? 'side.translateAlways' : 'side.translateShortcut', { code: code(tr.target) });
+  const def = settings.modes[0];
+  if (def.translateTo) return t('side.translateAlways', { code: code(def.translateTo) });
+  const tb = translateBinding();
+  return tb ? t('side.translateShortcut', { code: code(tb.m.translateTo) }) : t('translation.off');
 }
 
 // ------------------------------------------------------------------ navigation
@@ -159,24 +169,29 @@ document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click'
 function renderStrip() {
   $('#ptt-chips').replaceChildren(...bindingChips(firstBinding('dictate', (b) => b.behaviour !== 'toggle')));
   $('#hf-chips').replaceChildren(...bindingChips(firstBinding('dictate', (b) => b.behaviour === 'toggle')));
-  $('#tr-chips').replaceChildren(...bindingChips(firstBinding('translate')));
+  const tb = translateBinding();
+  $('#tr-chips').parentElement.hidden = !tb;
+  if (tb) {
+    $('#tr-chips').replaceChildren(...bindingChips(tb.b));
+    $('#tr-label').textContent = t('home.strip.translate', { language: LANG_NAME[tb.m.translateTo] || code(tb.m.translateTo) });
+  }
   $('#cancel-chips').replaceChildren(...bindingChips(firstBinding('cancel')));
-  $('#tr-label').textContent = t('home.strip.translate', { language: LANG_NAME[settings.translation.target] || code(settings.translation.target) });
   $('#side-engine').textContent = modelLabel();
   $('#side-translate').textContent = translationLabel();
 }
 
 function renderLive() {
   const live = $('#live');
-  const { status, locked, translateTo, mode } = dictation;
+  const { status, locked, translateTo, mode, chip } = dictation;
   live.className = `live ${status === 'listening' ? 'listening' : status === 'processing' ? 'processing' : ''}`;
   let text = t('live.ready');
   if (status === 'listening' && mode === 'command') text = t('live.command');
   else if (status === 'listening') {
     text = t(locked ? 'live.handsFree' : 'live.listening');
     if (translateTo) text = t('live.to', { state: text, code: code(translateTo) });
+    if (chip) text = `${text} · ${chip.name}`;
   } else if (status === 'processing') text = t('live.transcribing');
-  else if (settings?.translation.always) text = t('live.to', { state: text, code: code(settings.translation.target) });
+  else if (settings?.modes[0].translateTo) text = t('live.to', { state: text, code: code(settings.modes[0].translateTo) });
   $('#live-text').textContent = text;
 }
 
@@ -201,7 +216,7 @@ async function loadHistory() {
   historyItems = await api.listHistory();
   recentApps = [...new Set(historyItems.map((i) => i.app).filter(Boolean))].slice(0, 20);
   renderHistory();
-  if (settings) renderAppStyles();
+  if (settings) Modes.render();
 }
 
 function historyItem(item) {
@@ -515,6 +530,7 @@ function bindRow(info, b, count) {
     el('span', { class: 'chips' }, bindingChips(b)),
     note ? el('span', { class: 'note' }, note) : null,
     el('span', { class: 'spacer' }),
+    info.action === 'dictate' ? Modes.bindingSelect(b, label) : null,
     info.talk ? behaviourControl(b) : null,
     info.max === 1 ? el('button', { class: 'btn quiet', onclick: () => startRec(info.action, b.id) }, t('shortcuts.change')) : null,
     el('button', { class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('common.removeItem', { name: label }), html: ICONS.x, onclick: remove }));
@@ -622,7 +638,8 @@ function renderRemoteLinks(info) {
     [`${info.protocol}://dictate/toggle`, t(info.portable ? 'remote.portable' : 'remote.toggle')],
     [`${info.protocol}://dictate/start`, t('remote.start')],
     [`${info.protocol}://dictate/stop`, t('remote.stop')],
-    [`${exe} --toggle`, t('remote.flags', { flags: '--start, --stop, --cancel, --paste-last, --copy-last, --undo-last, --press-enter' })],
+    [`${info.protocol}://dictate/toggle?mode=code`, t('remote.mode')],
+    [`${exe} --toggle`, t('remote.flags', { flags: '--start, --stop, --cancel, --paste-last, --copy-last, --undo-last, --press-enter, --mode=code' })],
   ];
   $('#remote-links').replaceChildren(...lines.map(([text, desc]) => el('div', { class: 'link' },
     el('code', {}, text),
@@ -712,7 +729,6 @@ I18n.onChange(() => {
 function renderTranslation() {
   const tr = settings.translation;
   const nllb = modelState?.translator;
-  $('#tr-always').checked = tr.always;
   const supported = nllb ? nllb.languages : LANGUAGES.map(([c]) => c);
   const select = $('#tr-target');
   select.replaceChildren(...LANGUAGES.filter(([c]) => supported.includes(c)).map(([c, n]) => el('option', { value: c }, n)));
@@ -747,7 +763,6 @@ function renderTranslation() {
   }
 }
 
-$('#tr-always').addEventListener('change', (e) => save({ translation: { always: e.target.checked } }, t(e.target.checked ? 'translation.on' : 'translation.off')));
 $('#tr-target').addEventListener('change', (e) => save({ translation: { target: e.target.value } }));
 document.querySelectorAll('#tr-quality button').forEach((b) =>
   b.addEventListener('click', () => save({ translation: { quality: b.dataset.quality } })));
@@ -825,36 +840,9 @@ document.querySelectorAll('#accel button').forEach((b) =>
 
 $('#auto-stop').addEventListener('change', (e) => save({ autoStopSilence: Number(e.target.value) }));
 
-// ----- app styles
+// ----- apps seen in History (the Modes page offers them)
 
 let recentApps = [];
-
-function renderAppStyles() {
-  const st = settings.appStyles;
-  $('#styles-on').checked = st.enabled;
-  const styleOptions = (value) => STYLES.map((k) => el('option', { value: k, selected: k === value }, t(`styles.option.${k}`)));
-  $('#app-rules').replaceChildren(...st.rules.map((r, i) =>
-    el('div', { class: 'rule' },
-      el('span', {}, r.app),
-      el('select', { 'aria-label': t('styles.style'), onchange: (e) => save({ appStyles: { rules: st.rules.map((x, j) => (j === i ? { ...x, style: e.target.value } : x)) } }) },
-        ...styleOptions(r.style)),
-      el('button', { class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('common.removeItem', { name: r.app }), html: ICONS.trash,
-        onclick: () => save({ appStyles: { rules: st.rules.filter((_, j) => j !== i) } }, t('common.removed')) }))));
-  const sel = $('#rule-style');
-  if (!sel.options.length) sel.replaceChildren(...styleOptions('normal'));
-  const known = new Set(st.rules.map((r) => r.app.toLowerCase()));
-  $('#recent-apps').replaceChildren(...recentApps.filter((a) => !known.has(a.toLowerCase())).map((a) => el('option', { value: a })));
-}
-$('#styles-on').addEventListener('change', (e) => save({ appStyles: { enabled: e.target.checked } }));
-$('#rule-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const app = $('#rule-app').value.trim().toLowerCase();
-  if (!app) return;
-  const name = app.endsWith('.exe') ? app : `${app}.exe`;
-  const rules = settings.appStyles.rules.filter((r) => r.app.toLowerCase() !== name);
-  save({ appStyles: { rules: [...rules, { app: name, style: $('#rule-style').value }] } }, t('common.addedItem', { name }));
-  $('#rule-app').value = '';
-});
 
 // ----- command mode
 
@@ -994,7 +982,7 @@ function renderAll() {
   renderToggles();
   renderDictionary();
   renderSnippets();
-  renderAppStyles();
+  Modes.render();
   renderCommand();
   renderReadAloud();
   renderBanner();
@@ -1059,6 +1047,7 @@ async function init() {
   $('#greeting').textContent = t(hour < 5 ? 'home.greeting.evening' : hour < 12 ? 'home.greeting.morning' : hour < 18 ? 'home.greeting.afternoon' : 'home.greeting.evening');
   $('#about-version').textContent = t('about.version', { version: info.version });
   renderRemoteLinks(info);
+  Modes.setProtocol(info.protocol);
   if (info.portable) {
     document.querySelectorAll('[data-portable]').forEach((e) => (e.hidden = false));
     $('[data-setting="launchAtLogin"]').disabled = true;

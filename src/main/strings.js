@@ -70,6 +70,8 @@ function createStrings({ dir = LOCALES_DIR } = {}) {
   return {
     get lang() { return lang; },
     t: (key, vars) => current.t(key, vars),
+    /** A language's name in the UI language ("German" / "Njemački"). */
+    languageName: (code) => current.languageName(code),
     /** @param {string} next the uiLanguage setting ('system' or a code) @param {string[]} systemLanguages Windows' */
     setLanguage(next, systemLanguages) {
       setting = typeof next === 'string' ? next : 'system';
@@ -86,6 +88,7 @@ const shared = createStrings();
 
 module.exports = {
   t: shared.t,
+  languageName: shared.languageName,
   setLanguage: shared.setLanguage,
   payload: shared.payload,
   currentLanguage: () => shared.lang,

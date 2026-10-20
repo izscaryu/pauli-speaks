@@ -44,7 +44,8 @@ const { createDictationRun } = require('./dictation-run');
 const { createTyping } = require('./typing');
 const { pasteText, pressKey, getSelectedText, writeExcluded } = require('./paster');
 const { PROTOCOL, parseCommandLine } = require('./remote');
-const { resolveStyle } = require('./app-styles');
+const { createModeSession } = require('./mode-session');
+const { modeLabel, DEFAULT_MODE } = require('./modes');
 const { buildCommandMessages, chatComplete } = require('./llm');
 const { LocalAsr } = require('./asr/local-asr');
 const { transcribeCloud, translateCloud } = require('./asr/cloud');
@@ -61,7 +62,7 @@ const { createLanguageHints } = require('./language-hints');
 const { readChangelog } = require('./changelog');
 const { registerI18nIpc } = require('./i18n-ipc');
 const { trayTemplate, trayHints } = require('./tray-menu');
-const { t } = require('./strings');
+const { t, languageName } = require('./strings');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
 const portable = setupPortable(app);
@@ -71,6 +72,8 @@ if (!app.isPackaged && process.env.PAULI_USER_DATA_DIR) app.setPath('userData', 
 const e2e = e2eEnabled(app) ? createE2E() : null;
 if (e2e) for (const sw of ['use-fake-device-for-media-stream', 'use-fake-ui-for-media-stream']) app.commandLine.appendSwitch(sw);
 const io = e2e ? e2e.io : { pasteText, pressKey, getSelectedText, writeClipboard: (text) => clipboard.writeText(text) };
+/** The app in front (e2e: the one a test names, so per-app modes can be tested). */
+const foregroundApp = () => (e2e && e2e.state.foreground ? { exe: e2e.state.foreground, pid: 0 } : win32.foregroundApp());
 
 const ROOT = path.join(__dirname, '..', '..');
 const RENDERER = path.join(__dirname, '..', 'renderer');
@@ -99,6 +102,7 @@ let overlayReady = false;
 const remoteQueue = [];
 let trayHintShown = false;
 let sessionApp = null;
+let modes = null; // which mode a dictation runs in, and the Switch mode choice (mode-session.js)
 let previewTimer = null;
 let previewBusy = false;
 let recovery = null; // crash-recovery file of the dictation in progress
@@ -195,7 +199,10 @@ function bindingKeys(action, test = () => true) {
   return b ? b.keys : [];
 }
 
-const holdKeys = () => bindingKeys('dictate', (b) => b.behaviour !== 'toggle');
+const holdKeys = () => {
+  const keys = bindingKeys('dictate', (b) => b.behaviour !== 'toggle' && !b.mode);
+  return keys.length ? keys : bindingKeys('dictate', (b) => b.behaviour !== 'toggle');
+};
 
 /** The tray's tooltip and balloon: "hold Ctrl + Win to dictate", or whatever the first dictation shortcut is. */
 const hints = () => trayHints({ hold: formatShortcut(holdKeys()), any: formatShortcut(bindingKeys('dictate')) });
@@ -306,12 +313,21 @@ function updateTrayMenu() {
 
 // ---------------------------------------------------------------- dictation session
 
+const modeName = (m) => modeLabel(m, { t, languageName });
+
+/** The pill's mode chip (colour + name): every mode but Default, and not in command mode (it has its AI badge). */
+const modeChip = () => {
+  const m = controller.mode;
+  return m && !controller.command && m.id !== DEFAULT_MODE.id ? { name: modeName(m), color: m.color } : null;
+};
+
 function listeningState(extra = {}) {
   return {
     state: 'listening',
     locked: controller.locked,
     mode: controller.command ? 'command' : run.translatingNow() ? 'translate' : 'dictate',
-    translateTo: run.translatingNow() ? settings.get().translation.target : null,
+    translateTo: run.translatingNow() ? run.sessionMode().translateTo : null,
+    chip: modeChip(),
     ...extra,
   };
 }
@@ -319,8 +335,7 @@ function listeningState(extra = {}) {
 function startRecording() {
   if (reading) stopReading();
   retry.expireUndo(); // before the new crash file begins: the cancelled one's is deleted now
-  typing.enterAfterPaste = false;
-  sessionApp = win32.foregroundApp();
+  typing.enterAfterPaste = false; // sessionApp: set when the controller resolved the mode, just before
   showOverlay();
   sendOverlayState(listeningState());
   const s = settings.get();
@@ -449,11 +464,13 @@ function preloadModel() {
 }
 
 /** NLLB is needed for non-English targets, "Best" quality, or a speech model that can't translate. */
-function needsNllb(s) {
-  const t = s.translation;
-  if (t.target !== 'en' || t.quality === 'best') return true;
+function needsNllb(s, target = s.translation.target) {
+  if (target !== 'en' || s.translation.quality === 'best') return true;
   return s.engine === 'local' && !canWhisperTranslate(s.localModel);
 }
+
+/** Default translates with the offline translator: load it early, like "Always translate" did. */
+const defaultNeedsTranslator = (s) => !!s.modes[0].translateTo && needsNllb(s, s.modes[0].translateTo);
 
 function preloadTranslator() {
   if (['loading', 'downloading', 'ready'].includes(translatorState.status)) {
@@ -518,9 +535,11 @@ function cloudOpts() {
   return { baseUrl: s.cloud.baseUrl, apiKey: settings.getApiKey(), model: s.cloud.model, languages: s.languages, prompt: vocabularyPrompt() };
 }
 
+/** @param {{languages?: string[]}} [extra] languages: the mode's, instead of your languages */
 async function recognise(audio, task, extra = {}) {
   if (settings.get().engine === 'cloud') {
-    return task === 'translate' ? translateCloud(audio, cloudOpts()) : transcribeCloud(audio, cloudOpts());
+    const opts = { ...cloudOpts(), ...extra };
+    return task === 'translate' ? translateCloud(audio, opts) : transcribeCloud(audio, opts);
   }
   if (modelState.status !== 'ready') {
     sendOverlayState({ state: 'processing', text: t(modelState.status === 'downloading' ? 'overlay.downloadingModel' : 'overlay.loadingModel') });
@@ -647,7 +666,7 @@ function onAction({ action, phase, binding = {} }) {
   if (isTalkAction(action)) {
     if (phase !== 'down') return controller.talkUp({ behaviour: binding.behaviour });
     lastTalkBinding = binding;
-    return controller.talkDown({ behaviour: binding.behaviour, kind: action });
+    return controller.talkDown({ behaviour: binding.behaviour, kind: action, binding });
   }
   if (phase === 'down') runAction(action);
 }
@@ -660,15 +679,24 @@ function runAction(action) {
   if (action === 'undoLast') return typing.undoLast();
   if (action === 'pressEnter') return typing.pressEnter();
   if (action === 'readAloud') return readAloud();
-  if (action === 'cycleMode') return flash(t('flash.modesLater'));
+  if (action === 'cycleMode') return cycleMode();
+}
+
+/** Switch mode: the next mode (or Automatic again); while talking, the running dictation goes on in it. */
+function cycleMode() {
+  const talking = controller.isListening && !controller.command;
+  const { switched, mode } = modes.cycle(talking ? controller.mode.id : undefined);
+  log.info(`Switch mode: ${switched || 'automatic'}`);
+  if (talking) return controller.setMode(mode);
+  flash(switched ? t('flash.modeSwitched', { name: modeName(mode) }) : t('flash.modeAutomatic'));
 }
 
 // ----- deep links and command-line flags (remote.js)
 
 function runRemote(cmd) {
-  log.info(`Remote command: ${cmd.command}${cmd.mode ? ` (mode ${cmd.mode} - modes are not available yet)` : ''}`);
-  if (cmd.command === 'toggle') return controller.toggle();
-  if (cmd.command === 'start') return controller.start();
+  log.info(`Remote command: ${cmd.command}${cmd.mode ? ` (mode ${cmd.mode})` : ''}`);
+  if (cmd.command === 'toggle') return controller.toggle({ link: cmd.mode });
+  if (cmd.command === 'start') return controller.start({ link: cmd.mode });
   if (cmd.command === 'stop') return controller.stop('remote');
   if (cmd.command === 'open') return createMainWindow();
   return runAction(cmd.command);
@@ -866,7 +894,7 @@ function registerIpc() {
   ipcMain.handle('app:open-external', (_e, url) => {
     if (isAllowedExternalUrl(url)) return shell.openExternal(url);
   });
-  ipcMain.handle('dictation:status', () => ({ status: controller.status, locked: controller.locked }));
+  ipcMain.handle('dictation:status', () => ({ status: controller.status, locked: controller.locked, chip: controller.status === 'idle' ? null : modeChip() }));
   ipcMain.handle('update:state', () => updater.state);
   ipcMain.handle('update:check', () => updater.check());
   ipcMain.handle('update:install', () => updater.install());
@@ -923,9 +951,7 @@ function applySettings(data, patch) {
     else overlay.hide();
   }
   if ('engine' in patch || 'localModel' in patch || 'acceleration' in patch) preloadModel();
-  if (('translation' in patch || 'engine' in patch || 'localModel' in patch) && data.translation.always && needsNllb(data)) {
-    preloadTranslator();
-  }
+  if (['translation', 'engine', 'localModel', 'modes'].some((k) => k in patch) && defaultNeedsTranslator(data)) preloadTranslator();
   i18nIpc.settingsChanged(patch);
   updateTrayMenu();
   if (controller.status === 'listening') sendOverlayState(listeningState());
@@ -975,7 +1001,14 @@ function init() {
   session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === 'media'));
   session.defaultSession.setPermissionCheckHandler((_wc, permission) => permission === 'media');
 
+  modes = createModeSession({ settings, foregroundApp });
   controller = new DictationController({
+    // once per dictation: the mode, and the app it was started in (pasting checks it); a kept recording keeps its mode
+    resolveMode: (request) => {
+      const r = modes.resolve(request);
+      if (!request.kept) sessionApp = r.app;
+      return r.mode;
+    },
     start: startRecording,
     finish: finishDictation,
     dismiss: (reason) => {
@@ -991,13 +1024,14 @@ function init() {
   });
   controller.on('status', ({ status, locked }) => {
     if (status === 'listening') sendOverlayState(listeningState());
-    broadcast('dictation:status', { status, locked, translateTo: listeningState().translateTo, mode: listeningState().mode });
+    const live = listeningState();
+    broadcast('dictation:status', { status, locked, translateTo: live.translateTo, mode: live.mode, chip: status === 'idle' ? null : live.chip });
     updateTrayMenu();
   });
   controller.on('busy', () => flash(t('flash.busy')));
   typing = createTyping({
     settings, lastPaste, history, controller, VK, flash, log, pasteText: io.pasteText, pressKey: io.pressKey, getSelectedText: io.getSelectedText,
-    foregroundApp: () => win32.foregroundApp(), keysDown: () => keyboard.engine.pressed.size, writeClipboard: io.writeClipboard,
+    foregroundApp, keysDown: () => keyboard.engine.pressed.size, writeClipboard: io.writeClipboard,
   });
   run = createDictationRun({
     settings, controller, history, typing, recognise: e2e ? e2e.io.recognise : recognise, translateText, needsNllb, engineLabel, chatComplete, sendOverlayState, flash, log,
@@ -1006,11 +1040,10 @@ function init() {
   });
   flow = createDictationFlow({
     ...run, retry, history, controller, speechGate, // run: runDictation, runCommand, transcribe, dictationText, …
-    styleFor: (target) => resolveStyle(target && target.exe, settings.get().appStyles),
     takeListening: () => { const s = listening; listening = null; return s; },
     stopForUndo: (s) => stopRecording(false, s, true),
     beginRun: () => {
-      sessionApp = win32.foregroundApp();
+      sessionApp = foregroundApp();
       sendOverlayState({ state: 'processing', mode: controller.command ? 'command' : 'dictate' });
     },
     afterRun: () => { typing.enterAfterPaste = false; },
@@ -1071,7 +1104,7 @@ function init() {
   const hidden = process.argv.includes('--hidden') || (startupCommand && startupCommand.command !== 'open');
   if (!hidden || !settings.get().onboarded) createMainWindow();
   if (shouldPreloadAtStartup(settings.get(), (id) => isModelDownloaded(modelsDir(), id))) preloadModel();
-  if (settings.get().translation.always && needsNllb(settings.get())) preloadTranslator();
+  if (defaultNeedsTranslator(settings.get())) preloadTranslator();
 
   screen.on('display-metrics-changed', positionOverlay);
   if (process.env.PAULI_SELFTEST) runSelfTest(process.env.PAULI_SELFTEST);
@@ -1114,12 +1147,9 @@ async function runSelfTest(dir) {
     log.info(`SELFTEST transcript (${report.dictation.ms}ms on ${report.device}): ${report.dictation.text.length} chars`); // the text itself goes only into the report file
 
     if (process.env.PAULI_SELFTEST_TARGET) {
-      const saved = { ...settings.get().translation };
-      settings.update({ translation: { target: process.env.PAULI_SELFTEST_TARGET } });
       t0 = Date.now();
-      const tr = await run.transcribe(samples, { translate: true });
+      const tr = await run.transcribe(samples, { ...DEFAULT_MODE, translateTo: process.env.PAULI_SELFTEST_TARGET });
       report.translation = { ms: Date.now() - t0, text: tr.text, translatedTo: tr.translatedTo };
-      settings.update({ translation: saved });
     }
 
     t0 = Date.now();

@@ -22,7 +22,7 @@ test('the fakes record what would have been pasted, pressed and copied, and say 
   assert.deepEqual(e2e.state.pasted, ['Hello there ']);
   assert.deepEqual(e2e.state.keys, [{ vk: 13, times: 1 }, { vk: 8, times: 3 }]);
   assert.deepEqual(e2e.state.clipboard, ['diagnostics']);
-  assert.deepEqual(e2e.state.recognised, [{ task: 'transcribe', seconds: 1 }]);
+  assert.deepEqual(e2e.state.recognised, [{ task: 'transcribe', seconds: 1, languages: null }]);
 });
 
 test('attach: keys go straight into the shortcut engine, which no longer sweeps keys Windows does not see as held', () => {
