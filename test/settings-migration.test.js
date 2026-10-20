@@ -9,7 +9,8 @@ const { normalizeBindings } = require('../src/main/shortcut-rules');
 
 const plain = { encrypt: (s) => `plain:${s}`, decrypt: (s) => s.slice(6) };
 const keysOf = (bindings, action, behaviour) =>
-  bindings.filter((b) => b.action === action && (!behaviour || b.behaviour === behaviour)).map((b) => b.keys);
+  bindings.filter((b) => b.action === action && !b.mode && (!behaviour || b.behaviour === behaviour)).map((b) => b.keys);
+const translateKeys = (bindings) => bindings.filter((b) => b.action === 'dictate' && b.mode === 'translate').map((b) => [b.keys, b.behaviour]);
 
 function tempFile(content) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pauli-settings-'));
@@ -22,7 +23,8 @@ test('default bindings do what the old single shortcuts did', () => {
   const b = DEFAULTS.bindings;
   assert.deepEqual(keysOf(b, 'dictate', 'both'), [['Ctrl', 'Meta']]);
   assert.deepEqual(keysOf(b, 'dictate', 'toggle'), [['Ctrl', 'Meta', 'Space']]);
-  assert.deepEqual(keysOf(b, 'translate', 'both'), [['Ctrl', 'Meta', 'Shift']]);
+  assert.deepEqual(translateKeys(b), [[['Ctrl', 'Meta', 'Shift'], 'both']], 'Talk & translate is a Dictate shortcut for the Translate mode');
+  assert.ok(DEFAULTS.modes.some((m) => m.id === 'translate' && m.translateTo === 'en'));
   assert.deepEqual(keysOf(b, 'command', 'both'), [['Ctrl', 'Meta', 'Alt']]);
   assert.deepEqual(keysOf(b, 'cancel'), [['Escape']]);
   assert.deepEqual(keysOf(b, 'pasteLast'), [['Shift', 'Alt', 'Z']]);
@@ -40,7 +42,7 @@ test('old shortcuts become bindings: PTT = both, hands-free = toggle', () => {
   assert.deepEqual(keysOf(data.bindings, 'dictate', 'both'), [['F8']]);
   assert.deepEqual(keysOf(data.bindings, 'dictate', 'toggle'), [['Mouse4']]);
   assert.deepEqual(keysOf(data.bindings, 'cancel'), [['F9']]);
-  assert.deepEqual(keysOf(data.bindings, 'translate', 'both'), [['Ctrl', 'Meta', 'Shift']]);
+  assert.deepEqual(translateKeys(data.bindings), [[['Ctrl', 'Meta', 'Shift'], 'both']]);
   assert.deepEqual(keysOf(data.bindings, 'command', 'both'), [['Ctrl', 'Meta', 'Alt']], 'missing ones get the old defaults');
   assert.deepEqual(keysOf(data.bindings, 'readAloud'), [['Shift', 'Alt', 'S']]);
 });
@@ -78,25 +80,32 @@ test('a first run gets the defaults and writes nothing', () => {
 
 test('bindings are cleaned up: limits, unknown actions, behaviours, ids', () => {
   const list = normalizeBindings([
-    { id: 'a', action: 'dictate', keys: ['F1'], behaviour: 'hold' },
-    { id: 'a', action: 'dictate', keys: ['F2'], behaviour: 'sometimes' },
-    { action: 'dictate', keys: ['F3'] },
-    { action: 'dictate', keys: ['F4'] },
-    { action: 'dictate', keys: ['F5'] },
+    { id: 'a', action: 'command', keys: ['F1'], behaviour: 'hold' },
+    { id: 'a', action: 'command', keys: ['F2'], behaviour: 'sometimes' },
+    { action: 'command', keys: ['F3'] },
+    { action: 'command', keys: ['F4'] },
+    { action: 'command', keys: ['F5'] },
     { action: 'cancel', keys: ['Escape'] },
     { action: 'cancel', keys: ['F6'] },
     { action: 'launchRockets', keys: ['F7'] },
     { action: 'pasteLast', keys: 'F8' },
     { action: 'pressEnter', keys: ['F9'], behaviour: 'hold' },
-    { action: 'dictate', keys: ['CtrlRight'], trigger: 'doubleTap', behaviour: 'both' },
+    { action: 'command', keys: ['CtrlRight'], trigger: 'doubleTap', behaviour: 'both' },
   ]);
-  assert.deepEqual(keysOf(list, 'dictate'), [['F1'], ['F2'], ['F3'], ['F4']], 'four per action');
+  assert.deepEqual(keysOf(list, 'command'), [['F1'], ['F2'], ['F3'], ['F4']], 'four per action');
   assert.deepEqual(keysOf(list, 'cancel'), [['Escape']], 'one cancel');
   assert.deepEqual(list.find((b) => b.keys[0] === 'F2').behaviour, 'both');
   assert.equal(list.find((b) => b.action === 'pressEnter').behaviour, undefined, 'only talk actions have a behaviour');
   assert.equal(list.length, 6);
   assert.equal(new Set(list.map((b) => b.id)).size, list.length);
   assert.equal(list[0].id, 'a');
+});
+
+test('Dictate takes up to eight shortcuts (one per mode is the point), each keeping its mode', () => {
+  const list = normalizeBindings(Array.from({ length: 10 }, (_, i) => ({ action: 'dictate', keys: [`F${i + 13}`], mode: i ? `m${i}` : undefined })));
+  assert.equal(list.length, 8);
+  assert.equal(list[0].mode, undefined);
+  assert.equal(list[3].mode, 'm3');
 });
 
 test('a double-tap talk binding always toggles', () => {
@@ -120,7 +129,7 @@ const backupOf = (file, v) => path.join(path.dirname(file), `settings.v${v}.json
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 test('migrations form an unbroken chain up to the current version', () => {
-  assert.equal(SETTINGS_VERSION, 6);
+  assert.equal(SETTINGS_VERSION, 7);
   MIGRATIONS.forEach((m, i) => {
     assert.equal(m.from, i + 1);
     assert.equal(m.to, m.from + 1);
@@ -378,7 +387,7 @@ test('a v5 file is backed up as settings.v5.json and saved as v6 with uiLanguage
   assert.equal(s.get().uiLanguage, 'system');
   assert.deepEqual(readJson(backupOf(file, 5)), v5);
   const saved = readJson(file);
-  assert.equal(saved.settingsVersion, 6);
+  assert.equal(saved.settingsVersion, SETTINGS_VERSION);
   assert.equal(saved.uiLanguage, 'system');
 });
 
@@ -392,4 +401,62 @@ test('update() takes "system" or a language code for uiLanguage and ignores anyt
   }
   s.update({ uiLanguage: 'system' });
   assert.equal(s.get().uiLanguage, 'system');
+});
+
+// --- v6 -> v7 (modes) ---------------------------------------------------------
+
+const modeIds = (modes) => modes.map((m) => m.id);
+
+test('a v6 file is backed up as settings.v6.json and saved as v7: its app styles, Always translate and translate key are modes now', () => {
+  const v6 = {
+    settingsVersion: 6, sounds: false,
+    appStyles: { enabled: true, rules: [{ app: 'outlook.exe', style: 'formal' }, { app: 'code.exe', style: 'code' }] },
+    translation: { always: true, target: 'en', quality: 'fast' },
+    bindings: [
+      { id: 'dictate-1', action: 'dictate', keys: ['Ctrl', 'Meta'], behaviour: 'both' },
+      { id: 'translate-1', action: 'translate', keys: ['F13'], behaviour: 'toggle' },
+    ],
+  };
+  const file = tempFile(v6);
+  const s = new Settings(file, plain);
+  assert.deepEqual(modeIds(s.get().modes), ['default', 'code', 'formal', 'translate']);
+  assert.ok(s.get().modes.every((m) => m.translateTo === 'en'), 'everything that was translated still is');
+  assert.deepEqual(s.get().modes.find((m) => m.id === 'formal').apps, ['outlook.exe']);
+  assert.deepEqual(s.get().bindings[1], { id: 'translate-1', action: 'dictate', keys: ['F13'], behaviour: 'toggle', mode: 'translate' });
+  assert.equal(s.get().appStyles, undefined);
+  assert.equal(s.get().translation.always, undefined);
+  assert.equal(s.get().sounds, false);
+  assert.deepEqual(readJson(backupOf(file, 6)), v6);
+  const saved = readJson(file);
+  assert.equal(saved.settingsVersion, 7);
+  assert.equal(saved.appStyles, undefined);
+  assert.deepEqual(new Settings(file, plain).get().modes, s.get().modes, 'a migrated file loads unchanged');
+});
+
+test('a v6 file that never changed the defaults gets the default modes, so it works as before', () => {
+  const s = new Settings(tempFile({ settingsVersion: 6, onboarded: true }), plain);
+  assert.deepEqual(s.get().modes, DEFAULTS.modes);
+  assert.deepEqual(translateKeys(s.get().bindings), [[['Ctrl', 'Meta', 'Shift'], 'both']]);
+});
+
+test('a new install has the default modes and no app styles or Always translate', () => {
+  const s = new Settings(tempFile(null), plain);
+  assert.deepEqual(modeIds(s.get().modes), ['default', 'chat', 'code', 'formal', 'translate']);
+  assert.equal(s.get().appStyles, undefined);
+  assert.equal(s.get().translation.always, undefined);
+});
+
+test('update() cleans the modes sent by the window', () => {
+  const s = new Settings(tempFile(null), plain);
+  s.update({ modes: [{ id: 'mine', name: 'Mine', style: 'code', apps: ['Code.exe'] }, { nope: true, apps: 'x' }] });
+  assert.deepEqual(modeIds(s.get().modes), ['default', 'mine', 'mode']);
+  assert.deepEqual(s.get().modes[1].apps, ['code.exe']);
+  s.update({ modes: 'gone' });
+  assert.deepEqual(modeIds(s.get().modes), ['default', 'chat', 'code', 'formal', 'translate'], 'not a list: the defaults');
+});
+
+test('modes from a hand-edited v7 file are cleaned on load', () => {
+  const s = new Settings(tempFile({ settingsVersion: 7, modes: [{ id: 'x', style: 'loud' }] }), plain);
+  assert.deepEqual(modeIds(s.get().modes), ['default', 'x']);
+  assert.equal(s.get().modes[1].style, 'normal');
 });

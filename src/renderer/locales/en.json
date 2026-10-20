@@ -645,5 +645,10 @@
   "errors.fileBusy": "Another file is already being transcribed",
   "errors.finishCurrent": "Finish the current dictation first",
   "files.filter.subtitles": "Subtitles",
-  "files.filter.text": "Text"
+  "files.filter.text": "Text",
+  "modes.builtin.default": "Default",
+  "modes.builtin.chat": "Chat",
+  "modes.builtin.code": "Code",
+  "modes.builtin.formal": "Formal",
+  "modes.builtin.translate": "Translate to {language}"
 }

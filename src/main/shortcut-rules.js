@@ -1,6 +1,6 @@
 'use strict';
 // Shortcut validation: max 3 keys, must include a modifier or mouse button, no left+right pair of
-// the same modifier, no duplicates, up to 4 shortcuts per action (Cancel: 1).
+// the same modifier, no duplicates, up to 4 shortcuts per action (Dictate: 8, one per mode; Cancel: 1).
 // On top of that: combinations Windows keeps for itself are refused, and
 // common app shortcuts (Ctrl+C...) get a warning the user has to confirm,
 // because the hook can't stop them from also doing their usual job.
@@ -15,7 +15,8 @@ const BEHAVIOURS = ['hold', 'toggle', 'both'];
 
 // talk: the action records speech, so each shortcut picks Hold / Toggle / Both.
 const ACTIONS = {
-  dictate: { label: 'Dictate', talk: true },
+  dictate: { label: 'Dictate', talk: true, max: 8 },
+  // Since 1.5 a Dictate shortcut with the Translate mode (settings v7 moves them); kept for one release as an alias.
   translate: { label: 'Talk & translate', talk: true },
   command: { label: 'Command mode', talk: true },
   cancel: { label: 'Cancel', max: 1 },

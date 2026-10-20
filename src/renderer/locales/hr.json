@@ -654,5 +654,10 @@
   "errors.fileBusy": "Već se transkribira druga datoteka",
   "errors.finishCurrent": "Najprije završi trenutno diktiranje",
   "files.filter.subtitles": "Titlovi",
-  "files.filter.text": "Tekst"
+  "files.filter.text": "Tekst",
+  "modes.builtin.default": "Zadano",
+  "modes.builtin.chat": "Dopisivanje",
+  "modes.builtin.code": "Kôd",
+  "modes.builtin.formal": "Službeno",
+  "modes.builtin.translate": "Prijevod: {language}"
 }

@@ -58,13 +58,17 @@ test('common app shortcuts are warnings, not errors', () => {
   assert.equal(shortcutWarning(['Ctrl', 'Meta']), null);
 });
 
-test('up to four shortcuts per action, one for Cancel', () => {
-  assert.equal(maxBindings('dictate'), 4);
+test('up to four shortcuts per action, eight for Dictate (one per mode), one for Cancel', () => {
+  assert.equal(maxBindings('pasteLast'), 4);
+  assert.equal(maxBindings('dictate'), 8);
   assert.equal(maxBindings('cancel'), 1);
-  const full = [...bindings, { id: 'x1', action: 'dictate', keys: ['F7'] }, { id: 'x2', action: 'dictate', keys: ['F8'] }];
-  assert.deepEqual(validateShortcut(['F9'], 'dictate', full), { code: 'tooMany', params: { action: 'dictate', count: 4 } });
+  const full = [...bindings, ...[5, 6, 7].map((n) => ({ id: `x${n}`, action: 'pasteLast', keys: [`F${n}`] }))];
+  assert.deepEqual(validateShortcut(['F9'], 'pasteLast', full), { code: 'tooMany', params: { action: 'pasteLast', count: 4 } });
   assert.deepEqual(check(['F9'], 'cancel'), { code: 'tooMany', params: { action: 'cancel', count: 1 } });
-  assert.equal(validateShortcut(['F9'], 'dictate', full, { ignoreId: 'x2' }), null, 'replacing does not add one');
+  assert.equal(validateShortcut(['F9'], 'pasteLast', full, { ignoreId: 'x7' }), null, 'replacing does not add one');
+  const dictating = [...bindings, ...[13, 14, 15, 16].map((n) => ({ id: `d${n}`, action: 'dictate', keys: [`F${n}`] }))];
+  assert.equal(validateShortcut(['F9'], 'dictate', dictating), null, 'eight Dictate shortcuts');
+  assert.deepEqual(validateShortcut(['F9'], 'dictate', [...dictating, { id: 'd17', action: 'dictate', keys: ['F17'] }]), { code: 'tooMany', params: { action: 'dictate', count: 8 } });
 });
 
 test('double-tap needs one Ctrl, Alt or Shift key', () => {

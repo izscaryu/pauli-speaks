@@ -37,9 +37,10 @@ test('turbo cannot use Whisper translate', () => {
   assert.equal(canWhisperTranslate('onnx-community/whisper-small'), true);
 });
 
-test('default translate shortcut is valid and distinct', () => {
-  const b = DEFAULTS.bindings.find((x) => x.action === 'translate');
+test('default translate shortcut is a valid, distinct Dictate shortcut for the Translate mode', () => {
+  const b = DEFAULTS.bindings.find((x) => x.mode === 'translate');
+  assert.equal(b.action, 'dictate');
   assert.deepEqual(b.keys, ['Ctrl', 'Meta', 'Shift']);
-  assert.equal(validateShortcut(b.keys, 'translate', DEFAULTS.bindings, { ignoreId: b.id }), null);
-  assert.deepEqual(DEFAULTS.translation, { always: false, target: 'en', quality: 'fast' });
+  assert.equal(validateShortcut(b.keys, 'dictate', DEFAULTS.bindings, { ignoreId: b.id }), null);
+  assert.deepEqual(DEFAULTS.translation, { target: 'en', quality: 'fast' });
 });

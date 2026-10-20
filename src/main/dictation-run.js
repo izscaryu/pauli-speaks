@@ -36,7 +36,7 @@ function createDictationRun(d) {
   const now = d.now || Date.now;
 
   function translatingNow() {
-    return !controller.command && (controller.translate || settings.get().translation.always);
+    return !controller.command && !!(controller.translate || settings.get().translation.always);
   }
 
   /**

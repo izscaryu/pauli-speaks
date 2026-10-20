@@ -9,7 +9,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { DEFAULT_APP_RULES } = require('./app-styles');
+const { DEFAULT_MODES, normalizeModes, v6to7 } = require('./modes');
 const { normalizeBindings } = require('./shortcut-rules');
 const { DEFAULT_VOICE_COMMANDS, normalizeVoiceCommands } = require('./voice-commands');
 
@@ -17,7 +17,7 @@ const DEFAULTS = Object.freeze({
   bindings: [
     { id: 'dictate-1', action: 'dictate', keys: ['Ctrl', 'Meta'], behaviour: 'both' },
     { id: 'dictate-2', action: 'dictate', keys: ['Ctrl', 'Meta', 'Space'], behaviour: 'toggle' },
-    { id: 'translate-1', action: 'translate', keys: ['Ctrl', 'Meta', 'Shift'], behaviour: 'both' },
+    { id: 'translate-1', action: 'dictate', keys: ['Ctrl', 'Meta', 'Shift'], behaviour: 'both', mode: 'translate' },
     { id: 'command-1', action: 'command', keys: ['Ctrl', 'Meta', 'Alt'], behaviour: 'both' },
     { id: 'cancel-1', action: 'cancel', keys: ['Escape'] },
     { id: 'pasteLast-1', action: 'pasteLast', keys: ['Shift', 'Alt', 'Z'] },
@@ -28,10 +28,7 @@ const DEFAULTS = Object.freeze({
   snippets: [],
   autoStopSilence: 0,
   livePreview: false,
-  appStyles: {
-    enabled: true,
-    rules: DEFAULT_APP_RULES,
-  },
+  modes: DEFAULT_MODES, // modes.js: language, translation, style and voice commands per shortcut, link or app
   command: {
     model: 'llama-3.3-70b-versatile',
   },
@@ -39,8 +36,7 @@ const DEFAULTS = Object.freeze({
     voice: '',
     rate: 1,
   },
-  translation: {
-    always: false,
+  translation: { // the target and quality for Files and the old Talk & translate shortcut; modes have their own target
     target: 'en',
     quality: 'fast',
   },
@@ -78,7 +74,7 @@ const DEFAULTS = Object.freeze({
 // reset() leaves these out of the change it announces: the model they name would start downloading.
 const RESET_QUIET = ['engine', 'localModel', 'acceleration', 'translation'];
 
-const NESTED = ['cloud', 'translation', 'appStyles', 'command', 'readAloud', 'languageHints'];
+const NESTED = ['cloud', 'translation', 'command', 'readAloud', 'languageHints'];
 
 /** Known settings only - never inherited names like "__proto__" or "constructor" from a file or the window. */
 const isSetting = (k) => Object.hasOwn(DEFAULTS, k);
@@ -152,13 +148,14 @@ function v5to6(saved) {
   return { ...saved, uiLanguage: typeof saved.uiLanguage === 'string' ? saved.uiLanguage : 'system' };
 }
 
-/** Every change to the shape of settings.json is a step here, in order. */
+/** Every change to the shape of settings.json is a step here, in order. v6 → v7 (modes) is in modes.js. */
 const MIGRATIONS = Object.freeze([
   { from: 1, to: 2, run: v1to2 },
   { from: 2, to: 3, run: v2to3 },
   { from: 3, to: 4, run: v3to4 },
   { from: 4, to: 5, run: v4to5 },
   { from: 5, to: 6, run: v5to6 },
+  { from: 6, to: 7, run: v6to7 },
 ]);
 
 /** 'system' or something shaped like a locale code; strings.js falls back to English for a code without a file. */
@@ -190,6 +187,7 @@ function migrateSettings(saved) {
   const out = runMigrations(saved, MIGRATIONS, SETTINGS_VERSION);
   if ('bindings' in out) out.bindings = normalizeBindings(out.bindings);
   if ('voiceCommands' in out) out.voiceCommands = normalizeVoiceCommands(out.voiceCommands);
+  if ('modes' in out) out.modes = normalizeModes(out.modes);
   return out;
 }
 
@@ -262,6 +260,8 @@ class Settings extends EventEmitter {
         next.bindings = normalizeBindings(v);
       } else if (k === 'voiceCommands') {
         next.voiceCommands = normalizeVoiceCommands(v);
+      } else if (k === 'modes') {
+        next.modes = normalizeModes(v);
       } else if (k === 'uiLanguage') {
         if (isUiLanguage(v)) next.uiLanguage = v;
       } else if (NESTED.includes(k)) {
