@@ -2,6 +2,10 @@
 
 What changed in each version of Pauli Speaks. The app shows the newest section once after an update.
 
+## 1.5.1
+
+- Fixed: since 1.3.0 the installed app stopped part-way through starting. The tray icon, the floating bar, your shortcuts and automatic updates were missing, while the window still opened. If your copy is 1.3.0 to 1.5.0, end Pauli Speaks in Task Manager, then install this version from the GitHub releases page: the old version can't update itself.
+
 ## 1.5.0
 
 - Modes: a mode bundles the language you speak, a language to translate into, a style and voice commands. Give a mode its own shortcut ("F13 → Croatian chat"), let it switch on by itself when an app is in front ("Outlook → formal English", "VS Code → code style"), or start it with a link or flag (`pauli-speaks://dictate/toggle?mode=code`, `--mode=code`). Set them up on the new Modes page.

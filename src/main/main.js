@@ -67,6 +67,7 @@ const { readChangelog } = require('./changelog');
 const { registerI18nIpc } = require('./i18n-ipc');
 const { trayTemplate, trayHints } = require('./tray-menu');
 const { t, languageName } = require('./strings');
+const { REPO } = require('./repo');
 
 // Before anything reads userData: a portable copy keeps its data next to its exe.
 const portable = setupPortable(app);
@@ -750,7 +751,7 @@ function registerIpc() {
     gpuInfo: () => app.getGPUInfo('complete'), getModelState: () => modelState, getTranslatorState: () => translatorState,
     modelsDir, modelIds: [...MODELS.map((m) => m.id), NLLB_MODEL], formatKeys: formatShortcut, hookError: () => hookError,
     processNames: runningProcessNames, recentLog: (n) => log.recent(n), writeClipboard: io.writeClipboard,
-    openExternal: (url) => shell.openExternal(url), repo: require('../../package.json').build.publish[0], log,
+    openExternal: (url) => shell.openExternal(url), repo: REPO, log,
   });
   recoveryIpc = registerRecoveryIpc(ipcMain, {
     recovery, crashRecoveryOn: () => settings.get().crashRecovery, dictationActive: () => controller.status !== 'idle',
