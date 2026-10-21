@@ -25,6 +25,18 @@ function setUpSettings(more = {}) {
   };
 }
 
+/** PAULI_E2E_LOG_DIR=<folder>: each test's app log is copied there before its data folder goes (to see why one failed). */
+function keepLogs(dir) {
+  const to = process.env.PAULI_E2E_LOG_DIR;
+  if (!to) return;
+  try {
+    fs.mkdirSync(to, { recursive: true });
+    for (const name of fs.readdirSync(path.join(dir, 'logs'))) fs.copyFileSync(path.join(dir, 'logs', name), path.join(to, `${path.basename(dir)}-${name}`));
+  } catch {
+    // no log yet
+  }
+}
+
 async function waitFor(fn, { timeout = 15000, every = 100, what = 'condition' } = {}) {
   const end = Date.now() + timeout;
   for (;;) {
@@ -69,8 +81,24 @@ async function launch({ settings = setUpSettings(), rawSettings, args = [] } = {
     set: (field, value) => app.evaluate((_electron, [f, v]) => { global.__pauliE2E.state[f] = v; }, [field, value]),
     /** A key (or mouse button) going down or up, as the global hook would report it. */
     key: (name, down) => app.evaluate((_electron, [k, d]) => global.__pauliE2E.key(k, d), [name, down]),
+    /**
+     * Push-to-talk, timed from when the app really listens: once it is idle, `key` goes down, the app reports
+     * listening, it is held for `ms` (`during` runs halfway and its result is returned), then it goes up.
+     */
+    dictate: async (key = 'F13', { ms = 1500, during = null } = {}) => {
+      const status = async () => (await page.evaluate(() => window.pauli.getDictationStatus())).status;
+      await waitFor(async () => (await status()) === 'idle', { what: 'an idle dictation' });
+      await app.evaluate((_electron, k) => global.__pauliE2E.key(k, true), key);
+      await waitFor(async () => (await status()) === 'listening', { what: 'the app listening', every: 25 });
+      await new Promise((r) => setTimeout(r, ms / 2));
+      const seen = during ? await during() : null;
+      await new Promise((r) => setTimeout(r, ms / 2));
+      await app.evaluate((_electron, k) => global.__pauliE2E.key(k, false), key);
+      return seen;
+    },
     close: async () => {
       await app.close().catch(() => {});
+      keepLogs(dir);
       removeDir();
     },
   };

@@ -19,6 +19,7 @@ class KeyboardService extends EventEmitter {
     this.engine = new ShortcutEngine();
     this.started = false;
     this.sweepTimer = null;
+    this.realInput = true; // e2e.js turns it off: only the test's keys count, not someone typing on the PC
 
     this.engine.on('action', (e) => {
       if (e.phase === 'down' && e.keys.some((k) => WIN_KEYS.includes(k))) win32.sendMaskKey();
@@ -32,12 +33,17 @@ class KeyboardService extends EventEmitter {
     this.engine.on('stale', ({ key }) => log.warn(`Evicted stale key ${key}`));
   }
 
+  /** A key or mouse button from the global hook. */
+  realKey(name, down) {
+    if (this.realInput) this.engine.handleKey(name, down);
+  }
+
   start() {
     if (this.started) return;
-    uIOhook.on('keydown', (e) => this.engine.handleKey(keyName(e.keycode), true));
-    uIOhook.on('keyup', (e) => this.engine.handleKey(keyName(e.keycode), false));
-    uIOhook.on('mousedown', (e) => this.engine.handleKey(mouseName(e.button), true));
-    uIOhook.on('mouseup', (e) => this.engine.handleKey(mouseName(e.button), false));
+    uIOhook.on('keydown', (e) => this.realKey(keyName(e.keycode), true));
+    uIOhook.on('keyup', (e) => this.realKey(keyName(e.keycode), false));
+    uIOhook.on('mousedown', (e) => this.realKey(mouseName(e.button), true));
+    uIOhook.on('mouseup', (e) => this.realKey(mouseName(e.button), false));
     uIOhook.start();
     this.started = true;
     this.sweepTimer = setInterval(() => {

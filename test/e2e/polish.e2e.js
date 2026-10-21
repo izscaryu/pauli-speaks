@@ -32,11 +32,7 @@ const polishing = (url) => setUpSettings({
   modes: [{ id: 'default', aiPolish: 'medium' }],
 });
 
-async function dictate(run, ms = 1500) {
-  await run.key('F13', true);
-  await new Promise((r) => setTimeout(r, ms));
-  await run.key('F13', false);
-}
+const dictate = (run, ms = 1500) => run.dictate('F13', { ms });
 
 const pastes = (run, n) => waitFor(async () => { const s = await run.state(); return s.pasted.length >= n ? s : null; }, { what: `${n} paste(s)` });
 

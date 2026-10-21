@@ -39,3 +39,21 @@ test('attach: keys go straight into the shortcut engine, which no longer sweeps 
   assert.equal(swept, 0);
   assert.equal(target.__pauliE2E.state, e2e.state);
 });
+
+test('attach: the real keyboard and mouse are ignored, so typing on the PC during a test run cannot disturb it', () => {
+  const e2e = createE2E();
+  const keyboard = { realInput: true, engine: { handleKey() {}, sweepStale() {}, pressed: new Map() } };
+  e2e.attach({ keyboard, target: {} });
+  assert.equal(keyboard.realInput, false);
+});
+
+test('KeyboardService passes real key events to the engine only while realInput is on', () => {
+  const { KeyboardService } = require('../src/main/keyboard');
+  const k = new KeyboardService();
+  const seen = [];
+  k.engine.handleKey = (name, down) => seen.push([name, down]);
+  k.realKey('F13', true);
+  k.realInput = false;
+  k.realKey('O', true);
+  assert.deepEqual(seen, [['F13', true]]);
+});

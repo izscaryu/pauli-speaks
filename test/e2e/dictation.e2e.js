@@ -5,11 +5,7 @@ const assert = require('node:assert/strict');
 const { launch, waitFor } = require('./helpers');
 
 /** Holds the dictate shortcut (F13) long enough to be push-to-talk, then lets go. */
-async function dictate(run, ms = 1500) {
-  await run.key('F13', true);
-  await new Promise((r) => setTimeout(r, ms));
-  await run.key('F13', false);
-}
+const dictate = (run, ms = 1500) => run.dictate('F13', { ms });
 
 test('hold, speak, let go: the cleaned-up text is pasted and appears in History', async (t) => {
   const run = await launch();

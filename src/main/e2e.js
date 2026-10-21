@@ -32,7 +32,8 @@ function createE2E() {
   /** Hands the tests their handle once the keyboard service exists. */
   function attach({ keyboard, target = global }) {
     keyboard.engine.sweepStale = () => {}; // injected keys are never down for Windows: keep them until released
-    target.__pauliE2E = { state, key: (name, down) => keyboard.engine.handleKey(name, down) };
+    keyboard.realInput = false; // someone typing on this PC during a test run must not reach the app
+    target.__pauliE2E = { state, key: (name, down) => keyboard.engine.handleKey(name, down), pressed: () => [...keyboard.engine.pressed] };
   }
 
   return { state, io, attach };
