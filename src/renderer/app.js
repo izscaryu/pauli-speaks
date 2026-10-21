@@ -298,6 +298,7 @@ function historyItem(item) {
 
 function renderHistory() {
   const box = $('#history');
+  $('#clear-history').disabled = !historyItems.length; // nothing to clear
   const q = $('#history-search').value.trim().toLowerCase();
   const items = q
     ? historyItems.filter((i) => (i.text || '').toLowerCase().includes(q) || (i.original || '').toLowerCase().includes(q))

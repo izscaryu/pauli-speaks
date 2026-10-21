@@ -96,6 +96,22 @@ test('checkLocales(): all good when everything lines up', () => {
   assert.match(formatReport(r), /all good/i);
 });
 
+test('checkLocales(): no spaced hyphen as a dash, and no full stop after a heading, in any language', () => {
+  const en = {
+    'language.name': 'English',
+    'a.desc': 'Audio or video - voice memos',
+    'b.desc': 'F13–F24 and a well-known re-run',
+    'c.title': 'Try it.',
+    'd.title': 'Which microphone?',
+    'e.desc': 'A sentence.',
+  };
+  const hr = { ...en, 'language.name': 'Hrvatski', 'a.desc': 'Zvuk ili video: poruke', 'b.desc': 'Zvuk - video', 'c.title': 'Isprobaj' };
+  const r = checkLocales({ keys: new Set(Object.keys(en)), prefixes: [] }, { en, hr });
+  assert.deepEqual(r.style, { en: ['a.desc', 'c.title'], hr: ['b.desc'] });
+  assert.equal(r.ok, false);
+  assert.match(formatReport(r), /en\.json.*dash.*\n.*a\.desc/i);
+});
+
 test('formatReport() names each problem', () => {
   const r = checkLocales({ keys: new Set(['a', 'b']), prefixes: [] }, { en: { 'language.name': 'English', a: 'A', c: 'C' }, hr: { 'language.name': 'Hrvatski' } });
   const text = formatReport(r);

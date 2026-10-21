@@ -244,7 +244,7 @@ test('runCommand: nothing said, or the AI answers nothing, is said so and nothin
 
   const empty = rig({ chat: async () => '' });
   await empty.run.runCommand(audio(), 1);
-  assert.deepEqual(empty.calls.flashed, [['The AI returned nothing - try rephrasing', 'error']]);
+  assert.deepEqual(empty.calls.flashed, [['The AI returned nothing. Try rephrasing.', 'error']]);
   assert.deepEqual(empty.calls.pasted, []);
 });
 

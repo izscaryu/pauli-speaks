@@ -127,9 +127,22 @@ function checkLocales(used, locales) {
     }).sort();
     languages[lang] = { untranslated, extra, placeholders: badPlaceholders };
   }
+  const style = Object.fromEntries(Object.entries(locales).map(([lang, strings]) => [lang, styleProblems(strings)]));
   const ok = !missing.length && !unused.length
-    && Object.values(languages).every((l) => !l.untranslated.length && !l.extra.length && !l.placeholders.length);
-  return { ok, keys: enKeys.length, missing, unused, languages };
+    && Object.values(languages).every((l) => !l.untranslated.length && !l.extra.length && !l.placeholders.length)
+    && Object.values(style).every((keys) => !keys.length);
+  return { ok, keys: enKeys.length, missing, unused, languages, style };
+}
+
+/**
+ * House style in every language: a dash is a colon, a new sentence or an en dash ("F13–F24"), never a spaced
+ * hyphen; a heading (a .title key) has no full stop.
+ */
+function styleProblems(strings) {
+  return Object.entries(strings)
+    .filter(([key, text]) => typeof text === 'string' && (/ - /.test(text) || (/\.title$/.test(key) && /[^.]\.$/.test(text))))
+    .map(([key]) => key)
+    .sort();
 }
 
 function formatReport(r) {
@@ -141,6 +154,9 @@ function formatReport(r) {
     list(`${lang}.json: not translated yet`, l.untranslated);
     list(`${lang}.json: keys English no longer has`, l.extra);
     list(`${lang}.json: {placeholders} differ from English`, l.placeholders);
+  }
+  for (const [lang, keys] of Object.entries(r.style || {})) {
+    list(`${lang}.json: a spaced hyphen as a dash (use a colon or "–"), or a heading ending in a full stop`, keys);
   }
   if (r.ok) lines.push('✓ All good.');
   return lines.join('\n');
