@@ -2,6 +2,19 @@
 
 What changed in each version of Pauli Speaks. The app shows the newest section once after an update.
 
+## 1.6.1
+
+- The Modes page fits a narrow window: below about 1,000 px the list of modes moves above the editor and every field stays in view. On the Shortcuts page a shortcut's remove button stays on its own line, and Home's 7-day chart moves under the numbers.
+- Home's status says "Model needed" until the speech model is downloaded (and "Downloading 42%", "Loading model…" or "Model didn't load" while that happens), instead of "Ready".
+- A blocked or missing microphone gets a short message on the bar with a button that fixes it: "Open settings" opens the microphone privacy page in Windows, and "Choose mic" opens Settings → Microphone. What to do is shown above the bar.
+- After you cancel a dictation the bar offers "Transcribe anyway" (it said "Undo").
+- Easier to see, in the dark theme above all: grey text, switches, selected options and the delete buttons have more contrast, a switch that is off is an outline, the chosen option in a group has a coloured line under it, fields have a darker bottom edge that turns blue while you type, and links are a darker blue.
+- Settings: a section link brings that section to the top and starts a screen reader there.
+- Files: a "Choose file…" button, so you can pick a file with the keyboard.
+- History and Modes show app names you know ("Word", "Outlook"), times without a leading zero (9:44 PM, with seconds when you point at them), and no typewriter font. "Clear" in History is now "Clear history…" and can't be pressed when there is nothing to clear.
+- No more "Saved" pop-up after each change (Settings saves by itself), and a pop-up no longer follows you to another page.
+- Clearer wording in places, in English and Croatian; the bar's "Auto" chip reads "Automatski" in Croatian.
+
 ## 1.6.0
 
 - AI polish (off by default): give a mode a level on the Modes page and an AI model tidies what you said before it is pasted. Light fixes punctuation and obvious mis-hearings, Medium also takes out repetitions and false starts, High rewrites clearly, and Prompt turns rambling into clear instructions for ChatGPT, Claude or a terminal, with file names and code kept exactly as said. Each mode can add its own instructions ("Use British spelling").
