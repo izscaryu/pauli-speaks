@@ -19,6 +19,11 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  # foundry-local-sdk's install script fetches ONNX Runtime from NuGet: nuget.org only, never its nightly-feed
+  # fallback (test/foundry-natives.test.js checks what arrived).
+  FOUNDRY_LOCAL_NUGET_FEEDS: https://api.nuget.org/v3/index.json
+
 jobs:
   build:
     runs-on: windows-latest

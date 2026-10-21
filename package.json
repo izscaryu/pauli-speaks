@@ -27,6 +27,7 @@
   "dependencies": {
     "@huggingface/transformers": "4.3.1",
     "electron-updater": "6.8.9",
+    "foundry-local-sdk": "2.1.0",
     "koffi": "3.3.3",
     "uiohook-napi": "1.5.5"
   },
@@ -63,14 +64,17 @@
       "!node_modules/onnxruntime-node/bin/napi-v*/darwin/**",
       "!node_modules/onnxruntime-node/bin/napi-v*/win32/arm64/**",
       "!node_modules/uiohook-napi/prebuilds/{linux,darwin,win32-arm64}*/**",
-      "!node_modules/onnxruntime-web/**"
+      "!node_modules/onnxruntime-web/**",
+      "!node_modules/foundry-local-sdk/prebuilds/{darwin-arm64,linux-arm64,linux-x64,win32-arm64}/**",
+      "!node_modules/foundry-local-sdk/prebuilds/win32-x64/Microsoft.Windows.AI.MachineLearning.dll"
     ],
     "asarUnpack": [
       "node_modules/koffi/**",
       "node_modules/uiohook-napi/**",
       "node_modules/onnxruntime-node/**",
       "node_modules/sharp/**",
-      "node_modules/@img/**"
+      "node_modules/@img/**",
+      "node_modules/foundry-local-sdk/**"
     ],
     "win": {
       "target": "nsis",
@@ -94,6 +98,7 @@
     "uiohook-napi@1.5.5": true,
     "onnxruntime-node@1.30.0": true,
     "electron-winstaller@5.4.0": true,
-    "protobufjs@7.6.6": true
+    "protobufjs@7.6.6": true,
+    "foundry-local-sdk@2.1.0": true
   }
 }

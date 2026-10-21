@@ -26,6 +26,14 @@ NLLB Team, Meta AI: "No Language Left Behind: Scaling Human-Centered Machine Tra
 (2022), [facebook/nllb-200-distilled-600M](https://huggingface.co/facebook/nllb-200-distilled-600M).
 The *Fast* translation option uses Whisper and doesn't download NLLB-200.
 
+### AI polish models from Foundry Local (only if you download one)
+
+With **Settings → AI polish → Foundry Local**, the app lists chat models from Microsoft's Foundry Local
+catalogue (Qwen 2.5, Phi and others), each with its size and licence, and downloads the one you pick after you
+confirm. It is kept in `%APPDATA%\Pauli Speaks\models\foundry`. The licence of each model is shown next to it
+in the app (Apache-2.0 or MIT for the models offered); the models are the work of their publishers (Alibaba
+Cloud's Qwen team, Microsoft and others).
+
 ## Main components in the installer
 
 | Component | What it does here | Licence |
@@ -42,6 +50,8 @@ The *Fast* translation option uses Whisper and doesn't download NLLB-200.
 | [sharp](https://sharp.pixelplumbing.com) | Image library required by Transformers.js | Apache-2.0 |
 | [libvips](https://github.com/libvips/libvips) (`libvips-42.dll`, in `@img/sharp-win32-x64`) | Used by sharp | LGPL-3.0-or-later |
 | [Silero VAD](https://github.com/snakers4/silero-vad) v6.2.3 (`assets\models\silero_vad.onnx`, inside `app.asar`) | Finds the parts of a recording that are speech | MIT |
+| [Foundry Local SDK](https://github.com/microsoft/Foundry-Local) (`foundry-local-sdk` 2.1.0, with `foundry_local.dll`) | Runs an AI polish model on this PC, only when you choose Foundry Local | MIT |
+| [ONNX Runtime](https://github.com/microsoft/onnxruntime) 1.30.0 and [ONNX Runtime GenAI](https://github.com/microsoft/onnxruntime-genai) 0.17.1, shipped with the Foundry Local SDK | Runs that model | MIT |
 
 ### Silero VAD model
 
@@ -66,7 +76,7 @@ Speaks release, open an issue and we'll provide it.
 
 ## All other bundled packages
 
-- **MIT**: @huggingface/jinja 0.5.10, @img/colour 1.1.0, @koromix/koffi-win32-x64 3.3.3, @types/node 24.19.2, adm-zip 0.6.1, builder-util-runtime 9.7.0, debug 4.4.3, define-data-property 1.1.4, define-properties 1.2.1, es-define-property 1.0.1, es-errors 1.3.0, escape-string-regexp 4.0.0, fs-extra 10.1.0, globalthis 1.0.4, gopd 1.2.0, has-property-descriptors 1.0.2, js-yaml 4.3.2, jsonfile 6.2.1, lazy-val 1.0.5, lodash.escaperegexp 4.1.2, lodash.isequal 4.5.0, matcher 4.0.0, ms 2.1.3, node-gyp-build 4.8.4, object-keys 1.1.1, onnxruntime-common 1.30.0, platform 1.3.6, serialize-error 8.1.0, tiny-typed-emitter 2.1.0, undici-types 7.24.6, universalify 2.0.1
+- **MIT**: @huggingface/jinja 0.5.10, @img/colour 1.1.0, @koromix/koffi-win32-x64 3.3.3, @types/node 24.19.2, adm-zip 0.6.1, builder-util-runtime 9.7.0, debug 4.4.3, define-data-property 1.1.4, define-properties 1.2.1, es-define-property 1.0.1, es-errors 1.3.0, escape-string-regexp 4.0.0, fs-extra 10.1.0, globalthis 1.0.4, gopd 1.2.0, has-property-descriptors 1.0.2, js-yaml 4.3.2, jsonfile 6.2.1, lazy-val 1.0.5, lodash.escaperegexp 4.1.2, lodash.isequal 4.5.0, matcher 4.0.0, ms 2.1.3, node-addon-api 8.9.2, node-gyp-build 4.8.4, object-keys 1.1.1, onnxruntime-common 1.30.0, platform 1.3.6, serialize-error 8.1.0, tiny-typed-emitter 2.1.0, undici-types 7.24.6, universalify 2.0.1
 - **BSD-3-Clause**: @protobufjs/aspromise 1.1.2, @protobufjs/base64 1.1.2, @protobufjs/codegen 2.0.5, @protobufjs/eventemitter 1.1.1, @protobufjs/fetch 1.1.1, @protobufjs/float 1.0.2, @protobufjs/path 1.1.2, @protobufjs/pool 1.1.0, @protobufjs/utf8 1.1.2, global-agent 4.1.3, protobufjs 7.6.6
 - **Apache-2.0**: detect-libc 2.1.2, flatbuffers 25.9.23, long 5.3.2
 - **ISC**: graceful-fs 4.2.11, guid-typescript 1.0.9, semver 7.7.4, semver 7.8.5
