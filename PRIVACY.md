@@ -53,6 +53,13 @@ the app says so next to that option.
   clipboard content is not put back) so you can press Ctrl+V yourself. The text copied after *Retry*
   in History and after *Recover* is marked the same way. What you copy yourself (*Copy last* and
   *Copy* in History) is an ordinary copy, which Windows clipboard history may keep.
+- **AI polish on this PC (off by default).** With **Settings → AI polish** set to Ollama, LM Studio, Foundry
+  Local or another server at `localhost`/`127.0.0.1`, the text of each dictation in a mode with a polish level
+  (after the usual clean-up, plus the mode's own instructions) goes to that program on your PC, and its answer
+  is pasted. Nothing leaves the PC for it. History then keeps both versions (what you said and the polished
+  text), so *Undo* can put back what you said. Opening Settings with Ollama or LM Studio chosen, or pressing
+  *Find*, asks `127.0.0.1` (ports 11434 and 1234) whether they run. Foundry Local runs its model inside Pauli
+  Speaks and keeps its models in `models\foundry`.
 - **Your dictionary, snippets, voice commands and settings.**
 - **Logs.** For troubleshooting, the app logs timings, the detected language, the name of the app
   you dictated into (for example `chrome.exe`), which voice commands ran, and errors. It doesn't
@@ -64,6 +71,8 @@ the app says so next to that option.
 |---|---|---|
 | **Cloud API** speech recognition (Settings → Speech recognition) | The audio of each dictation, and of files you transcribe, plus your dictionary words as a hint for the recognition (while *Use dictionary words as hints* is on) | The provider you set up (Groq by default: `api.groq.com`) |
 | **Command mode** (select text, hold the command shortcut, speak) | The selected text and your spoken instruction (as text) | The same provider |
+| **AI polish** with *Cloud API*, or *Another server* at an address that isn't this PC (Settings → AI polish, and a polish level on a mode) | The text of each dictation in that mode (after clean-up; not the audio) and the mode's own polish instructions | The Cloud API provider (Groq by default: `api.groq.com`), or the server you entered. A custom server's API key is encrypted like the Cloud API key |
+| **AI polish with Foundry Local**: *Show models* and *Download* | Which models are offered, and the model you download. Your text is never sent | Microsoft's Foundry Local catalogue and its download servers (`ai.azure.com`, Azure storage) |
 
 With Cloud API recognition and several languages chosen, a dictation that comes back in a language that isn't one of yours (for example Polish or Bosnian when you chose Croatian and English) is sent again to the same provider, once for each of your languages, and the result the speech model is surest of is kept. Files you transcribe are not sent more than once.
 
@@ -83,6 +92,11 @@ own privacy policy.
 - **Model downloads** from Hugging Face (`huggingface.co` and its download servers), the first
   time you use a speech or translation model. After that the model works offline.
 
+- **Foundry Local, only while it is chosen for AI polish.** Pauli Speaks starts Microsoft's Foundry Local with
+  its optional telemetry switched off. Microsoft documents that Foundry Local may still send a minimal event
+  about the process (`ProcessInfo`) to Microsoft (`mobile.events.data.microsoft.com`) when it starts; it
+  contains nothing you dictated. Choose another AI polish option to avoid it.
+
 Nothing else. *Read aloud* uses the voices installed in Windows. The `pauli-speaks://` links and
 command-line flags only control the app on your PC.
 
@@ -97,7 +111,7 @@ next to its `.exe` instead; to delete everything, delete the `.exe` and that fol
 | `settings.json` | Settings, dictionary, snippets, voice commands, the encrypted API key. Older copies (`settings.v1.json`, …) are kept after an upgrade. |
 | `history.json` | Your last 500 transcripts (empty with *Don't keep*, only the last 24 hours with *Delete after 24 hours*) |
 | `audio\` | Recordings, one WAV file per History entry (`<id>.wav`), only with *Keep recordings for 24 hours*. Deleted after 24 hours |
-| `models\` | Downloaded speech and translation models (can be several GB) |
+| `models\` | Downloaded speech and translation models, and Foundry Local's AI polish models in `models\foundry` (can be several GB) |
 | `logs\` | Log files |
 | `recovery\` | Unencrypted audio of the dictation in progress (`current.pcm`, and `current.json` with its start time and mode). Deleted when the dictation ends; after a crash or a quit mid-dictation it stays until you choose Recover or Discard on the next start (or until a new dictation replaces it). A copy under half a second is deleted at start |
 

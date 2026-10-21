@@ -56,6 +56,7 @@ unless you pass `--models <folder>`. `cloud` sends the recordings to the service
 | `src/main/files.js` | Files → transcribe a whole audio or video file |
 | `src/main/asr/` | Speech engines: local Whisper in a utility process, voice-activity detection, NLLB translation, cloud |
 | `src/main/text-cleanup.js`, `voice-commands.js` | Fillers, voice commands, dictionary, snippets, styles |
+| `src/main/polish*.js`, `foundry-local.js`, `foundry/` | AI polish: prompts per level, deadline and fallback, servers on this PC, Undo, Foundry Local |
 | `src/main/privacy*.js`, `history.js`, `audio-history.js` | History, recordings and the privacy controls |
 | `src/main/diagnostics*.js` | About → Copy diagnostic info / Report a problem |
 | `src/renderer/` | The main window (`app.html`) and the floating pill (`overlay.html`) |

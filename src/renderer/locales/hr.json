@@ -422,7 +422,7 @@
   "polish.provider.custom": "Drugi poslužitelj (URL)",
   "polish.where.off": "Ništa se nikamo ne šalje.",
   "polish.where.local": "Ostaje na ovom računalu: tekst ide u {name} na {host}.",
-  "polish.where.foundry": "Ostaje na ovom računalu: model radi unutar Pauli Speaksa. Popis i preuzimanje modela pitaju Microsoftov katalog Foundry Local; vaš tekst nikad ne ide onamo.",
+  "polish.where.foundry": "Ostaje na ovom računalu: model radi unutar Pauli Speaksa i vaš tekst ga ne napušta. Popis i preuzimanje modela pitaju Microsoftov katalog Foundry Local, a Foundry Local može Microsoftu poslati kratku poruku o pokretanju (bez teksta).",
   "polish.where.cloud": "Napušta ovo računalo: tekst svakog dotjeranog diktata ide na {host}.",
   "polish.where.customUnset": "Upišite adresu poslužitelja. Poslužitelj na ovom računalu (localhost) zadržava tekst ovdje; svaka druga adresa šalje ga onamo.",
   "polish.find": "Pronađi",

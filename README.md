@@ -129,6 +129,13 @@ empty file named `portable` next to `Pauli Speaks.exe`.
 - **Styles per mode**: the built-in Code, Chat and Formal modes leave out capitals and the final
   full stop in code editors and terminals, the final full stop in chat apps, and always punctuate in
   Outlook and Word. Change their apps on the Modes page.
+- **AI polish, local first** (off by default): an AI model tidies a mode's dictations before they
+  are pasted. Light fixes punctuation, Medium also removes false starts, High rewrites clearly, and
+  Prompt turns rambling into clear instructions for AI chats while keeping file names and code as
+  said. It runs on your PC with Ollama, LM Studio or Foundry Local (set up from the app, with the
+  model's size shown before it downloads), or with the cloud API. It never holds a dictation up:
+  after 2.5 s on your PC (4 s in the cloud) your words are pasted as said, and the pill offers
+  *Undo* for 4 s to put back what you said.
 - **Command mode** (Ctrl + Win + Alt): select text and say "make this more formal" or "translate to
   German", or say what to write with nothing selected. Uses a free Groq key.
 - **Read aloud** (Shift + Alt + S): reads the selected text with Windows voices.
@@ -232,6 +239,8 @@ remote.js   pauli-speaks:// links and --flags, from startup argv and second-inst
 | `src/main/voice-commands.js` | Editable voice commands and their matching |
 | `src/main/remote.js` | Deep links and command-line flags |
 | `src/main/last-paste.js` | What *Undo last dictation* / "scratch that" may take back |
+| `src/main/polish*.js` | AI polish: the prompts per level, the run with its deadline and fallback, Find servers, Undo AI edit |
+| `src/main/foundry-local.js`, `src/main/foundry/` | Foundry Local for AI polish, in its own utility process |
 | `src/main/settings.js` | `settings.json`, with a `settingsVersion` and the list of migrations between versions |
 | `src/main/system-check.js` | Local checks for the guided setup: system languages, GPU, model recommendation, other dictation apps |
 | `src/main/welcome-ipc.js` | Main-side handlers for the guided setup |

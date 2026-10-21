@@ -2,6 +2,14 @@
 
 What changed in each version of Pauli Speaks. The app shows the newest section once after an update.
 
+## 1.6.0
+
+- AI polish (off by default): give a mode a level on the Modes page and an AI model tidies what you said before it is pasted. Light fixes punctuation and obvious mis-hearings, Medium also takes out repetitions and false starts, High rewrites clearly, and Prompt turns rambling into clear instructions for ChatGPT, Claude or a terminal, with file names and code kept exactly as said. Each mode can add its own instructions ("Use British spelling").
+- It runs on your PC: Settings → AI polish finds Ollama and LM Studio, or sets up Foundry Local for you (it lists the models with their size and downloads one only after you confirm). The cloud API or another server works too, and Settings says next to each choice whether your text leaves the PC.
+- Polish never holds a dictation up: if the model takes longer than 2.5 seconds (4 in the cloud), fails, or answers with something that isn't your text, your words are pasted as you said them. Dictations under four words aren't polished.
+- After a polished paste the pill shows "Polished. Undo" for 4 seconds: Undo takes the polished text back and pastes what you said. History keeps both versions.
+- Your settings file is brought up to date (the old one is kept as settings.v7.json).
+
 ## 1.5.1
 
 - Fixed: since 1.3.0 the installed app stopped part-way through starting. The tray icon, the floating bar, your shortcuts and automatic updates were missing, while the window still opened. If your copy is 1.3.0 to 1.5.0, end Pauli Speaks in Task Manager, then install this version from the GitHub releases page: the old version can't update itself.

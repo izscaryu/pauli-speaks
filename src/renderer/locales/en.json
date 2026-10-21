@@ -418,7 +418,7 @@
   "polish.provider.custom": "Another server (URL)",
   "polish.where.off": "Nothing is sent anywhere.",
   "polish.where.local": "Stays on this PC: the text goes to {name} at {host}.",
-  "polish.where.foundry": "Stays on this PC: the model runs inside Pauli Speaks. Listing and downloading models asks Microsoft's Foundry Local catalogue; your text never goes there.",
+  "polish.where.foundry": "Stays on this PC: the model runs inside Pauli Speaks and your text never leaves it. Listing and downloading models asks Microsoft's Foundry Local catalogue, and Foundry Local may send Microsoft a minimal start-up event (no text).",
   "polish.where.cloud": "Leaves this PC: the text of each dictation that is polished goes to {host}.",
   "polish.where.customUnset": "Enter the server's address. A server on this PC (localhost) keeps the text here; any other address sends it there.",
   "polish.find": "Find",
