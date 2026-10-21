@@ -50,9 +50,12 @@ const timeoutFor = (url) => (isLocalUrl(url) ? LOCAL_TIMEOUT_MS : CLOUD_TIMEOUT_
 
 const CHATTY = /^(sure|certainly|of course|absolutely|okay|ok|here(?:'s| is| are)|i(?:'m| am) sorry|as an ai|i can(?:not|'t)|(?:polished|corrected|revised)(?: text| version)?:)/i;
 
+// budget.xlsx, src/main/llm.js, getUserName, max_tokens: words a model must not "correct". Not 10.30 or 3.5.
+const IDENTIFIER = /(?:[\p{L}\p{N}_-]*\p{L}[\p{L}\p{N}_-]*(?:[./\\][\p{L}\p{N}_-]+)+)|\b\p{Ll}+\p{Lu}[\p{L}\p{N}]*\b|\b[\p{L}\p{N}]+_[\p{L}\p{N}_]+\b/gu;
+
 /**
  * Is the model's answer a polished version of what was said? Refuses answers that aren't.
- * @returns {{ok: true, text: string} | {ok: false, reason: 'empty'|'chatty'|'too-long'|'too-short'}}
+ * @returns {{ok: true, text: string} | {ok: false, reason: 'empty'|'chatty'|'too-long'|'too-short'|'identifiers'}}
  */
 function acceptPolish(said, answer, level) {
   const input = String(said || '').trim();
@@ -61,6 +64,7 @@ function acceptPolish(said, answer, level) {
   if (CHATTY.test(text) && !CHATTY.test(input)) return { ok: false, reason: 'chatty' };
   if (text.length > input.length * 2 + 60) return { ok: false, reason: 'too-long' };
   if (level === 'light' && countWords(text) < countWords(input) * 0.6) return { ok: false, reason: 'too-short' };
+  if ((input.match(IDENTIFIER) || []).some((id) => !text.includes(id))) return { ok: false, reason: 'identifiers' };
   return { ok: true, text };
 }
 

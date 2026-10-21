@@ -193,3 +193,11 @@ test('onSend runs just before a request goes out (the pill says "Polishing…"),
   await polisher.polish({ text: SAID, mode: { ...MODE, aiPolish: 'off' }, onSend: () => sent++ });
   assert.equal(sent, 1);
 });
+
+test('acceptPolish: file names, paths and code identifiers must come back exactly as said', () => {
+  const said = 'open budget.xlsx and src/main/llm.js then call getUserName and max_tokens';
+  assert.equal(acceptPolish(said, 'Open budget.xlsx and src/main/llm.js, then call getUserName and max_tokens.', 'prompt').ok, true);
+  assert.equal(acceptPolish(said, 'Open Budget.xlsx and src/main/llm.js, then call getUserName and max_tokens.', 'prompt').reason, 'identifiers');
+  assert.equal(acceptPolish(said, 'Open budget.xlsx and src/main/llm.js, then call get user name and max tokens.', 'high').reason, 'identifiers');
+  assert.equal(acceptPolish('we meet at 10.30 on tuesday', 'We meet at 10:30 on Tuesday.', 'light').ok, true, 'numbers are not identifiers');
+});
