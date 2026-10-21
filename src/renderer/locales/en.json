@@ -283,7 +283,6 @@
   "shortcuts.common.newTab": "New tab",
   "shortcuts.common.closeTab": "Close tab",
   "shortcuts.common.switchWindows": "Switch windows",
-  "common.saved": "Saved",
   "common.copied": "Copied",
   "common.copyItem": "Copy {name}",
   "common.delete": "Delete",

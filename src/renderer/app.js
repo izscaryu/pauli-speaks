@@ -123,10 +123,16 @@ function toast(text) {
   box.textContent = text;
   box.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (box.hidden = true), 1800);
+  toastTimer = setTimeout(hideToast, 1800);
+}
+/** A toast belongs to the page it was shown on: it goes when the page changes. */
+function hideToast() {
+  clearTimeout(toastTimer);
+  $('#toast').hidden = true;
 }
 
-async function save(patch, message = t('common.saved')) {
+/** Settings save themselves (the page says so), so a save says nothing unless there is a `message` for it. */
+async function save(patch, message = null) {
   settings = await api.updateSettings(patch);
   if (message) toast(message);
 }
@@ -175,6 +181,7 @@ document.querySelectorAll('.nav').forEach((b) =>
     if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
     if (rec) api.stopRecordingShortcut();
     rec = null;
+    hideToast();
     renderShortcuts();
     if (b.dataset.page === 'settings') renderMics();
   }),
