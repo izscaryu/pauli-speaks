@@ -117,14 +117,21 @@ function createDictationRun(d) {
     };
   }
 
-  /** AI polish when the mode asks for it; null when the text stays as said. The pill says so while it waits. */
+  /** AI polish when the mode asks for it; null when the text stays as said. The pill says so while it waits; Esc stops it. */
   async function polishText(text, mode, result) {
     if (!d.polish || !text.trim()) return null;
-    const out = await d.polish({
-      text, mode, language: result.translatedTo || result.language || null,
-      onSend: () => d.sendOverlayState({ state: 'processing', mode: 'dictate', text: t('overlay.polishing') }),
-    });
-    return out.polished ? out : null;
+    const cancel = new AbortController();
+    const onCancel = () => cancel.abort();
+    controller.on?.('cancel-processing', onCancel);
+    try {
+      const out = await d.polish({
+        text, mode, language: result.translatedTo || result.language || null, signal: cancel.signal,
+        onSend: () => d.sendOverlayState({ state: 'processing', mode: 'dictate', text: t('overlay.polishing') }),
+      });
+      return out.polished ? out : null;
+    } finally {
+      controller.off?.('cancel-processing', onCancel);
+    }
   }
 
   async function runDictation(audio, seconds, t0, historyId = null, recording = null) {
@@ -157,7 +164,7 @@ function createDictationRun(d) {
     const item = record(entry, historyId, recording);
     d.feedLanguage({ chosen: s.languages, likely: result.likelyLanguage ?? result.language });
     const pasted = await typing.paste(typed);
-    if (polished && pasted.mode !== 'copy-only' && d.offerUnpolish) {
+    if (polished && pasted.mode !== 'copy-only' && pasted.pasted !== false && d.offerUnpolish) { // only what was typed can be taken back
       d.flash(t('flash.polished'), 'info', UNDO_MS, d.offerUnpolish({ historyId: item.id, polished: typed, unpolished: text }));
     }
     if (!shouldRunFollowUps(pasted)) return; // enterAfterPaste is reset by the caller

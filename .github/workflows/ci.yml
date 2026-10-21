@@ -69,6 +69,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Check Foundry Local's native files before they are packed
+        run: node --test test/foundry-natives.test.js
       - name: Build the unpacked app
         run: npx electron-builder --win dir --publish never
         env:

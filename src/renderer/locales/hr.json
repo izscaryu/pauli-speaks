@@ -645,6 +645,7 @@
   "flash.copiedLast": "Zadnji diktat je kopiran",
   "flash.removedLast": "Zadnji diktat je uklonjen",
   "flash.polished": "Dotjerano.",
+  "flash.unpolishCopied": "Nije se moglo upisati: ono što ste rekli je u međuspremniku. Pritisnite Ctrl+V.",
   "overlay.command.listening": "Slušam tvoju uputu…",
   "overlay.command.editing": "Uređujem označeno…",
   "overlay.command.writing": "Pišem…",

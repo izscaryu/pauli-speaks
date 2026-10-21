@@ -48,10 +48,11 @@ function cleanCompletion(text) {
 /**
  * @param {{baseUrl: string, apiKey: string, model: string}} cfg
  * @param {{role: string, content: string}[]} messages
- * @param {{signal?: AbortSignal, requireKey?: boolean, temperature?: number, maxTokens?: number}} [opts]
+ * @param {{signal?: AbortSignal, requireKey?: boolean, temperature?: number, maxTokens?: number, redirect?: RequestRedirect}} [opts]
  *   requireKey: false for a server on this PC (Ollama, LM Studio, Foundry Local), which takes no key
+ *   redirect: 'error' so the text is never re-sent to wherever a server points (AI polish)
  */
-async function chatComplete(cfg, messages, { signal = AbortSignal.timeout(45000), requireKey = true, temperature = 0.3, maxTokens = 2048 } = {}) {
+async function chatComplete(cfg, messages, { signal = AbortSignal.timeout(45000), requireKey = true, temperature = 0.3, maxTokens = 2048, redirect = 'follow' } = {}) {
   if (requireKey && !cfg.apiKey) {
     throw new Error(t('errors.commandNeedsKey'));
   }
@@ -62,6 +63,7 @@ async function chatComplete(cfg, messages, { signal = AbortSignal.timeout(45000)
     headers,
     body: JSON.stringify({ model: cfg.model, messages, temperature, max_tokens: maxTokens }),
     signal,
+    redirect,
   });
   if (!res.ok) {
     const body = (await res.text()).slice(0, 300);

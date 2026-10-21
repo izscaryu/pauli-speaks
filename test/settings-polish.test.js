@@ -80,3 +80,14 @@ test('Delete all my data clears the polish key with the rest', () => {
   assert.deepEqual(s.get().polish, OFF);
   assert.equal(s.getPolishKey(), '');
 });
+
+test('the custom key belongs to its server: changing the server\'s address removes it, unless a new key comes with it', () => {
+  const s = new Settings(tempFile(), plain);
+  s.update({ polish: { provider: 'custom', baseUrl: 'https://a.example.org/v1', model: 'm', apiKey: 'sk-a' } });
+  s.update({ polish: { baseUrl: 'https://a.example.org/v2' } });
+  assert.equal(s.getPolishKey(), 'sk-a', 'same server');
+  s.update({ polish: { baseUrl: 'https://b.example.org/v1' } });
+  assert.equal(s.getPolishKey(), '', 'another server never gets A\'s key');
+  s.update({ polish: { baseUrl: 'https://c.example.org/v1', apiKey: 'sk-c' } });
+  assert.equal(s.getPolishKey(), 'sk-c');
+});

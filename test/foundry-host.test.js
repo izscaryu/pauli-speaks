@@ -125,3 +125,12 @@ test('an unknown request is an error, not a crash', async () => {
   const { h } = host();
   await assert.rejects(h.handle({ type: 'format-disk' }), /Unknown request/);
 });
+
+test('download progress is sent only when the whole percent changes', async () => {
+  const f = fakeSdk(CATALOG);
+  f.list[0].download = async (onProgress) => { for (const p of [1.1, 1.4, 1.9, 2.2, 2.4, 100]) onProgress(p); };
+  const progress = [];
+  const h = createFoundryHost({ load: async () => f.sdk, config: {}, onProgress: (p) => progress.push(p.percent) });
+  await h.handle({ type: 'download', id: 'qwen2.5-1.5b-instruct-generic-cpu:4' });
+  assert.deepEqual(progress, [1, 2, 100]);
+});

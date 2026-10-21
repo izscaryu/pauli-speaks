@@ -311,3 +311,23 @@ test('"scratch that" and empty dictations are never sent for polish', async () =
   await run.runDictation(audio(), 1, Date.now());
   assert.equal(calls.polished.length, 0);
 });
+
+test('no Undo offer when the paste was blocked (nothing was typed)', async () => {
+  const { run, controller, calls, typing } = rig({ heard: SAID, polish: polishedTo('We meet on Wednesday. ') });
+  typing.paste = async (text) => { calls.pasted.push(text); return { pasted: false, mode: 'paste' }; };
+  controller.mode = mode({ aiPolish: 'high' });
+  await run.runDictation(audio(), 1, Date.now());
+  assert.equal(calls.offers.length, 0);
+});
+
+test('Esc while polishing aborts the request: the polish gets a signal that the cancel fires', async () => {
+  let listener = null;
+  const { run, controller, calls } = rig({ heard: SAID, polish: async (o) => { o.onSend(); controller.cancelled = true; listener(); return { text: o.text, polished: false, outcome: o.signal.aborted ? 'cancelled' : 'x', ms: 1 }; } });
+  controller.mode = mode({ aiPolish: 'medium' });
+  controller.on = (event, fn) => { if (event === 'cancel-processing') listener = fn; };
+  controller.off = (event, fn) => { if (event === 'cancel-processing' && listener === fn) listener = null; };
+  await run.runDictation(audio(), 1, Date.now());
+  assert.equal(calls.polished[0].signal.aborted, true);
+  assert.deepEqual(calls.pasted, [], 'cancelled: nothing pasted');
+  assert.equal(listener, null, 'the listener is removed afterwards');
+});

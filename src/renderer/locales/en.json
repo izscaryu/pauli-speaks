@@ -635,6 +635,7 @@
   "flash.copiedLast": "Copied your last dictation",
   "flash.removedLast": "Removed the last dictation",
   "flash.polished": "Polished.",
+  "flash.unpolishCopied": "Couldn't type it back: what you said is on the clipboard. Press Ctrl+V.",
   "overlay.command.listening": "Listening to your instruction…",
   "overlay.command.editing": "Editing your selection…",
   "overlay.command.writing": "Writing…",

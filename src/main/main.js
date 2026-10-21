@@ -778,8 +778,8 @@ function registerIpc() {
     modelsDir,
     dictationActive: () => controller.status !== 'idle',
     fileActive: () => files.busy,
-    modelsBusy: () => [modelState.status, translatorState.status].some((st) => st === 'downloading' || st === 'loading'),
-    unloadModels: () => { foundry.dispose(); return asr.stop(); }, // Foundry Local lets go of its files too
+    modelsBusy: () => foundry.busy || [modelState.status, translatorState.status].some((st) => st === 'downloading' || st === 'loading'),
+    unloadModels: async () => { await foundry.dispose(); return asr.stop(); }, // Foundry Local lets go of its files too
     afterModelsDeleted: forgetModels,
     deleteAll: () => deleteAllData({
       history, audioHistory, settings, recoveryFile: recovery,
@@ -1012,7 +1012,7 @@ function init() {
     onUsed: () => fs.writeFileSync(path.join(modelsDir(), 'foundry', READY_MARKER), new Date().toISOString()), // Settings lists it
   });
   polisher = createPolisher({ settings, keys: { cloud: () => settings.getApiKey(), polish: () => settings.getPolishKey() }, chat: chatComplete, foundry, log });
-  polishUndo = createPolishUndo({ typing, history, lastPasted: () => lastPaste.last && lastPaste.last.text, flash });
+  polishUndo = createPolishUndo({ typing, history, lastPasted: () => lastPaste.last && lastPaste.last.text, flash, copy: writeExcluded });
   run = createDictationRun({
     polish: (o) => polisher.polish(o), offerUnpolish: (o) => polishUndo.offer(o),
     settings, controller, history, typing, recognise: e2e ? e2e.io.recognise : recognise, translateText, needsNllb, engineLabel, chatComplete, sendOverlayState, flash, log,

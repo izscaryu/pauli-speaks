@@ -16,6 +16,7 @@ const { t } = require('./strings');
  * @param {{list: () => object[], resolve: (id: string, entry: object) => object|null}} d.history
  * @param {() => string|null} d.lastPasted  the text Pauli Speaks typed last (last-paste.js)
  * @param {(text: string) => void} d.flash
+ * @param {(text: string) => Promise<void>} [d.copy]  when pasting what was said fails, it goes to the clipboard
  * @param {{setTimeout: Function, clearTimeout: Function}} [d.timers]
  * @param {number} [d.undoMs]
  */
@@ -53,7 +54,14 @@ function createPolishUndo(d) {
         return false;
       }
       if (!(await d.typing.undoLast())) return false; // undoLast said why (another app in front, sent with Enter)
-      await d.typing.paste(held.unpolished);
+      try {
+        await d.typing.paste(held.unpolished);
+      } catch {
+        // The polished text is gone already: what was said must not be lost too.
+        await d.copy?.(held.unpolished.trim());
+        d.flash(t('flash.unpolishCopied'));
+        return false;
+      }
       const item = held.historyId && d.history.list().find((i) => i.id === held.historyId);
       if (item) d.history.resolve(item.id, { ...item, text: held.unpolished.trim(), words: countWords(held.unpolished) });
       return true;

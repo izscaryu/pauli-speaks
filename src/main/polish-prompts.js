@@ -23,11 +23,12 @@ const RULES = {
   light: [
     'Fix punctuation, capital letters and words that were obviously misheard.',
     "Keep the speaker's own words and word order; do not add, remove or rephrase anything else.",
+    'Keep it on the lines it was said on: add no line breaks.',
   ],
   medium: [
     'Fix punctuation, capital letters and words that were obviously misheard.',
     'Remove repeated words, false starts and filler; when the speaker corrects themselves, keep only the correction.',
-    "Otherwise keep the speaker's wording.",
+    "Otherwise keep the speaker's wording. Add no line breaks.",
   ],
   high: [
     'Rewrite the text so it reads clearly and naturally, with the same meaning, in the same person (I, we, you).',
@@ -38,7 +39,7 @@ const RULES = {
     'The text is a message the speaker will send to an AI assistant or type into a terminal.',
     'Turn rambling speech into clear, direct sentences or instructions.',
     'Keep file names, paths, commands, code identifiers, URLs and numbers exactly as spoken.',
-    'Add no greeting and no sign-off.',
+    'Add no greeting, no sign-off and no line breaks (a new line would run a command in a terminal).',
   ],
 };
 
@@ -65,7 +66,14 @@ function languageRule(code) {
 }
 
 /** The dictation, fenced so that a "</transcript>" said or snippet-pasted inside it can't end the fence early. */
-const fence = (text) => `<transcript>\n${String(text).replace(/<\/?transcript>/gi, '')}\n</transcript>`;
+function fence(text) {
+  let inner = String(text);
+  for (let before = null; before !== inner;) { // until no tag is left, so "</trans</transcript>cript>" can't rebuild one
+    before = inner;
+    inner = inner.replace(/<\/?transcript>/gi, '');
+  }
+  return `<transcript>\n${inner}\n</transcript>`;
+}
 
 /**
  * @param {{level: string, text: string, instructions?: string, language?: string|null}} o

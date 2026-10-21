@@ -38,6 +38,18 @@ function createFoundryLocal(d) {
   let running = null; // { url, model } once started
   let starting = null; // { model, promise }
 
+  /** The worker is gone (or going): nothing runs, and whatever waited on it fails. */
+  function forget() {
+    child = null;
+    running = null;
+    starting = null;
+    for (const [id, p] of pending) {
+      clearTimeout(p.timer);
+      p.reject(new Error('Foundry Local stopped'));
+      pending.delete(id);
+    }
+  }
+
   function ensure() {
     if (child) return child;
     const c = fork(d.workerPath, {
@@ -45,7 +57,8 @@ function createFoundryLocal(d) {
       stdio: 'pipe',
       env: { ...process.env, PAULI_FOUNDRY: JSON.stringify({ modelsDir: d.modelsDir, logsDir: d.logsDir }) },
     });
-    c.stderr?.on('data', (data) => d.log.warn(`[foundry] ${String(data).trim().slice(0, 500)}`));
+    // Only its length: what the native side prints could quote what was dictated.
+    c.stderr?.on('data', (data) => d.log.warn(`[foundry] stderr (${String(data).length} chars)`));
     c.on('message', (msg) => {
       if (msg && msg.type === 'progress') return d.onProgress(msg.progress);
       const p = msg && pending.get(msg.id);
@@ -58,14 +71,7 @@ function createFoundryLocal(d) {
     c.on('exit', (code) => {
       if (child !== c) return;
       d.log.warn(`Foundry Local stopped (code ${code})`);
-      child = null;
-      running = null;
-      starting = null;
-      for (const [id, p] of pending) {
-        clearTimeout(p.timer);
-        p.reject(new Error('Foundry Local stopped'));
-        pending.delete(id);
-      }
+      forget();
     });
     child = c;
     return c;
@@ -75,7 +81,7 @@ function createFoundryLocal(d) {
     const c = ensure();
     const id = nextId++;
     return new Promise((resolve, reject) => {
-      const p = { resolve, reject, timer: null };
+      const p = { resolve, reject, timer: null, busy: type === 'download' || type === 'start' };
       if (timeoutMs) {
         p.timer = setTimeout(() => { pending.delete(id); reject(new Error(`Foundry Local did not answer within ${Math.round(timeoutMs / 1000)} s`)); }, timeoutMs);
         p.timer.unref?.();
@@ -111,12 +117,21 @@ function createFoundryLocal(d) {
     cancel: () => (child ? request('cancel', null) : Promise.resolve(null)),
     remove: (modelId) => request('remove', modelId).then(() => { if (running && running.model === modelId) running = null; }),
     stop: () => (child ? request('stop', null).then(() => { running = null; }) : Promise.resolve()),
-    /** Quit, or before its models are deleted: the worker ends and lets go of its files. */
+    /** A download or a start is under way (Delete downloaded models waits). */
+    get busy() {
+      return [...pending.values()].some((p) => p.busy);
+    },
+    /** Quit, or before its models are deleted: the worker ends; resolves once it has let go of its files (3 s at most). */
     dispose() {
       const c = child;
-      if (!c) return;
-      c.kill();
-      if (child === c) c.emit?.('exit', null); // a real utility process says so itself
+      if (!c) return Promise.resolve();
+      forget();
+      return new Promise((resolve) => {
+        const timer = setTimeout(resolve, 3000);
+        timer.unref?.();
+        c.once('exit', () => { clearTimeout(timer); resolve(); });
+        c.kill();
+      });
     },
   };
 }

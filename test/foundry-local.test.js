@@ -119,3 +119,28 @@ test('a finished download and every start mark the models folder as used (Settin
   await st;
   assert.equal(used.length, 2);
 });
+
+test('dispose waits until the worker has really exited, so its model files are free before they are deleted', async () => {
+  const f = fakeFork();
+  const foundry = createFoundryLocal({ fork: f.fork, workerPath: 'w.js', modelsDir: 'm', logsDir: 'l', getModel: () => 'x', onProgress() {}, log: { info() {}, warn() {} } });
+  foundry.catalog().catch(() => {});
+  const { child } = f.forks[0];
+  child.kill = () => { child.killed = true; setTimeout(() => child.emit('exit', 1), 30); }; // a real process takes a moment
+  let exited = false;
+  const done = foundry.dispose().then(() => { exited = true; });
+  await new Promise((r) => setTimeout(r, 5));
+  assert.equal(exited, false);
+  await done;
+  assert.equal(exited, true);
+  await foundry.dispose(); // nothing running: resolves at once
+});
+
+test('busy while a download or a start is under way (Delete downloaded models waits for it)', async () => {
+  const { foundry, forks } = setup();
+  assert.equal(foundry.busy, false);
+  const d = foundry.download('m');
+  assert.equal(foundry.busy, true);
+  forks[0].child.reply(0, { ok: true, result: { cached: true } });
+  await d;
+  assert.equal(foundry.busy, false);
+});

@@ -29,7 +29,7 @@ test('the SDK keeps its models under the app\'s models folder and its logs with 
     appName: 'pauli-speaks',
     appDataDir: 'C:\\data\\models\\foundry', // models in its own cache\models below
     logsDir: 'C:\\data\\logs\\foundry',
-    logLevel: 'warn',
+    logLevel: 'error', // its own log could hold more than we would write
     webServiceUrls: 'http://127.0.0.1:0',
     disableNonessentialTelemetry: true,
     libraryPath: 'C:\\lib',

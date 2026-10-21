@@ -66,3 +66,20 @@ test('cleanCompletion drops a reasoning model\'s <think> block', () => {
   assert.equal(cleanCompletion('<think>\nThe user wants commas.\n</think>\n\nHello, world.'), 'Hello, world.');
   assert.equal(cleanCompletion('<think></think>Hi.'), 'Hi.');
 });
+
+test('chatComplete: redirects can be refused, so a dictation is never re-sent somewhere else', async () => {
+  const target = await server('Sent elsewhere.');
+  const s = http.createServer((req, res) => { res.statusCode = 307; res.setHeader('Location', `${target.url}/chat/completions`); res.end(); });
+  await new Promise((r) => s.listen(0, '127.0.0.1', r));
+  const cfg = { baseUrl: `http://127.0.0.1:${s.address().port}/v1`, apiKey: '', model: 'm' };
+  try {
+    assert.equal(await chatComplete(cfg, [], { requireKey: false }), 'Sent elsewhere.', 'followed by default (Command mode)');
+    const asked = target.seen.length;
+    await assert.rejects(chatComplete(cfg, [], { requireKey: false, redirect: 'error' }));
+    assert.equal(target.seen.length, asked, 'nothing reached the other server');
+  } finally {
+    s.closeAllConnections();
+    s.close();
+    target.close();
+  }
+});

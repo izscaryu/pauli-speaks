@@ -14,6 +14,7 @@ dictated and never your API key. For words that come out wrong in your language,
 You need Windows 10 or 11 and Node.js 24.
 
 ```powershell
+$env:FOUNDRY_LOCAL_NUGET_FEEDS = "https://api.nuget.org/v3/index.json"   # Foundry Local's ONNX Runtime from nuget.org only, as in CI
 npm install
 $env:PAULI_USER_DATA_DIR = "$env:TEMP\pauli-scratch"   # a scratch data folder, so your own setup is untouched
 npm start

@@ -33,6 +33,7 @@ port.on('message', async ({ data }) => {
   try {
     port.postMessage({ id, ok: true, result: await host.handle({ type, id: modelId }) });
   } catch (err) {
-    port.postMessage({ id, ok: false, error: String((err && err.message) || err), code: (err && (err.code || err.name)) || null });
+    const code = err && (err.name === 'AbortError' ? 'AbortError' : err.code || err.name); // a DOMException's code is a number
+    port.postMessage({ id, ok: false, error: String((err && err.message) || err), code: code || null });
   }
 });

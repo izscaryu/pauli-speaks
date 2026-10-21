@@ -93,3 +93,20 @@ test('nothing is typed when the polished text is no longer the last paste, or Ba
   assert.deepEqual(refused.calls.map((c) => c[0]), ['undoLast']);
   assert.equal(refused.history.list()[0].text, POLISHED.trim(), 'History unchanged');
 });
+
+test('if pasting what was said fails after the Backspaces, it goes to the clipboard and the pill says so', async () => {
+  const calls = [];
+  const item = { id: 'h1', text: POLISHED.trim(), polished: POLISHED.trim(), unpolished: UNPOLISHED.trim(), words: 7 };
+  const undo = createPolishUndo({
+    typing: { undoLast: async () => true, paste: async () => { throw new Error('SendInput blocked'); } },
+    history: { list: () => [item], resolve: (id, e) => calls.push(['resolve', e.text]) },
+    lastPasted: () => POLISHED,
+    flash: (text) => calls.push(['flash', text]),
+    copy: async (text) => calls.push(['copy', text]),
+    timers: { setTimeout: () => ({}), clearTimeout() {} },
+  });
+  const { id } = undo.offer({ historyId: 'h1', polished: POLISHED, unpolished: UNPOLISHED });
+  assert.equal(await undo.take(id), false);
+  assert.deepEqual(calls.filter((c) => c[0] === 'copy'), [['copy', UNPOLISHED.trim()]]);
+  assert.ok(calls.some((c) => c[0] === 'flash' && /clipboard/i.test(c[1])));
+});

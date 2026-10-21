@@ -283,7 +283,10 @@ class Settings extends EventEmitter {
         next.modes = normalizeModes(v);
       } else if (k === 'polish') {
         const { apiKey, hasApiKey, apiKeyEnc, ...rest } = v && typeof v === 'object' ? v : {};
-        next.polish = normalizePolish({ ...next.polish, ...rest });
+        const host = (url) => { try { return new URL(url).host.toLowerCase(); } catch { return ''; } };
+        const before = next.polish;
+        next.polish = normalizePolish({ ...before, ...rest });
+        if (host(next.polish.baseUrl) !== host(before.baseUrl)) next.polish.apiKeyEnc = ''; // a key belongs to its server
         if (typeof apiKey === 'string') next.polish.apiKeyEnc = apiKey.trim() ? this.crypto.encrypt(apiKey.trim()) : '';
       } else if (k === 'uiLanguage') {
         if (isUiLanguage(v)) next.uiLanguage = v;

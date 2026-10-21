@@ -139,8 +139,8 @@ const Polish = (() => {
     const info = `${size(m.sizeMb)} · ${m.license || '?'}${m.recommended ? ` · ${t('foundry.recommended')}` : ''}`;
     let action;
     if (downloading && downloading.id === m.id) {
-      action = el('div', { class: 'inline' }, el('span', { class: 'desc', role: 'status' }, t('foundry.downloading', { percent: downloading.percent })),
-        el('button', { class: 'btn', type: 'button', onclick: () => api.foundryCancel() }, t('common.cancel')));
+      action = el('div', { class: 'inline' }, el('span', { id: 'foundry-progress', class: 'desc', role: 'status' }, t('foundry.downloading', { percent: downloading.percent })),
+        el('button', { id: 'polish-foundry-cancel', class: 'btn', type: 'button', onclick: () => api.foundryCancel() }, t('common.cancel')));
     } else if (confirming === m.id) {
       action = el('div', { class: 'inline' },
         el('button', { class: 'btn primary', type: 'button', onclick: () => download(m) }, t('foundry.confirm.go', { size: size(m.sizeMb) })),
@@ -226,7 +226,10 @@ const Polish = (() => {
   api.onFoundryProgress((progress) => {
     if (!downloading || progress.id !== downloading.id) return;
     downloading.percent = progress.percent;
-    render();
+    // Only the number changes: rebuilding the panel on every percent would swallow clicks on Cancel.
+    const status = $('#foundry-progress');
+    if (status) status.textContent = t('foundry.downloading', { percent: progress.percent });
+    else render();
   });
   api.onSettings(() => render());
 

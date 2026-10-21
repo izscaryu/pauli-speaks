@@ -31,7 +31,7 @@ function foundryConfig({ modelsDir, logsDir, libraryPath }) {
     appName: 'pauli-speaks',
     appDataDir: path.win32.join(modelsDir, 'foundry'), // the SDK keeps its models in cache\models below it
     logsDir: path.win32.join(logsDir, 'foundry'),
-    logLevel: 'warn',
+    logLevel: 'error', // its own log could hold more than ours ever does (never what was dictated)
     webServiceUrls: 'http://127.0.0.1:0',
     disableNonessentialTelemetry: true,
     libraryPath,

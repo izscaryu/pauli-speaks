@@ -53,18 +53,32 @@ const CHATTY = /^(sure|certainly|of course|absolutely|okay|ok|here(?:'s| is| are
 // budget.xlsx, src/main/llm.js, getUserName, max_tokens: words a model must not "correct". Not 10.30 or 3.5.
 const IDENTIFIER = /(?:[\p{L}\p{N}_-]*\p{L}[\p{L}\p{N}_-]*(?:[./\\][\p{L}\p{N}_-]+)+)|\b\p{Ll}+\p{Lu}[\p{L}\p{N}]*\b|\b[\p{L}\p{N}]+_[\p{L}\p{N}_]+\b/gu;
 
+// Pasted as keystrokes into whatever is in front: no escape sequences or other control characters (tab and new line are fine).
+const CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/;
+const CONTENT_WORD = /\p{L}{4,}/gu;
+const lines = (s) => (s.match(/\n/g) || []).length;
+
 /**
- * Is the model's answer a polished version of what was said? Refuses answers that aren't.
- * @returns {{ok: true, text: string} | {ok: false, reason: 'empty'|'chatty'|'too-long'|'too-short'|'identifiers'}}
+ * Is the model's answer a polished version of what was said? Refuses answers that aren't, so neither a confused
+ * model nor words that try to instruct it (from a video playing nearby, say) can paste something else:
+ *   chatty, control characters, much longer, (Light) much shorter, a file name or identifier changed, most of the
+ *   words gone, or new lines anywhere but High (Prompt text may go into a terminal, where a new line runs it).
+ * @returns {{ok: true, text: string} | {ok: false, reason: string}}
  */
 function acceptPolish(said, answer, level) {
   const input = String(said || '').trim();
-  const text = String(answer || '').replace(/^\s*<transcript>\s*/i, '').replace(/\s*<\/transcript>\s*$/i, '').trim();
+  const text = String(answer || '').replace(/\r\n?/g, '\n').replace(/^\s*<transcript>\s*/i, '').replace(/\s*<\/transcript>\s*$/i, '').trim();
   if (!text) return { ok: false, reason: 'empty' };
   if (CHATTY.test(text) && !CHATTY.test(input)) return { ok: false, reason: 'chatty' };
-  if (text.length > input.length * 2 + 60) return { ok: false, reason: 'too-long' };
+  if (CONTROL.test(text)) return { ok: false, reason: 'control' };
+  if (text.length > input.length * 1.5 + 40) return { ok: false, reason: 'too-long' };
+  if (lines(text) > lines(input) + (level === 'high' ? 12 : 0)) return { ok: false, reason: 'lines' };
   if (level === 'light' && countWords(text) < countWords(input) * 0.6) return { ok: false, reason: 'too-short' };
   if ((input.match(IDENTIFIER) || []).some((id) => !text.includes(id))) return { ok: false, reason: 'identifiers' };
+  const words = [...new Set((input.toLowerCase().match(CONTENT_WORD) || []))];
+  const lower = text.toLowerCase();
+  const kept = words.filter((w) => lower.includes(w)).length;
+  if (words.length && kept / words.length < (level === 'high' || level === 'prompt' ? 0.4 : 0.6)) return { ok: false, reason: 'different' };
   return { ok: true, text };
 }
 
@@ -81,9 +95,18 @@ function acceptPolish(said, answer, level) {
 function createPolisher(d) {
   const now = d.now || Date.now;
   const timers = d.timers || { setTimeout, clearTimeout };
-  let warmedAt = -Infinity;
+  const warmed = new Map(); // provider|url|model -> when it last answered (or a warm-up was sent)
 
-  /** Where the text goes, or why it can't go anywhere yet. */
+  /** Starts Foundry Local for the next dictation; whatever goes wrong is logged, never thrown. */
+  function startFoundry() {
+    try {
+      Promise.resolve(d.foundry.start()).catch((err) => d.log.warn(`Foundry Local didn't start: ${err && err.name}`));
+    } catch (err) {
+      d.log.warn(`Foundry Local didn't start: ${err && err.name}`);
+    }
+  }
+
+  /** Where the text goes, or why it can't go anywhere yet. "On this PC" choices only ever go to this PC. */
   function endpoint() {
     const s = d.settings.get();
     const p = s.polish || {};
@@ -92,77 +115,100 @@ function createPolisher(d) {
     if (p.provider === 'foundry') {
       if (!d.foundry) return { error: 'not-set-up' };
       const url = d.foundry.url();
-      if (url) return { baseUrl: url, apiKey: '', requireKey: false, model: p.model };
-      d.foundry.start().catch((err) => d.log.warn(`Foundry Local didn't start: ${err.name}`));
+      if (url) return isLocalUrl(url) ? { baseUrl: url, apiKey: '', requireKey: false, model: p.model } : { error: 'not-set-up' };
+      startFoundry();
       return { error: 'starting' };
     }
+    if (p.provider === 'custom') {
+      if (!p.baseUrl) return { error: 'not-set-up' };
+      // The own key goes over https, or to this PC; never in the clear to another machine.
+      const safe = /^https:/i.test(p.baseUrl) || isLocalUrl(p.baseUrl);
+      return { baseUrl: p.baseUrl, apiKey: safe ? d.keys.polish() : '', requireKey: false, model: p.model };
+    }
     const baseUrl = p.baseUrl || DEFAULT_URLS[p.provider];
-    if (!baseUrl) return { error: 'not-set-up' };
-    return { baseUrl, apiKey: p.provider === 'custom' ? d.keys.polish() : '', requireKey: false, model: p.model };
+    if (!isLocalUrl(baseUrl)) return { error: 'not-set-up' }; // Ollama, LM Studio: this PC only
+    return { baseUrl, apiKey: '', requireKey: false, model: p.model };
   }
 
+  const keyOf = (s, target) => `${s.polish.provider}|${target.baseUrl}|${target.model}`;
+
   /**
-   * @param {{text: string, mode: object, language?: string|null, command?: boolean, onSend?: () => void}} o
-   *   onSend: the request is about to go out (the pill shows "Polishing…")
+   * Never throws: whatever goes wrong, the text comes back as it was.
+   * @param {{text: string, mode: object, language?: string|null, command?: boolean, onSend?: () => void, signal?: AbortSignal}} o
+   *   onSend: the request is about to go out (the pill shows "Polishing…"); signal: Esc, the dictation was cancelled
    * @returns {Promise<{text: string, polished: boolean, outcome: string, ms: number}>} text: what to paste
    */
-  async function polish({ text, mode, language = null, command = false, onSend = () => {} }) {
-    const s = d.settings.get();
-    const provider = (s.polish && s.polish.provider) || 'off';
-    const level = mode && mode.aiPolish;
+  async function polish({ text, mode, language = null, command = false, onSend = () => {}, signal = null }) {
     const t0 = now();
+    let level = 'off';
+    let provider = 'off';
     const done = (outcome, out = text, polished = false) => {
       const ms = now() - t0;
       d.log.info(`Polish ${level || 'off'} via ${provider}: ${outcome} in ${ms}ms (${text.length} -> ${out.length} chars)`);
       return { text: out, polished, outcome, ms };
     };
-
-    const skip = skipReason({ text, level, provider, command });
-    if (skip) return { text, polished: false, outcome: `skipped:${skip}`, ms: 0 }; // not worth a log line each time
-    const target = endpoint();
-    if (target.error) return done(target.error);
-
-    const [, lead, core, trail] = String(text).match(/^(\s*)([\s\S]*?)(\s*)$/);
-    const messages = buildPolishMessages({ level, text: core, instructions: mode.prompt, language });
-    const ms = timeoutFor(target.baseUrl);
-    onSend();
-    const controller = new AbortController();
     let timer = null;
-    const deadline = new Promise((resolve) => {
-      timer = timers.setTimeout(() => { controller.abort(); resolve(null); }, ms);
-    });
     try {
+      const s = d.settings.get();
+      provider = (s.polish && s.polish.provider) || 'off';
+      level = mode && mode.aiPolish;
+      const skip = skipReason({ text, level, provider, command });
+      if (skip) return { text, polished: false, outcome: `skipped:${skip}`, ms: 0 }; // not worth a log line each time
+      if (signal && signal.aborted) return done('cancelled');
+      const target = endpoint();
+      if (target.error) return done(target.error);
+
+      const [, lead, core, trail] = String(text).match(/^(\s*)([\s\S]*?)(\s*)$/);
+      const messages = buildPolishMessages({ level, text: core, instructions: mode.prompt, language });
+      onSend();
+      const controller = new AbortController();
+      const stop = new Promise((resolve) => {
+        timer = timers.setTimeout(() => { controller.abort(); resolve('timeout'); }, timeoutFor(target.baseUrl));
+        signal?.addEventListener('abort', () => { controller.abort(); resolve('cancelled'); }, { once: true });
+      });
       const answer = await Promise.race([
         d.chat({ baseUrl: target.baseUrl, apiKey: target.apiKey, model: target.model }, messages, {
           signal: controller.signal, requireKey: target.requireKey, temperature: 0.2, maxTokens: Math.ceil(core.length / 2) + 100,
-        }),
-        deadline,
+          redirect: 'error', // a dictation is never re-sent somewhere else
+        }).then((content) => ({ content })),
+        stop,
       ]);
-      if (answer === null) return done('timeout');
-      warmedAt = now();
-      const verdict = acceptPolish(core, answer, level);
+      if (typeof answer === 'string') return done(answer); // timeout, cancelled
+      warmed.set(keyOf(s, target), now());
+      const verdict = acceptPolish(core, answer.content, level);
       if (!verdict.ok) return done(`rejected:${verdict.reason}`);
       if (verdict.text === core) return done('unchanged');
       return done('polished', lead + verdict.text + trail, true);
     } catch (err) {
       // the message can hold the server's reply, which may quote the dictation: only its kind is logged
-      return done(`error (${err.name})`.replace(' (Error)', ''));
+      return done(`error (${err && err.name})`.replace(' (Error)', ''));
     } finally {
       timers.clearTimeout(timer);
     }
   }
 
-  /** A dictation that will be polished started: load the local model now, at most every few minutes. */
+  /** A dictation that will be polished started: load the local model now, at most every few minutes. Never throws. */
   function warm(mode) {
-    const s = d.settings.get();
-    const provider = (s.polish && s.polish.provider) || 'off';
-    if (skipReason({ text: 'one two three four', level: mode && mode.aiPolish, provider }) || now() - warmedAt < WARM_EVERY_MS) return;
-    const target = endpoint(); // starts Foundry Local when it isn't running
-    if (target.error || !isLocalUrl(target.baseUrl)) return;
-    warmedAt = now();
-    d.chat({ baseUrl: target.baseUrl, apiKey: target.apiKey, model: target.model }, [{ role: 'user', content: 'Hi' }], {
-      signal: AbortSignal.timeout(WARM_TIMEOUT_MS), requireKey: false, temperature: 0, maxTokens: 1,
-    }).catch((err) => d.log.warn(`Polish warm-up via ${provider} failed (${err.name})`));
+    let key = null;
+    const failed = (err) => {
+      if (key) warmed.delete(key); // try again with the next dictation
+      d.log.warn(`Polish warm-up failed (${err && err.name})`);
+    };
+    try {
+      const s = d.settings.get();
+      const provider = (s.polish && s.polish.provider) || 'off';
+      if (skipReason({ text: 'one two three four', level: mode && mode.aiPolish, provider })) return;
+      const target = endpoint(); // starts Foundry Local when it isn't running
+      if (target.error || !isLocalUrl(target.baseUrl)) return;
+      key = keyOf(s, target);
+      if (now() - (warmed.get(key) ?? -Infinity) < WARM_EVERY_MS) return;
+      warmed.set(key, now());
+      Promise.resolve(d.chat({ baseUrl: target.baseUrl, apiKey: target.apiKey, model: target.model }, [{ role: 'user', content: 'Hi' }], {
+        signal: AbortSignal.timeout(WARM_TIMEOUT_MS), requireKey: false, temperature: 0, maxTokens: 1, redirect: 'error',
+      })).catch(failed);
+    } catch (err) {
+      failed(err);
+    }
   }
 
   return { polish, warm, endpoint };

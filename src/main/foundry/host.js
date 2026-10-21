@@ -58,7 +58,11 @@ function createFoundryHost({ load, config, onProgress }) {
       try {
         const model = await offered(id);
         controller.signal.throwIfAborted();
-        await model.download((percent) => onProgress({ id, percent: Math.round(percent) }), controller.signal);
+        let last = -1; // the SDK reports many times per percent: the window hears each whole percent once
+        await model.download((percent) => {
+          const whole = Math.round(percent);
+          if (whole !== last) onProgress({ id, percent: (last = whole) });
+        }, controller.signal);
         return { cached: true };
       } finally {
         if (download === controller) download = null;
