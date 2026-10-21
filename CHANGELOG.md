@@ -14,6 +14,10 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 - History and Modes show app names you know ("Word", "Outlook"), times without a leading zero (9:44 PM, with seconds when you point at them), and no typewriter font. "Clear" in History is now "Clear history…" and can't be pressed when there is nothing to clear.
 - No more "Saved" pop-up after each change (Settings saves by itself), and a pop-up no longer follows you to another page.
 - Clearer wording in places, in English and Croatian; the bar's "Auto" chip reads "Automatski" in Croatian.
+- A calmer Windows 11 look: the sidebar sits on the window and the page on a lighter layer, one set of text sizes with headings in normal letters instead of capitals, Windows-style buttons, fields, switches and option groups, and Windows' own icons (a house for Home, and Modes and Settings no longer look the same).
+- Anything that deletes or resets asks first in the app's own window, which says what goes ("Deletes all 213 transcripts"), starts on Cancel and closes with Esc. The plain OK/Cancel boxes and the pink box in Settings → Privacy are gone.
+- Home shows one notice at a time, the most important first, with ‹ › for the others and ✕ for those you can dismiss. What's new is one line that opens the notes.
+- Buttons with only an icon say what they do when you point at them or reach them with Tab; option groups such as GPU / CPU only can be changed with the arrow keys; the keys on Home press down while you talk; and in a Windows contrast theme every switch, button and field keeps an edge.
 
 ## 1.6.0
 
