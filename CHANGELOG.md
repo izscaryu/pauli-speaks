@@ -8,6 +8,11 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 - It runs on your PC: Settings → AI polish finds Ollama and LM Studio, or sets up Foundry Local for you (it lists the models with their size and downloads one only after you confirm). The cloud API or another server works too, and Settings says next to each choice whether your text leaves the PC.
 - Polish never holds a dictation up: if the model takes longer than 2.5 seconds (4 in the cloud), fails, or answers with something that isn't your text, your words are pasted as you said them. Dictations under four words aren't polished.
 - After a polished paste the pill shows "Polished. Undo" for 4 seconds: Undo takes the polished text back and pastes what you said. History keeps both versions.
+- A Windows 11 look: on Windows 11 the window uses Mica (the desktop's colour shows through softly), with Windows 11 corners and type. The sidebar now reads Home, Shortcuts, Modes, Dictionary & snippets, History, Files and Settings: History has its own page, and Home shows your three most recent dictations.
+- Settings has links to each section and a search box that keeps only the settings that match.
+- A new icon: an ink tile with a coral voice line. The tray icon shows when Pauli Speaks is listening (coral) or working (amber).
+- The pill: with two or more languages, click the language chip while you speak to pick the language for that dictation. Drag the pill to the left, the centre or the right of the screen, and it stays there.
+- Easier to use with a keyboard, a screen reader or a Windows contrast theme: the current page is announced, contrast themes use your system colours, text in the light theme is easier to read, and "Reduce motion" stops the pill's pulsing and the page animations.
 - Your settings file is brought up to date (the old one is kept as settings.v7.json).
 
 ## 1.5.1
