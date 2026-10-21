@@ -18,7 +18,9 @@ test('Settings → App language → Hrvatski: the window and the pill switch to 
   assert.equal(await page.locator('button.nav[data-page="settings"]').textContent(), 'Settings');
   await page.locator('#ui-language').selectOption('hr');
 
-  await waitFor(() => page.evaluate(() => document.documentElement.lang === 'hr' && !document.querySelector('#page-settings').hidden).catch(() => false), { what: 'the window in Croatian' });
+  // The page before the reload already says lang="hr" for a moment: wait for the reloaded one, its picker filled in.
+  await waitFor(() => page.evaluate(() => document.documentElement.lang === 'hr' && !document.querySelector('#page-settings').hidden
+    && document.querySelector('#ui-language').value === 'hr').catch(() => false), { what: 'the window in Croatian' });
   assert.equal((await page.locator('button.nav[data-page="settings"]').textContent()).trim(), 'Postavke');
   assert.equal(await page.locator('#ui-language').inputValue(), 'hr');
   assert.equal(JSON.parse(fs.readFileSync(path.join(run.dir, 'settings.json'), 'utf8')).uiLanguage, 'hr');
