@@ -78,7 +78,7 @@
 
     function setResult(text, cls = '') {
       result.textContent = text;
-      result.style.color = cls === 'good' ? 'var(--ok)' : cls === 'bad' ? 'var(--signal)' : '';
+      result.style.color = cls === 'good' ? 'var(--ok)' : cls === 'bad' ? 'var(--danger)' : '';
     }
 
     // Same calls as the Settings page: save the key (encrypted by the main process), then test it.

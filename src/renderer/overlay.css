@@ -1,15 +1,5 @@
-/* Same "quiet instrument" language as the main window: ink pill, coral = live. */
-:root {
-  --pill-bg: rgba(24, 23, 21, 0.94);
-  --pill-border: rgba(255, 255, 255, 0.12);
-  --text: #f1efe9;
-  --muted: rgba(241, 239, 233, 0.6);
-  --accent: #f1efe9;
-  --accent-2: #f1efe9;
-  --signal: #ff6a52;
-  --danger: #ff6a52;
-  --warn: #e0a347;
-}
+/* The pill: the same "quiet instrument" language as the main window, an ink pill where coral = live. Its colours
+   are the --pill-* tokens in tokens.css (loaded first): always dark, on any desktop. */
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -20,7 +10,7 @@ html, body {
   background: transparent;
   overflow: hidden;
   font: 500 12.5px/1.2 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  color: var(--text);
+  color: var(--pill-ink);
   user-select: none;
 }
 
@@ -43,8 +33,8 @@ html, body {
   padding: 0 8px;
   border-radius: 999px;
   background: var(--pill-bg);
-  border: 1px solid var(--pill-border);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--pill-stroke);
+  box-shadow: var(--pill-shadow);
   transition-property: width, height, opacity, border-color;
   transition-duration: 220ms, 220ms, 200ms, 200ms;
   transition-timing-function: cubic-bezier(.2, .9, .3, 1.2), ease, ease, ease;
@@ -76,44 +66,44 @@ html, body {
   border-radius: 50%;
   padding: 0;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text);
+  background: var(--pill-chip);
+  color: var(--pill-ink);
 }
-.icon-btn:hover { background: rgba(255, 255, 255, 0.2); }
+.icon-btn:hover { background: var(--pill-chip-hover); }
 .icon-btn svg { width: 12px; height: 12px; }
 .cancel svg { stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none; }
-.stop { background: var(--danger); }
-.stop:hover { background: #ff8670; }
+.stop { background: var(--pill-live); }
+.stop:hover { background: var(--pill-live-hover); }
 .icon-btn { transition-property: background-color, transform; transition-duration: 120ms; }
 .icon-btn:active { transform: scale(0.92); }
-.stop svg { fill: #fff; }
+.stop svg { fill: var(--on-color); }
 
 .wave { display: none; align-items: center; gap: 3px; height: 22px; }
 .wave span {
   width: 3px;
   height: 4px;
   border-radius: 3px;
-  background: var(--accent);
+  background: var(--pill-ink);
   opacity: 0.9;
   transition: height 70ms linear;
 }
 
 .rec, .timer, .badge { display: none; }
-.rec { width: 8px; height: 8px; border-radius: 50%; background: var(--signal); animation: pulse 1.1s ease-in-out infinite; }
+.rec { width: 8px; height: 8px; border-radius: 50%; background: var(--pill-live); animation: pulse 1.1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.35; transform: scale(0.8); } }
-.timer { min-width: 34px; color: var(--muted); font: 600 11.5px/1 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.timer { min-width: 34px; color: var(--pill-muted); font: 600 11.5px/1 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 .badge {
   padding: 3px 7px;
   border-radius: 999px;
-  background: rgba(255, 106, 82, 0.18);
-  color: #ffb1a3;
+  background: var(--pill-chip);
+  color: var(--pill-ink);
   font: 700 11px/1 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   letter-spacing: 0.02em;
 }
 .pill.listening .rec { display: block; }
 .pill.listening.locked .timer { display: block; }
 .pill.listening .badge:not([hidden]) { display: block; }
-.chip { display: none; align-items: center; gap: 6px; max-width: 150px; padding: 3px 8px 3px 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: var(--text); font: 600 11.5px/1.2 "Segoe UI", system-ui, sans-serif; }
+.chip { display: none; align-items: center; gap: 6px; max-width: 150px; padding: 3px 8px 3px 6px; border-radius: 999px; background: var(--pill-chip); color: var(--pill-ink); font: 600 11.5px/1.2 "Segoe UI", system-ui, sans-serif; }
 .chip i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .chip span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .pill.listening .chip:not([hidden]) { display: inline-flex; }
@@ -123,7 +113,7 @@ html, body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--warn);
+  background: var(--pill-warn);
   animation: bounce 1s infinite ease-in-out;
 }
 .dots i:nth-child(2) { animation-delay: 0.15s; }
@@ -139,8 +129,8 @@ html, body {
 .pill > .label { flex: 0 1 auto; min-width: 0; }
 /* A warning or an error says so with an icon too, not by colour alone. */
 .msg-icon { display: none; width: 16px; height: 16px; margin-right: -4px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.pill.message.warn .msg-icon { display: block; color: var(--warn); }
-.pill.message.error .msg-icon { display: block; color: #ffd0d5; }
+.pill.message.warn .msg-icon { display: block; color: var(--pill-warn); }
+.pill.message.error .msg-icon { display: block; color: var(--pill-danger); }
 
 .cancel, .stop { display: none; }
 
@@ -152,14 +142,14 @@ html, body {
 .pill.listening.locked .cancel, .pill.listening.locked .stop { display: grid; }
 
 .pill.processing .dots { display: flex; }
-.pill.processing.with-text .label { display: block; color: var(--muted); }
+.pill.processing.with-text .label { display: block; color: var(--pill-muted); }
 
 .pill.message .label { display: block; }
 .pill.message { padding: 0 10px; }
-.pill.message.error { border-color: rgba(255, 107, 122, 0.6); }
-.pill.message.error .label { color: #ffd0d5; }
-.pill.message.warn { border-color: rgba(224, 163, 71, 0.65); }
-.pill.message.warn .label { color: var(--warn); }
+.pill.message.error { border-color: var(--pill-danger-stroke); }
+.pill.message.error .label { color: var(--pill-danger); }
+.pill.message.warn { border-color: var(--pill-warn-stroke); }
+.pill.message.warn .label { color: var(--pill-warn); }
 
 /* Retry / Undo after a message */
 .pill-action {
@@ -169,44 +159,44 @@ html, body {
   padding: 0 10px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--text);
+  background: var(--pill-chip);
+  color: var(--pill-ink);
   font: 600 12px/1 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   cursor: pointer;
   transition-property: background-color, transform;
   transition-duration: 120ms;
 }
-.pill-action:hover { background: rgba(255, 255, 255, 0.24); }
+.pill-action:hover { background: var(--pill-chip-hover); }
 .pill-action:active { transform: scale(0.95); }
-.pill-action:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.pill-action:focus-visible { outline: 2px solid var(--pill-ink); outline-offset: 1px; }
 .pill.message .pill-action:not([hidden]) { display: block; }
 .pill.message:has(.pill-action:not([hidden])) { padding: 0 7px 0 10px; }
 
 /* listening, but the microphone delivers no sound: amber hint next to the usual controls */
-.pill.listening.warn { border-color: rgba(224, 163, 71, 0.65); }
-.pill.listening.warn .label { display: block; color: var(--warn); }
+.pill.listening.warn { border-color: var(--pill-warn-stroke); }
+.pill.listening.warn .label { display: block; color: var(--pill-warn); }
 
 .tip {
   padding: 5px 10px;
   border-radius: 8px;
   background: var(--pill-bg);
-  border: 1px solid var(--pill-border);
-  color: var(--muted);
+  border: 1px solid var(--pill-stroke);
+  color: var(--pill-muted);
   font-size: 11.5px;
   white-space: nowrap;
 }
 /* a message's hint (where to allow the microphone) may take two lines */
 .tip { max-width: 440px; white-space: normal; text-align: center; text-wrap: balance; }
-.tip b { color: var(--text); font-weight: 600; }
+.tip b { color: var(--pill-ink); font-weight: 600; }
 
 /* live preview: what Whisper has heard so far */
 .preview {
   max-width: 520px;
   padding: 8px 12px;
-  border: 1px solid var(--pill-border);
+  border: 1px solid var(--pill-stroke);
   border-radius: 12px;
   background: var(--pill-bg);
-  color: var(--text);
+  color: var(--pill-ink);
   font-size: 13px;
   line-height: 1.45;
   text-wrap: pretty;
@@ -214,17 +204,16 @@ html, body {
 }
 @keyframes rise { from { opacity: 0; transform: translateY(4px); } }
 
-.badge.ai { background: rgba(170, 140, 255, 0.2); color: #cdbcff; }
 
 /* read aloud */
-.speaker { display: none; width: 18px; height: 18px; fill: none; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.speaker { display: none; width: 18px; height: 18px; fill: none; stroke: var(--pill-ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .pill.reading { padding: 0 6px 0 12px; }
 .pill.reading .speaker { display: block; animation: pulse 1.4s ease-in-out infinite; }
 .pill.reading .label { display: block; }
 .pill.reading .cancel { display: grid; order: 9; }
 /* The language chip (pill.js): a button that looks like the mode chip. */
 .lang-chip { border: 0; cursor: pointer; font-family: inherit; }
-.lang-chip:hover { background: rgba(255, 255, 255, 0.18); }
+.lang-chip:hover { background: var(--pill-chip-hover); }
 .pill { touch-action: none; }
 
 /* ---------- Accessibility */

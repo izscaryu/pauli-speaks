@@ -841,7 +841,7 @@ $('#cloud-test').addEventListener('click', async () => {
   out.style.color = '';
   const r = await api.testCloud();
   out.textContent = r.ok ? t('cloud.connected') : r.error;
-  out.style.color = r.ok ? 'var(--ok)' : 'var(--signal)';
+  out.style.color = r.ok ? 'var(--ok)' : 'var(--danger)';
 });
 
 function renderModels() {
@@ -908,7 +908,7 @@ $('#cmd-test').addEventListener('click', async () => {
   out.style.color = '';
   const r = await api.testCommand();
   out.textContent = r.ok ? t('command.works', { output: r.output }) : r.error;
-  out.style.color = r.ok ? 'var(--ok)' : 'var(--signal)';
+  out.style.color = r.ok ? 'var(--ok)' : 'var(--danger)';
 });
 
 // ----- read aloud

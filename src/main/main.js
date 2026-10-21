@@ -263,6 +263,8 @@ function createMainWindow(page) {
     webPreferences: { preload: PRELOAD },
   });
   mainWindow.setMenu(null);
+  // Mica follows a light/dark switch by itself; the paper colour has to be told.
+  if (!look.mica) nativeTheme.on('updated', () => mainWindow?.setBackgroundColor(windowLook({ platform: process.platform, release: os.release(), dark: nativeTheme.shouldUseDarkColors }).window.backgroundColor));
   mainWindow.loadFile(path.join(RENDERER, 'app.html'), look.mica ? { query: { look: 'mica' } } : undefined);
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();

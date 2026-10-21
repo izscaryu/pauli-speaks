@@ -1,0 +1,164 @@
+/* Every colour, size and timing the windows use ("quiet instrument": warm paper and ink, one signal colour per
+   meaning). app.css and overlay.css name these tokens and have no colours of their own; the text and edge pairs
+   are measured in test/tokens-contrast.test.js (4.5:1 for text, 3:1 for the edges that show a control).
+   Meanings: coral --live = recording only · amber --warn = something limits dictation · red --danger = destructive
+   or failed · blue --info / --accent = information, links, selection · green --ok = ready or on. */
+:root {
+  /* ---- surfaces: the window (sidebar), the page on it, cards on the page */
+  --bg-base: #f3f1ec;        /* the window and the no-Mica fallback; the sidebar sits here */
+  --bg-layer: #f9f8f5;       /* the content area */
+  --card: #ffffff;
+  --card-hover: #fbfaf7;
+  --sunken: #efede7;         /* rows inside a card, neutral badges, the track of a segmented control */
+  --mica-side: rgba(243, 240, 233, 0.88);
+  --mica-layer: rgba(249, 248, 245, 0.88);
+
+  /* ---- text */
+  --ink: #1d1c1a;
+  --ink-2: #5d5951;
+  --ink-3: #6b665c;          /* captions, meta, placeholders */
+  --ink-disabled: #a39e94;   /* disabled only (exempt from the contrast rule) */
+  --on-primary: #f9f8f5;     /* on an --ink fill */
+  --on-color: #ffffff;       /* on a coloured fill: a switch that is on, a danger button */
+
+  /* ---- strokes */
+  --stroke-card: #e5e1d8;    /* decorative: card edges, dividers */
+  --stroke-control: #d6d1c6; /* the sides and top of fields and buttons */
+  --stroke-strong: #8a857b;  /* "this is a control": a switch that is off, a field's bottom edge, dashed zones */
+
+  /* ---- signals */
+  --accent: #2b5fd0;         /* links, selection lines, a field in focus */
+  --accent-soft: #e6edfb;
+  --focus: #2b5fd0;          /* the 2 px focus ring */
+  --live: #e4533b;           /* the recording dot and pressed keycaps (not text) */
+  --live-soft: #fbe6e1;
+  --live-ink: #b93520;       /* text that says "listening" */
+  --danger: #b93520;
+  --danger-fill: #b93520;
+  --danger-soft: #fbe6e1;
+  --ok: #23704a;
+  --ok-soft: #e2f1e8;
+  --toggle-on: #23704a;
+  --warn: #8a560f;
+  --warn-soft: #f6ead6;
+  --info: #2b5fd0;
+  --info-soft: #e6edfb;
+  /* a see-through ink: hover and selection on any surface, in both themes */
+  --subtle-fill: color-mix(in srgb, var(--ink) 5%, transparent);
+  --subtle-fill-strong: color-mix(in srgb, var(--ink) 8%, transparent);
+
+  /* ---- keycaps (the identity detail) */
+  --key-top: #ffffff;
+  --key-edge: #8a857b;
+  --key-pressed: var(--live);
+
+  /* ---- the pill: dark on any desktop, in both themes */
+  --pill-bg: rgba(24, 23, 21, 0.94);
+  --pill-stroke: rgba(255, 255, 255, 0.22);
+  --pill-ink: #f1efe9;
+  --pill-muted: rgba(241, 239, 233, 0.72);
+  --pill-live: #ff6a52;
+  --pill-live-hover: #ff8670;
+  --pill-warn: #e0a347;
+  --pill-warn-stroke: rgba(224, 163, 71, 0.65);
+  --pill-danger: #ff8a75;
+  --pill-danger-stroke: rgba(255, 138, 117, 0.6);
+  --pill-chip: rgba(255, 255, 255, 0.10);
+  --pill-chip-hover: rgba(255, 255, 255, 0.20);
+  --pill-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+
+  /* ---- type: six sizes (Segoe UI Variable) */
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, monospace; /* links, command lines and keycaps only */
+  --fs-caption: 12px;
+  --fs-body: 14px;
+  --fs-body-large: 18px;
+  --fs-subtitle: 20px;
+  --fs-title: 28px;
+  --fs-display: 40px;
+  --t-caption: 400 var(--fs-caption)/16px var(--font);
+  --t-body: 400 var(--fs-body)/20px var(--font);
+  --t-body-strong: 600 var(--fs-body)/20px var(--font);
+  --t-body-large: 400 var(--fs-body-large)/24px var(--font);
+  --t-subtitle: 600 var(--fs-subtitle)/28px var(--font-display);
+  --t-title: 600 var(--fs-title)/36px var(--font-display);
+  --t-display: 600 var(--fs-display)/52px var(--font-display);
+
+  /* ---- spacing (4 px grid) */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-14: 56px;
+  --section-gap: 24px;       /* above a section header */
+
+  /* ---- radius */
+  --r-ctl: 4px;              /* buttons, fields, rows, chips, keycaps */
+  --r-card: 8px;             /* cards, dialogs, flyouts, InfoBars */
+  --r-full: 999px;           /* the pill, a switch's track, dots */
+
+  /* ---- elevation: cards are flat with a stroke */
+  --shadow-card: none;
+  --shadow-tooltip: 0 4px 8px rgba(0, 0, 0, 0.14);
+  --shadow-flyout: 0 8px 16px rgba(0, 0, 0, 0.14);
+  --shadow-dialog: 0 32px 64px rgba(0, 0, 0, 0.19), 0 2px 21px rgba(0, 0, 0, 0.15);
+  --shadow-knob: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --scrim: rgba(0, 0, 0, 0.30);
+
+  /* ---- motion */
+  --d-fast: 83ms;            /* hover, press */
+  --d-normal: 167ms;         /* state changes, switches */
+  --d-slow: 250ms;           /* a dialog coming in */
+  --d-slower: 333ms;
+  --ease-standard: cubic-bezier(0.33, 0, 0.67, 1);
+  --ease-decel: cubic-bezier(0.1, 0.9, 0.2, 1);
+  --ease-accel: cubic-bezier(0.7, 0, 1, 0.5);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-base: #191917;
+    --bg-layer: #1f1f1d;
+    --card: #272724;
+    --card-hover: #2c2c29;
+    --sunken: #1c1c1a;
+    --mica-side: rgba(25, 25, 23, 0.84);
+    --mica-layer: rgba(31, 31, 29, 0.90);
+    --ink: #ecebe6;
+    --ink-2: #b8b3a9;
+    --ink-3: #a29d93;
+    --ink-disabled: #6a665e;
+    --on-primary: #191917;
+    --stroke-card: #33322e;
+    --stroke-control: #3b3a35;
+    --stroke-strong: #8a857b;
+    --accent: #7aa2ff;
+    --accent-soft: #1d2537;
+    --focus: #7aa2ff;
+    --live: #ff6a52;
+    --live-soft: #3a211c;
+    --live-ink: #ff8a75;
+    --danger: #ff8a75;
+    --danger-fill: #c4402b;
+    --danger-soft: #3a211c;
+    --ok: #4cc38a;
+    --ok-soft: #1b2e23;
+    --toggle-on: #237a4d;
+    --warn: #e0a347;
+    --warn-soft: #33281a;
+    --info: #7aa2ff;
+    --info-soft: #1d2537;
+    --subtle-fill: color-mix(in srgb, var(--ink) 6%, transparent);
+    --subtle-fill-strong: color-mix(in srgb, var(--ink) 9%, transparent);
+    --key-top: #3a3934;
+    --key-edge: #0d0d0b;
+    --shadow-tooltip: 0 4px 8px rgba(0, 0, 0, 0.28);
+    --shadow-flyout: 0 8px 16px rgba(0, 0, 0, 0.26);
+    --shadow-dialog: 0 32px 64px rgba(0, 0, 0, 0.37), 0 2px 21px rgba(0, 0, 0, 0.37);
+    --scrim: rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --d-fast: 0ms; --d-normal: 0ms; --d-slow: 0ms; --d-slower: 0ms; }
+}
