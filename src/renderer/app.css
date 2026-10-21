@@ -620,13 +620,24 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
   #page-welcome .we-cards { grid-template-columns: 1fr; }
 }
 
-/* ---------- Home notices (home-notices.js) */
-.banner.setup { border-color: var(--stroke-card); background: var(--card); }
-.banner a { color: inherit; text-decoration: underline; }
-.whatsnew-body { display: flex; flex-direction: column; gap: 8px; color: var(--ink-2); }
-.whatsnew-body p { margin: 0; }
-.whatsnew-body ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 20px; text-wrap: pretty; }
-.whatsnew .panel-head { justify-content: space-between; }
+/* ---------- InfoBar: Home's notices, one at a time (home-notices.js). A tint and an edge in the severity colour, and
+   an icon, so the kind isn't told by colour alone. */
+.notices:empty { display: none; }
+.infobar { --sev: var(--info); --sev-soft: var(--info-soft); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 48px; padding: 8px 8px 8px 16px; border: 1px solid color-mix(in srgb, var(--sev) 35%, transparent); border-radius: var(--r-card); background: var(--sev-soft); }
+.infobar.warning { --sev: var(--warn); --sev-soft: var(--warn-soft); }
+.infobar.error { --sev: var(--danger); --sev-soft: var(--danger-soft); }
+.infobar.success { --sev: var(--ok); --sev-soft: var(--ok-soft); }
+.infobar-icon { flex: none; align-self: flex-start; margin-top: 8px; color: var(--sev); }
+.infobar-icon .icon { width: 16px; height: 16px; }
+.infobar-text { flex: 1 1 240px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; padding: 6px 0; text-wrap: pretty; }
+.infobar-title { font: var(--t-body-strong); }
+.infobar-message { color: var(--ink); }
+.infobar-text .meter { flex-basis: 100%; margin-top: 6px; }
+.infobar a { color: inherit; text-decoration: underline; }
+.infobar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.infobar-steps { display: flex; align-items: center; gap: 2px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.infobar .icon-btn { width: 32px; height: 32px; }
+.infobar-pager { font: var(--t-caption); white-space: nowrap; }
 
 /* ---------- Modes (modes.js) */
 .nav .count { margin-left: auto; color: var(--ink-3); font-size: var(--fs-caption); font-weight: 400; }
@@ -718,7 +729,8 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; } /* focused b
 }
 /* Windows contrast themes: system colours, with borders where colour alone told things apart. */
 @media (forced-colors: active) {
-  .btn, input, select, textarea, .panel, .key, .segmented, .switch span, .tag, .badge, .chip, .lang-chips button, .tooltip, .dialog { border: 1px solid CanvasText; }
+  .btn, input, select, textarea, .panel, .key, .segmented, .switch span, .tag, .badge, .chip, .lang-chips button, .tooltip, .dialog, .infobar { border: 1px solid CanvasText; }
+  .infobar-icon { forced-color-adjust: none; color: CanvasText; }
   .btn:disabled { border-color: GrayText; color: GrayText; }
   .switch span::after { forced-color-adjust: none; background: CanvasText; }
   .switch input:checked + span { forced-color-adjust: none; background: Highlight; border-color: Highlight; }

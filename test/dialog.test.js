@@ -39,7 +39,7 @@ test('a list of what goes, and a note after it; empty parts are left out', () =>
 test('a dialog without a title or a button label is a mistake in the code', () => {
   assert.throws(() => dialogSpec({ ...BASE, title: '' }), TypeError);
   assert.throws(() => dialogSpec({ ...BASE, confirm: undefined }), TypeError);
-  assert.throws(() => dialogSpec({ ...BASE, cancel: null }), TypeError);
+  assert.throws(() => dialogSpec({ ...BASE, cancel: null, tone: 'danger' }), TypeError, 'a dangerous one always has Cancel');
   assert.throws(() => dialogSpec({ ...BASE, tone: 'loud' }), TypeError);
 });
 
@@ -48,4 +48,11 @@ test('only the confirm button says yes: Cancel, Esc and closing say no', () => {
   assert.equal(answer('cancel'), false);
   assert.equal(answer(''), false, 'Esc closes a <dialog> with an empty returnValue');
   assert.equal(answer(undefined), false);
+});
+
+test('a dialog with nothing to decide has one button, and it has focus', () => {
+  const spec = dialogSpec({ title: 'What\'s new', list: ['One', 'Two'], confirm: 'Close' });
+  assert.deepEqual(spec.buttons, [{ id: 'confirm', label: 'Close', className: 'btn primary' }]);
+  assert.equal(spec.initialFocus, 'confirm');
+  assert.deepEqual(spec.list, ['One', 'Two']);
 });

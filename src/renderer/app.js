@@ -382,25 +382,36 @@ $('#clear-history').addEventListener('click', async () => {
   if (yes) await api.clearHistory();
 });
 
+/** Home's notices are drawn by home-notices.js; one set before that script has loaded waits here for it. */
+const earlyNotices = {};
+function notice(id, n) {
+  if (typeof HomeNotices === 'undefined') earlyNotices[id] = n;
+  else HomeNotices.set(id, n);
+}
+
 let slowNoteDismissed = false; // the "Large v3 Turbo is slow" note, hidden for this session
 /** Home notes when no model job runs: the chosen model isn't on disk yet, or Large v3 Turbo fell back to the CPU. */
 function modelNote() {
   if (settings.engine !== 'local') return null;
   const m = modelState.models.find((x) => x.id === settings.localModel);
   if (m && !m.downloaded && modelState.status === 'idle') {
-    return [el('div', { class: 'grow' }, el('strong', {}, t('banner.model.notDownloaded')), el('span', { class: 'desc' }, t('banner.model.oneTime'))),
-      el('button', { class: 'btn primary', onclick: () => api.loadModel() }, t('banner.model.download', { name: `Whisper ${m.label}`, size: m.size }))];
+    return {
+      severity: 'warning', title: t('banner.model.notDownloaded'), message: t('banner.model.oneTime'),
+      actions: [el('button', { class: 'btn primary', onclick: () => api.loadModel() }, t('banner.model.download', { name: `Whisper ${m.label}`, size: m.size }))],
+    };
   }
   if (modelState.offerSmaller && modelState.model === settings.localModel && !slowNoteDismissed) {
-    return [el('div', { class: 'grow' }, el('strong', {}, t('banner.model.slow'))),
-      el('button', { class: 'btn', onclick: () => save({ localModel: 'onnx-community/whisper-small' }, t('models.switched', { name: 'Whisper Small' })) }, t('banner.model.useSmall')),
-      el('button', { class: 'btn', onclick: () => { slowNoteDismissed = true; renderBanner(); } }, t('common.dismiss'))];
+    return {
+      severity: 'info', title: t('banner.model.slow'),
+      actions: [el('button', { class: 'btn', onclick: () => save({ localModel: 'onnx-community/whisper-small' }, t('models.switched', { name: 'Whisper Small' })) }, t('banner.model.useSmall'))],
+      onDismiss: () => { slowNoteDismissed = true; renderBanner(); },
+    };
   }
   return null;
 }
 
+/** The model notice on Home: missing, slow, downloading (with its progress), loading or failed. */
 function renderBanner() {
-  const banner = $('#model-banner');
   const side = $('#side-progress');
   if (!modelState) return;
   const jobs = [];
@@ -409,31 +420,26 @@ function renderBanner() {
   if (tr && tr.status !== 'idle' && tr.status !== 'ready') jobs.push({ name: t('banner.translatorName'), ...tr, retry: api.loadTranslator });
   const job = jobs.find((j) => j.status === 'error') || jobs.find((j) => j.status === 'downloading' || j.status === 'loading');
   if (!job) {
-    const note = modelNote();
-    banner.hidden = !note;
-    banner.classList.remove('error');
-    if (note) banner.replaceChildren(...note);
+    notice('model', modelNote());
     side.hidden = true;
     return;
   }
-  banner.hidden = false;
-  banner.classList.toggle('error', job.status === 'error');
   if (job.status === 'error') {
-    banner.replaceChildren(
-      el('div', { class: 'grow' }, el('strong', {}, t('banner.loadFailed', { name: job.name })), el('span', { class: 'desc' }, job.error || '')),
-      el('button', { class: 'btn', onclick: () => job.retry() }, t('common.retry')),
-      ...(job.again?.() ? [el('button', { class: 'btn', onclick: HomeNotices.redownload }, t('banner.downloadAgain'))] : []));
+    notice('model', {
+      severity: 'error', title: t('banner.loadFailed', { name: job.name }), message: job.error || '',
+      actions: [el('button', { class: 'btn', onclick: () => job.retry() }, t('common.retry')),
+        ...(job.again?.() ? [el('button', { class: 'btn', onclick: HomeNotices.redownload }, t('banner.downloadAgain'))] : [])],
+    });
     side.hidden = true;
     return;
   }
   const downloading = job.status === 'downloading';
-  const meter = el('div', { class: 'meter' }, el('i', { style: `width:${downloading ? job.percent : 100}%` }));
-  banner.replaceChildren(
-    el('div', { class: 'grow' },
-      el('strong', {}, t(downloading ? 'banner.downloading' : 'banner.loading', { name: job.name })),
-      downloading ? el('span', { class: 'desc' }, t('banner.model.oneTime')) : null,
-      downloading ? meter : null),
-    ...(downloading ? [el('b', {}, `${job.percent}%`)] : []));
+  notice('model', {
+    severity: 'info',
+    title: t(downloading ? 'banner.downloading' : 'banner.loading', { name: job.name }),
+    message: downloading ? `${t('banner.model.oneTime')} ${job.percent || 0}%` : '',
+    progress: el('div', { class: `meter${downloading ? '' : ' indeterminate'}` }, el('i', { style: `width:${downloading ? job.percent || 0 : 30}%` })),
+  });
   side.hidden = !downloading;
   side.firstElementChild.style.width = `${job.percent || 0}%`;
 }
@@ -1100,8 +1106,10 @@ function renderAll() {
 function renderUpdate(u) {
   if (!u) return;
   const ready = u.status === 'ready';
-  $('#update-banner').hidden = !ready;
-  $('#update-banner-title').textContent = ready ? t('update.readyTitle', { version: u.version }) : '';
+  notice('update', ready ? {
+    title: t('update.readyTitle', { version: u.version }), message: t('update.banner.desc'),
+    actions: [el('button', { class: 'btn primary', onclick: () => api.installUpdate() }, t('update.banner.restart'))],
+  } : null);
   document.querySelectorAll('[data-update-install]').forEach((b) => (b.hidden = !ready));
   $('#update-title').textContent = `Pauli Speaks ${u.current}`;
   const vars = { version: u.version, percent: u.percent || 0, error: u.error };

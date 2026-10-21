@@ -55,17 +55,8 @@
         <div id="live" class="live" role="status" aria-live="polite"><span class="dot"></span><span id="live-text" data-i18n="live.ready">Ready</span></div>
       </header>
 
-      <div id="update-banner" class="banner update" hidden>
-        <div class="grow"><strong id="update-banner-title"></strong><span class="desc" data-i18n="update.banner.desc">Restart Pauli Speaks to finish updating. It takes a few seconds.</span></div>
-        <button class="btn primary" data-update-install data-i18n="update.banner.restart">Restart now</button>
-      </div>
-      <div id="hook-banner" class="banner error" hidden></div>
-      <div id="model-banner" class="banner" hidden></div>
-      <div id="conflict-banner" class="banner" hidden></div>
-      <div id="recovery-banner" class="banner" hidden></div>
-      <div id="language-banner" class="banner" hidden></div>
-      <div id="setup-card" class="banner setup" hidden></div>
-      <section id="whatsnew-card" class="panel whatsnew" hidden></section>
+      <!-- Home's notices, one at a time, as InfoBars (home-notices.js) -->
+      <div id="notices" class="notices"></div>
 
       <div class="keys-strip" aria-label="Shortcuts" data-i18n-aria-label="nav.shortcuts">
         <div class="kitem"><span id="ptt-chips" class="chips"></span><span data-i18n="home.strip.hold">Hold to talk</span></div>
@@ -516,6 +507,7 @@
   <script src="icons.js"></script>
   <script src="tooltip.js"></script>
   <script src="dialog.js"></script>
+  <script src="notice-queue.js"></script>
   <script src="app.js"></script>
   <script src="modes.js"></script>
   <script src="polish.js"></script>

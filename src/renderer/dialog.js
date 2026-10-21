@@ -15,13 +15,14 @@
   const lines = (v) => [v].flat().filter((x) => x != null && x !== '').map(String);
 
   /**
-   * @param {{title: string, body?: string|string[], list?: string[], note?: string, confirm: string, cancel: string,
+   * Without `cancel` the dialog only tells something (What's new) and has one button; a dangerous one always has Cancel.
+   * @param {{title: string, body?: string|string[], list?: string[], note?: string, confirm: string, cancel?: string,
    *   tone?: 'primary'|'danger'}} o
    */
   function dialogSpec({ title, body = [], list = [], note = '', confirm, cancel, tone = 'primary' }) {
-    if (!title || !confirm || !cancel) throw new TypeError('a dialog needs a title, a confirm label and a cancel label');
     if (!TONES.includes(tone)) throw new TypeError(`unknown dialog tone: ${tone}`);
     const danger = tone === 'danger';
+    if (!title || !confirm || (danger && !cancel)) throw new TypeError('a dialog needs a title and a confirm label, and a dangerous one a cancel label');
     return {
       title: String(title),
       body: lines(body),
@@ -30,7 +31,7 @@
       danger,
       buttons: [
         { id: 'confirm', label: String(confirm), className: danger ? 'btn danger primary' : 'btn primary' },
-        { id: 'cancel', label: String(cancel), className: 'btn' },
+        ...(cancel ? [{ id: 'cancel', label: String(cancel), className: 'btn' }] : []),
       ],
       initialFocus: danger ? 'cancel' : 'confirm',
     };
