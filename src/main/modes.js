@@ -16,7 +16,7 @@
 const { DEFAULT_APP_RULES } = require('./app-styles');
 
 const STYLES = ['normal', 'casual', 'formal', 'code'];
-const AI_POLISH = ['off', 'light', 'medium', 'high'];
+const AI_POLISH = ['off', 'light', 'medium', 'high', 'prompt']; // polish-prompts.js; 'prompt' is the AI-chat preset
 const MAX_MODES = 20;
 const MAX_APPS = 50;
 const DEFAULT_ID = 'default';
