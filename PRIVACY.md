@@ -44,7 +44,7 @@ the app says so next to that option.
   *Don't keep* and *Delete after 24 hours* the entries and failed dictations follow the same rule.
   With *Don't keep* a dictation stays in the list in memory until you close Pauli Speaks, so *Paste
   last*, *Copy last* and *Undo last dictation* still work for the current session. Clear them any
-  time with *Clear* on the Transcripts page.
+  time with *Clear* on the History page.
 - **Clipboard history.** To paste, Pauli Speaks briefly puts your text on the clipboard. That
   temporary text is marked, whenever Windows allows it (in the rare case it doesn't, a plain copy is made and the log says so), so that Windows clipboard history (Win+V) and cloud clipboard sync don't
   record it, and clipboard managers that respect the marking skip it. Your own clipboard content is

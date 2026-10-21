@@ -217,6 +217,7 @@ async function loadHistory() {
   historyItems = await api.listHistory();
   recentApps = [...new Set(historyItems.map((i) => i.app).filter(Boolean))].slice(0, 20);
   renderHistory();
+  renderRecent();
   if (settings) Modes.render();
 }
 
@@ -280,6 +281,12 @@ function renderHistory() {
     out.push(historyItem(item));
   }
   box.replaceChildren(...out);
+}
+
+/** Home's Recent: the last three dictations, like History shows them. */
+function renderRecent() {
+  const recent = historyItems.slice(0, 3);
+  $('#recent').replaceChildren(...(recent.length ? recent.map(historyItem) : [el('div', { class: 'empty' }, t('history.empty'))]));
 }
 
 $('#history-search').addEventListener('input', renderHistory);
