@@ -53,7 +53,7 @@ async function launch({ settings = setUpSettings(), rawSettings, args = [] } = {
   const removeDir = () => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   let page;
   try {
-    page = await waitFor(() => app.windows().find((w) => w.url().endsWith('app.html')), { what: 'the main window' });
+    page = await waitFor(() => app.windows().find((w) => /\/app\.html(\?|$)/.test(w.url())), { what: 'the main window' }); // ?look=mica on Windows 11
     await page.waitForLoadState('domcontentloaded');
     await waitFor(() => app.evaluate(() => !!global.__pauliE2E), { what: 'e2e mode' });
   } catch (err) {

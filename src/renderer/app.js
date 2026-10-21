@@ -54,6 +54,7 @@ let settings = null;
 let modelState = null;
 let rec = null; // shortcut being recorded: { action, replaceId, keys, error, warning }
 let historyItems = [];
+document.documentElement.classList.toggle('mica', new URLSearchParams(location.search).get('look') === 'mica'); // window-look.js
 let dictation = { status: 'idle' };
 
 // ------------------------------------------------------------------ helpers

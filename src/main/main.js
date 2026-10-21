@@ -13,9 +13,10 @@
 
 const fs = require('node:fs');
 const os = require('node:os');
+const { windowLook } = require('./window-look');
 const path = require('node:path');
 const {
-  app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell, session, clipboard, safeStorage, dialog,
+  app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell, session, clipboard, safeStorage, dialog, nativeTheme,
 } = require('electron');
 
 const log = require('./logger');
@@ -248,6 +249,7 @@ function createMainWindow(page) {
     if (page) send(mainWindow, 'app:navigate', page);
     return mainWindow;
   }
+  const look = windowLook({ platform: process.platform, release: os.release(), dark: nativeTheme.shouldUseDarkColors });
   mainWindow = new BrowserWindow({
     width: 1080,
     height: 760,
@@ -255,13 +257,13 @@ function createMainWindow(page) {
     minHeight: 560,
     show: false,
     title: 'Pauli Speaks',
-    backgroundColor: '#f6f5f1',
+    ...look.window, // Mica on Windows 11 22H2+, the paper colour elsewhere
     icon: asset('icon.png'),
     autoHideMenuBar: true,
     webPreferences: { preload: PRELOAD },
   });
   mainWindow.setMenu(null);
-  mainWindow.loadFile(path.join(RENDERER, 'app.html'));
+  mainWindow.loadFile(path.join(RENDERER, 'app.html'), look.mica ? { query: { look: 'mica' } } : undefined);
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     if (page) send(mainWindow, 'app:navigate', page);

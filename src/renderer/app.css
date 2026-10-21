@@ -648,3 +648,16 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
   .row { grid-template-columns: 1fr; }
   .row input:not([type=checkbox]) { width: 100%; }
 }
+
+/* ---------- Windows 11: geometry and Mica (window-look.js) */
+/* 8 px for cards, dialogs and the window's panels; 4 px for controls and rows (Windows 11 geometry). */
+:root { --radius: 8px; --r-ctl: 4px; --mica-layer: rgba(255, 255, 255, 0.55); --mica-side: rgba(243, 240, 233, 0.5); }
+@media (prefers-color-scheme: dark) {
+  :root { --mica-layer: rgba(22, 22, 20, 0.6); --mica-side: rgba(30, 29, 26, 0.45); }
+}
+.btn, input, select, textarea, .nav, .segmented button, .confirm .btn { border-radius: var(--r-ctl); }
+.segmented { border-radius: var(--radius); }
+/* With Mica the desktop tints the window: the sidebar sits on the material, the content on a light layer. */
+html.mica body { background: transparent; }
+html.mica .sidebar { background: var(--mica-side); border-right-color: transparent; }
+html.mica main { background: var(--mica-layer); border-top-left-radius: var(--radius); }
