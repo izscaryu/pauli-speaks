@@ -35,9 +35,9 @@ function buildCommandMessages(instruction, selection) {
   ];
 }
 
-/** Strip wrappers models sometimes add despite instructions. */
+/** Strip wrappers models sometimes add despite instructions (and a reasoning model's <think> block). */
 function cleanCompletion(text) {
-  let out = String(text || '').trim();
+  let out = String(text || '').replace(/^\s*<think>[\s\S]*?<\/think>/, '').trim();
   const fence = out.match(/^```[\w-]*\n([\s\S]*?)\n```$/);
   if (fence) out = fence[1];
   out = out.replace(/^<<<\n?/, '').replace(/\n?>>>$/, '');
@@ -48,16 +48,20 @@ function cleanCompletion(text) {
 /**
  * @param {{baseUrl: string, apiKey: string, model: string}} cfg
  * @param {{role: string, content: string}[]} messages
+ * @param {{signal?: AbortSignal, requireKey?: boolean, temperature?: number, maxTokens?: number}} [opts]
+ *   requireKey: false for a server on this PC (Ollama, LM Studio, Foundry Local), which takes no key
  */
-async function chatComplete(cfg, messages) {
-  if (!cfg.apiKey) {
+async function chatComplete(cfg, messages, { signal = AbortSignal.timeout(45000), requireKey = true, temperature = 0.3, maxTokens = 2048 } = {}) {
+  if (requireKey && !cfg.apiKey) {
     throw new Error(t('errors.commandNeedsKey'));
   }
+  const headers = { 'Content-Type': 'application/json' };
+  if (cfg.apiKey) headers.Authorization = `Bearer ${cfg.apiKey}`;
   const res = await fetch(`${cfg.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${cfg.apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: cfg.model, messages, temperature: 0.3, max_tokens: 2048 }),
-    signal: AbortSignal.timeout(45000),
+    headers,
+    body: JSON.stringify({ model: cfg.model, messages, temperature, max_tokens: maxTokens }),
+    signal,
   });
   if (!res.ok) {
     const body = (await res.text()).slice(0, 300);
