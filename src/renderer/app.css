@@ -15,6 +15,10 @@
   --warn: #b7741a;
   --warn-soft: #f6ead6;
   --focus: #3a6ee0;
+  --accent: #2b5fd0; /* links and the selected segment: 5.1:1 on the page, where --focus is 4.15:1 */
+  --stroke-strong: #8a857b; /* edges that say "this is a control": 3:1 or more against cards and the page */
+  --toggle-on: #23704a;
+  --danger-fill: #b93520; /* a filled danger button, white text on it */
   --key-top: #ffffff;
   --key-edge: #d6d1c6;
   --shadow: 0 1px 1px rgba(30, 25, 15, 0.04), 0 2px 8px rgba(30, 25, 15, 0.04);
@@ -29,8 +33,8 @@
     --surface: #1c1c19;
     --surface-2: #252521;
     --ink: #ecebe6;
-    --ink-2: #b2ada3;
-    --ink-3: #7d786e;
+    --ink-2: #b8b3a9;
+    --ink-3: #a29d93; /* 4.5:1 or more on cards and the sidebar (#7d786e was 3.5–3.9:1) */
     --line: #2e2d29;
     --signal: #ff6a52;
     --signal-soft: #3a211c;
@@ -39,6 +43,9 @@
     --warn: #e0a347;
     --warn-soft: #33281a;
     --focus: #7aa2ff;
+    --accent: #7aa2ff;
+    --toggle-on: #237a4d; /* white knob on it: 5.3:1 (#4cc38a was 2.2:1) */
+    --danger-fill: #c4402b; /* white text on it: 5.1:1 (#ff6a52 was 2.8:1) */
     --key-top: #2b2b27;
     --key-edge: #0f0f0d;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -59,7 +66,7 @@ body {
 h1, h2 { margin: 0; font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; text-wrap: balance; }
 h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.015em; }
 h2 { font-size: 13px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); }
-a { color: var(--focus); }
+a { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
 
 /* ---------- sidebar */
@@ -197,12 +204,15 @@ input, select, textarea {
   border-radius: 8px;
   background: var(--bg);
   color: var(--ink);
+  border-bottom-color: var(--stroke-strong); /* the edge that says "type here", as Windows 11 text boxes have */
   font: inherit;
   outline: none;
   transition-property: border-color, box-shadow;
   transition-duration: 120ms;
 }
-input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent); }
+/* One focus mark on a field: its bottom edge turns to a 2 px accent line (no outline, no halo on top). */
+input:focus, select:focus, textarea:focus { border-bottom-color: var(--accent); box-shadow: inset 0 -1px 0 var(--accent); }
+input:not([type=checkbox], [type=radio], [type=range]):focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
 select { width: auto; min-width: 200px; }
 
 .pad { display: flex; flex-direction: column; gap: 6px; }
@@ -230,7 +240,7 @@ select { width: auto; min-width: 200px; }
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; color: var(--ink-3); font-size: 12px; }
 .tag { padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 11px; font-weight: 600; line-height: 1.6; }
 .tag.tr { background: var(--signal-soft); color: var(--signal); }
-.linkish { border: 0; padding: 0; background: none; color: var(--focus); font: inherit; font-size: 12px; cursor: pointer; }
+.linkish { border: 0; padding: 0; background: none; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; }
 .actions { display: flex; gap: 2px; opacity: 0; transition: opacity 120ms; }
 .item:hover .actions, .item:focus-within .actions { opacity: 1; }
 .icon-btn {
@@ -276,7 +286,7 @@ select { width: auto; min-width: 200px; }
 .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
 .btn.danger { border-color: color-mix(in srgb, var(--signal) 45%, transparent); color: var(--signal); }
 .btn.danger:hover { border-color: var(--signal); }
-.btn.danger.primary { border-color: var(--signal); background: var(--signal); color: #fff; }
+.btn.danger.primary { border-color: var(--danger-fill); background: var(--danger-fill); color: #fff; }
 
 /* Settings → Privacy: the in-page confirmation for the two delete buttons */
 .confirm { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--signal) 40%, transparent); border-radius: var(--radius); background: var(--signal-soft); }
@@ -309,20 +319,23 @@ label.row { cursor: pointer; }
 
 .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex: none; }
 .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
-.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background-color 150ms; pointer-events: none; }
+/* Off: an outlined track with a grey knob, so it can't be mistaken for disabled. On: filled, with a white knob. */
+.switch span { position: absolute; inset: 0; border: 1px solid var(--stroke-strong); border-radius: 999px; background: transparent; transition-property: background-color, border-color; transition-duration: 150ms; pointer-events: none; }
 .switch span::after {
   content: "";
   position: absolute;
-  top: 3px;
-  left: 3px;
+  top: 2px;
+  left: 2px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-  transition: transform 150ms ease-out;
+  background: var(--ink-2);
+  transition-property: transform, background-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
 }
-.switch input:checked + span { background: var(--ok); }
+.switch input:checked + span { border-color: var(--toggle-on); background: var(--toggle-on); }
+.switch input:checked + span::after { background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
 .switch input:checked + span::after { transform: translateX(18px); }
 .switch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
 .switch input:disabled { cursor: default; }
@@ -451,7 +464,7 @@ label.row { cursor: pointer; }
   align-items: center;
   gap: 6px;
   padding: 34px 20px;
-  border: 1.5px dashed var(--line);
+  border: 2px dashed var(--stroke-strong);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--ink-2);
@@ -502,7 +515,7 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
   gap: 14px;
   min-height: 60px;
   padding: 12px 16px;
-  border: 1.5px dashed var(--line);
+  border: 1.5px dashed var(--stroke-strong);
   border-radius: var(--radius);
   background: var(--surface);
   cursor: text;
@@ -558,8 +571,8 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 #page-welcome { max-width: 680px; padding-top: 12px; }
 #page-welcome .welcome-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 #page-welcome .welcome-dots { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
-#page-welcome .welcome-dots li { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition-property: background-color, width; transition-duration: 150ms; }
-#page-welcome .welcome-dots li.done { background: var(--ink-3); }
+#page-welcome .welcome-dots li { width: 8px; height: 8px; border-radius: 50%; background: var(--stroke-strong); transition-property: background-color, width; transition-duration: 150ms; }
+#page-welcome .welcome-dots li.done { background: var(--ink-2); }
 #page-welcome .welcome-dots li.current { width: 22px; border-radius: 999px; background: var(--ink); }
 #page-welcome .welcome-step { gap: 14px; min-height: 260px; padding: 26px 28px; }
 #page-welcome .welcome-step h1:focus { outline: none; }
@@ -695,7 +708,7 @@ html.mica main { background: var(--mica-layer); border-top-left-radius: var(--ra
 #page-settings > section.panel { scroll-margin-top: 4px; } /* a jump puts the heading about 20 px from the top */
 
 /* ---------- Accessibility */
-/* Light mode: text colours with at least 4.5:1 on their backgrounds (dark mode already has). */
+/* Light mode: text colours with at least 4.5:1 on their backgrounds. Dark mode's are in its block at the top. */
 @media not (prefers-color-scheme: dark) {
   :root { --ink-3: #6b665c; --signal: #b93520; --ok: #23704a; --warn: #8a560f; }
 }
