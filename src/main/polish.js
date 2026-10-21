@@ -98,10 +98,11 @@ function createPolisher(d) {
   }
 
   /**
-   * @param {{text: string, mode: object, language?: string|null, command?: boolean}} o
+   * @param {{text: string, mode: object, language?: string|null, command?: boolean, onSend?: () => void}} o
+   *   onSend: the request is about to go out (the pill shows "Polishing…")
    * @returns {Promise<{text: string, polished: boolean, outcome: string, ms: number}>} text: what to paste
    */
-  async function polish({ text, mode, language = null, command = false }) {
+  async function polish({ text, mode, language = null, command = false, onSend = () => {} }) {
     const s = d.settings.get();
     const provider = (s.polish && s.polish.provider) || 'off';
     const level = mode && mode.aiPolish;
@@ -120,6 +121,7 @@ function createPolisher(d) {
     const [, lead, core, trail] = String(text).match(/^(\s*)([\s\S]*?)(\s*)$/);
     const messages = buildPolishMessages({ level, text: core, instructions: mode.prompt, language });
     const ms = timeoutFor(target.baseUrl);
+    onSend();
     const controller = new AbortController();
     let timer = null;
     const deadline = new Promise((resolve) => {

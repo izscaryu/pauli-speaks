@@ -1,7 +1,8 @@
 'use strict';
 // The dictation itself, once the speech gate has let a recording through (dictation-flow.js):
 //   - transcribe: speech -> text in the mode's language, translated when the mode says so;
-//   - runDictation: clean it up, run the voice commands said at its start / end, put it in History, paste;
+//   - runDictation: clean it up, AI polish when the mode asks (polish.js, with Undo on the pill), run the voice
+//     commands said at its start / end, put it in History, paste;
 //   - runCommand: command mode, the speech is an instruction for the selected text.
 // Language, translation, style and voice commands come from the session's mode (controller.mode, modes.js).
 // Engines, windows and keys come in through `deps` (typing.js does the typing), so it is unit tested with fakes.
@@ -10,6 +11,7 @@ const { cleanTranscript, cleanUtterance, countWords } = require('./text-cleanup'
 const { DEFAULT_MODE } = require('./modes');
 const { shouldRunFollowUps } = require('./paste-plan');
 const { buildCommandMessages } = require('./llm');
+const { UNDO_MS } = require('./retry-offers');
 const { t } = require('./strings');
 
 /**
@@ -27,6 +29,8 @@ const { t } = require('./strings');
  * @param {() => void} d.onRecorded  the dictation went into History (dictation-flow's noteRecorded)
  * @param {(hint: {chosen: string[], likely: string|null}) => void} d.feedLanguage  language-hints.js
  * @param {(opts, messages) => Promise<string>} d.chatComplete  llm.js
+ * @param {(o: {text, mode, language, onSend}) => Promise<{text: string, polished: boolean, ms: number}>} [d.polish]  polish.js
+ * @param {(o: {historyId, polished, unpolished}) => {id: string, label: string}} [d.offerUnpolish]  polish-undo.js
  * @param {(state: object) => void} d.sendOverlayState
  * @param {(text, kind?) => void} d.flash
  * @param {{info: Function}} d.log
@@ -113,6 +117,16 @@ function createDictationRun(d) {
     };
   }
 
+  /** AI polish when the mode asks for it; null when the text stays as said. The pill says so while it waits. */
+  async function polishText(text, mode, result) {
+    if (!d.polish || !text.trim()) return null;
+    const out = await d.polish({
+      text, mode, language: result.translatedTo || result.language || null,
+      onSend: () => d.sendOverlayState({ state: 'processing', mode: 'dictate', text: t('overlay.polishing') }),
+    });
+    return out.polished ? out : null;
+  }
+
   async function runDictation(audio, seconds, t0, historyId = null, recording = null) {
     const mode = sessionMode();
     const result = await transcribe(audio, mode);
@@ -126,6 +140,8 @@ function createDictationRun(d) {
     const text = scratched ? '' : cleaned;
     d.log.info(`Transcribed in ${now() - t0}ms (${result.language || '?'}${result.translatedTo ? ` -> ${result.translatedTo}` : ''}, ${app ? app.exe : '?'}: ${mode.id}, ${mode.style})${before.length + after.length ? `, commands: ${[...before, ...after].map((c) => c.action).join(' ')}` : ''}`);
     if (!text.trim() && !before.length && !after.length) return d.flash(t('flash.noSpeech'));
+    const polished = await polishText(text, mode, result);
+    if (controller.cancelled) return d.sendOverlayState({ state: 'idle' });
     d.sendOverlayState({ state: 'idle' });
 
     for (const c of before) await typing.runVoiceAction(c, !text.trim());
@@ -135,9 +151,16 @@ function createDictationRun(d) {
       return;
     }
 
-    record(dictationEntry(result, text, seconds, mode, app), historyId, recording);
+    const typed = polished ? polished.text : text;
+    const entry = dictationEntry(result, typed, seconds, mode, app);
+    if (polished) Object.assign(entry, { polished: typed.trim(), unpolished: text.trim(), polish: { level: mode.aiPolish, ms: polished.ms } });
+    const item = record(entry, historyId, recording);
     d.feedLanguage({ chosen: s.languages, likely: result.likelyLanguage ?? result.language });
-    if (!shouldRunFollowUps(await typing.paste(text))) return; // enterAfterPaste is reset by the caller
+    const pasted = await typing.paste(typed);
+    if (polished && pasted.mode !== 'copy-only' && d.offerUnpolish) {
+      d.flash(t('flash.polished'), 'info', UNDO_MS, d.offerUnpolish({ historyId: item.id, polished: typed, unpolished: text }));
+    }
+    if (!shouldRunFollowUps(pasted)) return; // enterAfterPaste is reset by the caller
     for (const c of after) await typing.runVoiceAction(c, false);
     if (typing.enterAfterPaste && !after.some((c) => c.arg === 'Enter')) await typing.pressEnterNow();
   }

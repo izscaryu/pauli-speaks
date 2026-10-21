@@ -67,9 +67,9 @@ function render(state) {
   const action = state.state === 'message' && state.action ? state.action : null;
   actionBtn.hidden = !action;
   if (action) {
-    const undo = String(action.id).startsWith('undo-');
-    actionBtn.textContent = t(undo ? 'overlay.undo' : 'common.retry');
-    actionBtn.setAttribute('aria-label', t(undo ? 'overlay.undoLabel' : 'overlay.retryLabel'));
+    const kind = String(action.id).split('-')[0]; // undo-N (a cancel), unpolish-N (an AI edit), retry-N
+    actionBtn.textContent = t(kind === 'retry' ? 'common.retry' : 'overlay.undo');
+    actionBtn.setAttribute('aria-label', t(kind === 'undo' ? 'overlay.undoLabel' : kind === 'unpolish' ? 'overlay.unpolishLabel' : 'overlay.retryLabel'));
   }
   if (state.state !== 'idle') tip.hidden = true;
 

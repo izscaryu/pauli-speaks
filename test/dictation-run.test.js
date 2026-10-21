@@ -19,13 +19,13 @@ const audio = (s = 1) => new Float32Array(Math.round(RATE * s)).fill(0.1);
  * The run with real History and text clean-up; engines, windows and keys are scripted.
  * `heard` is what the speech engine returns, `chat` what the AI answers in command mode.
  */
-function rig({ heard = { text: 'hello there', language: 'en' }, chat = async () => 'Edited.', selection = 'old text', pasteMode = 'paste', nllb = false } = {}) {
+function rig({ heard = { text: 'hello there', language: 'en' }, chat = async () => 'Edited.', selection = 'old text', pasteMode = 'paste', nllb = false, polish } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pauli-run-'));
   test.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const history = new History(path.join(dir, 'history.json'));
   const s = structuredClone(DEFAULTS);
   const controller = { command: false, mode: null, cancelled: false };
-  const calls = { recognised: [], languages: [], translated: [], pasted: [], actions: [], enters: 0, flashed: [], states: [], saved: [], recorded: 0, fed: [], chats: [] };
+  const calls = { recognised: [], languages: [], translated: [], pasted: [], actions: [], enters: 0, flashed: [], states: [], saved: [], recorded: 0, fed: [], chats: [], polished: [], offers: [] };
   const typing = {
     enterAfterPaste: false,
     paste: async (text) => { calls.pasted.push(text); return { mode: pasteMode }; },
@@ -48,6 +48,10 @@ function rig({ heard = { text: 'hello there', language: 'en' }, chat = async () 
     sendOverlayState: (state) => calls.states.push(state),
     flash: (...a) => calls.flashed.push(a),
     log: { info() {}, warn() {}, error() {} },
+    ...(polish && {
+      polish: async (o) => { calls.polished.push(o); return polish(o); },
+      offerUnpolish: (o) => { calls.offers.push(o); return { id: 'unpolish-1', label: 'Undo' }; },
+    }),
   });
   return { run, history, controller, typing, calls, s };
 }
@@ -258,4 +262,52 @@ test('keptMeta: how a kept recording is to be run again', () => {
   assert.deepEqual(run.keptMeta(1), { durationMs: 1000, engine: 'whisper-base', command: false, mode: 'email', translate: true, app: { exe: 'notepad.exe' } });
   controller.command = true;
   assert.equal(run.keptMeta(1).engine, s.command.model);
+});
+
+// ---------------------------------------------------------------- AI polish
+
+const SAID = { text: 'so we meet on tuesday no wait wednesday at the office', language: 'en' };
+const polishedTo = (text) => async (o) => { o.onSend?.(); return { text, polished: true, outcome: 'polished', ms: 420 }; };
+
+test('a polished dictation pastes the polished text, offers Undo on the pill and keeps both in History', async () => {
+  const { run, controller, calls, history } = rig({ heard: SAID, polish: polishedTo('We meet on Wednesday at the office. ') });
+  controller.mode = mode({ id: 'chat', aiPolish: 'medium' });
+  await run.runDictation(audio(), 1, Date.now());
+  assert.equal(calls.polished.length, 1);
+  assert.equal(calls.polished[0].text, 'So we meet on tuesday no wait wednesday at the office ', 'the cleaned-up text, as it would be pasted');
+  assert.equal(calls.polished[0].mode.id, 'chat');
+  assert.equal(calls.polished[0].language, 'en');
+  assert.ok(calls.states.some((st) => st.state === 'processing' && st.text === 'Polishing…'), 'the pill says so while it waits');
+  assert.deepEqual(calls.pasted, ['We meet on Wednesday at the office. ']);
+  const item = history.last();
+  assert.equal(item.text, 'We meet on Wednesday at the office.');
+  assert.equal(item.polished, 'We meet on Wednesday at the office.');
+  assert.equal(item.unpolished, 'So we meet on tuesday no wait wednesday at the office');
+  assert.deepEqual(item.polish, { level: 'medium', ms: 420 });
+  assert.deepEqual(calls.offers, [{ historyId: item.id, polished: 'We meet on Wednesday at the office. ', unpolished: 'So we meet on tuesday no wait wednesday at the office ' }]);
+  assert.deepEqual(calls.flashed.at(-1), ['Polished.', 'info', 4000, { id: 'unpolish-1', label: 'Undo' }]);
+});
+
+test('a dictation that came back as said (timeout, error, too short) is pasted as usual, with no Undo offer', async () => {
+  const { run, controller, calls, history } = rig({ heard: SAID, polish: async (o) => ({ text: o.text, polished: false, outcome: 'timeout', ms: 2500 }) });
+  controller.mode = mode({ aiPolish: 'light' });
+  await run.runDictation(audio(), 1, Date.now());
+  assert.deepEqual(calls.pasted, ['So we meet on tuesday no wait wednesday at the office ']);
+  assert.equal(calls.offers.length, 0);
+  assert.equal(history.last().polished, undefined);
+  assert.equal(calls.flashed.length, 0);
+});
+
+test('no Undo offer when the paste fell back to the clipboard (an administrator window): nothing was typed to take back', async () => {
+  const { run, controller, calls } = rig({ heard: SAID, pasteMode: 'copy-only', polish: polishedTo('We meet on Wednesday. ') });
+  controller.mode = mode({ aiPolish: 'high' });
+  await run.runDictation(audio(), 1, Date.now());
+  assert.equal(calls.offers.length, 0);
+});
+
+test('"scratch that" and empty dictations are never sent for polish', async () => {
+  const { run, controller, calls } = rig({ heard: { text: 'one two three four scratch that', language: 'en' }, polish: polishedTo('x') });
+  controller.mode = mode({ aiPolish: 'high' });
+  await run.runDictation(audio(), 1, Date.now());
+  assert.equal(calls.polished.length, 0);
 });

@@ -48,6 +48,10 @@ const { createModeSession } = require('./mode-session');
 const { createFileTranscriber } = require('./files');
 const { modeLabel, withModesFor, DEFAULT_MODE } = require('./modes');
 const { buildCommandMessages, chatComplete } = require('./llm');
+const { createPolisher } = require('./polish');
+const { createPolishUndo } = require('./polish-undo');
+const { registerPolishIpc } = require('./polish-ipc');
+const { detectServers } = require('./polish-servers');
 const { LocalAsr } = require('./asr/local-asr');
 const { transcribeCloud } = require('./asr/cloud');
 const { createEngines } = require('./asr/engines');
@@ -122,6 +126,8 @@ let retry = null; // Retry / Undo: audio kept in memory (retry-offers.js)
 let flow = null; // what happens to a recording after the microphone stops (dictation-flow.js)
 let run = null; // transcribe, clean up, paste; command mode (dictation-run.js)
 let typing = null; // paste, Enter, undo last, voice commands (typing.js)
+let polisher = null; // AI polish per mode (polish.js), and its Undo on the pill (polish-undo.js)
+let polishUndo = null;
 let reading = false;
 let files = null; // Files → transcribe a file (files.js)
 let updater = null;
@@ -341,6 +347,8 @@ function listeningState(extra = {}) {
 function startRecording() {
   if (reading) stopReading();
   retry.expireUndo(); // before the new crash file begins: the cancelled one's is deleted now
+  polishUndo.expire(); // this dictation's paste will replace the polished one
+  if (!controller.command) polisher.warm(controller.mode); // a local model loads while the user speaks
   typing.enterAfterPaste = false; // sessionApp: set when the controller resolved the mode, just before
   showOverlay();
   sendOverlayState(listeningState());
@@ -745,6 +753,7 @@ function registerIpc() {
     preloadModel,
     log,
   });
+  registerPolishIpc(ipcMain, { polisher, detectServers: () => detectServers(), chat: chatComplete });
   registerDiagnosticsIpc(ipcMain, {
     appVersion: () => app.getVersion(), isPortable: () => portable.active, getSettings: () => settings.get(), os,
     hasApiKey: () => { try { return !!settings.getApiKey(); } catch { return false; } },
@@ -772,7 +781,7 @@ function registerIpc() {
     afterModelsDeleted: forgetModels,
     deleteAll: () => deleteAllData({
       history, audioHistory, settings, recoveryFile: recovery,
-      forgetInMemory: () => { retry.clear(); lastPaste.forget(); recoveryIpc.forget(); languageHints.forget(); },
+      forgetInMemory: () => { retry.clear(); polishUndo.clear(); lastPaste.forget(); recoveryIpc.forget(); languageHints.forget(); },
     }),
     retentionDrops: (r) => history.wouldDrop(r),
     audioBytes: (id) => audioHistory.read(id),
@@ -872,7 +881,8 @@ function registerIpc() {
 
   ipcMain.on('dictation:toggle', () => controller.toggle());
   ipcMain.on('dictation:cancel', () => (reading ? stopReading() : controller.cancel()));
-  ipcMain.on('overlay:action', (_e, id) => flow.runPillAction(String(id)).catch((err) => log.error('Pill action failed', err)));
+  ipcMain.on('overlay:action', (_e, id) => (String(id).startsWith('unpolish-') ? polishUndo.take(String(id)) : flow.runPillAction(String(id)))
+    .catch((err) => log.error('Pill action failed', err)));
   ipcMain.on('overlay:hover', (_e, inside) => {
     if (overlay) overlay.setIgnoreMouseEvents(!inside, { forward: true });
   });
@@ -993,7 +1003,10 @@ function init() {
     settings, lastPaste, history, controller, VK, flash, log, pasteText: io.pasteText, pressKey: io.pressKey, getSelectedText: io.getSelectedText,
     foregroundApp, keysDown: () => keyboard.engine.pressed.size, writeClipboard: io.writeClipboard,
   });
+  polisher = createPolisher({ settings, keys: { cloud: () => settings.getApiKey(), polish: () => settings.getPolishKey() }, chat: chatComplete, log });
+  polishUndo = createPolishUndo({ typing, history, lastPasted: () => lastPaste.last && lastPaste.last.text, flash });
   run = createDictationRun({
+    polish: (o) => polisher.polish(o), offerUnpolish: (o) => polishUndo.offer(o),
     settings, controller, history, typing, recognise: e2e ? e2e.io.recognise : recognise, translateText, needsNllb, engineLabel, chatComplete, sendOverlayState, flash, log,
     sessionApp: () => sessionApp, saveRecording: (id, audio) => privacy.saveRecording(id, audio), onRecorded: () => flow.noteRecorded(),
     feedLanguage: (hint) => languageHints.feed(hint),

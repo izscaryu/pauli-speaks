@@ -183,3 +183,13 @@ test('warm-up starts Foundry Local when it is not running', () => {
   polisher.warm(MODE);
   assert.equal(started, 1);
 });
+
+test('onSend runs just before a request goes out (the pill says "Polishing…"), never for a skipped one', async () => {
+  const { polisher } = setup();
+  let sent = 0;
+  await polisher.polish({ text: SAID, mode: MODE, onSend: () => sent++ });
+  assert.equal(sent, 1);
+  await polisher.polish({ text: 'too short', mode: MODE, onSend: () => sent++ });
+  await polisher.polish({ text: SAID, mode: { ...MODE, aiPolish: 'off' }, onSend: () => sent++ });
+  assert.equal(sent, 1);
+});
