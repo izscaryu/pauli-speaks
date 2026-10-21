@@ -1,7 +1,7 @@
 'use strict';
 // The Modes page (docs/design/redesign-concept.html): the modes on the left, the chosen one's editor on the right -
-// name, colour, language, translation, style, voice commands, the apps that switch it on (with recent apps from
-// History to pick from) and the shortcuts and link that open it. The main process checks every change (modes.js).
+// name, colour, language, translation, style, voice commands, AI polish (level and own instructions), the apps that
+// switch it on (with recent apps from History to pick from) and the shortcuts and link that open it. The main process checks every change (modes.js).
 // Loaded after app.js; uses these app.js globals: api, $, el, save, settings, toast, ICONS, LANGUAGES, LANG_NAME,
 // STYLES, bindingChips, recentApps, modelState, showPage.
 
@@ -112,6 +112,26 @@ const Modes = (() => {
     return field(t('voice.title'), t(settings.voiceCommandsEnabled ? 'modes.voice.hint' : 'modes.voice.off'), el('label', { class: 'switch' }, input, el('span')));
   }
 
+  const POLISH = ['off', 'light', 'medium', 'high', 'prompt'];
+
+  /** How much an AI model tidies this mode's dictations; where it runs is chosen in Settings → AI polish. */
+  function polishField(m) {
+    const select = el('select', { id: 'mode-polish', 'aria-label': t('modes.polish') },
+      ...POLISH.map((k) => el('option', { value: k, selected: m.aiPolish === k }, t(`modes.polish.${k}`))));
+    select.addEventListener('change', () => update({ aiPolish: select.value }));
+    const off = !settings.polish || settings.polish.provider === 'off';
+    const hint = off && m.aiPolish !== 'off' ? t('modes.polish.noProvider') : t(`modes.polish.hint.${m.aiPolish}`);
+    return field(t('modes.polish'), hint, select,
+      off ? el('button', { class: 'btn quiet', type: 'button', onclick: () => { showPage('settings'); document.getElementById('polish')?.scrollIntoView(); } }, t('modes.polish.setUp')) : null);
+  }
+
+  function instructionsField(m) {
+    if (m.aiPolish === 'off') return null;
+    const input = el('textarea', { id: 'mode-prompt', rows: '2', maxlength: '4000', placeholder: t('modes.prompt.placeholder'), 'aria-label': t('modes.prompt') }, m.prompt);
+    input.addEventListener('change', () => update({ prompt: input.value.trim() }));
+    return field(t('modes.prompt'), t('modes.prompt.hint'), input);
+  }
+
   function appsField(m) {
     if (m.id === 'default') return field(t('modes.apps'), null, el('span', { class: 'desc' }, t('modes.apps.default')));
     const add = (raw) => {
@@ -164,7 +184,8 @@ const Modes = (() => {
     $('#mode-detail').replaceChildren(
       el('div', { class: 'mode-head' }, el('span', { class: 'dot big', style: `background:${m.color}` }), el('h2', {}, label(m)),
         m.id === 'default' ? null : el('button', { class: 'btn danger quiet', type: 'button', onclick: () => remove(m) }, t('modes.delete'))),
-      nameField(m), colourField(m), startField(m), appsField(m), languageField(m), translateField(m), styleField(m), voiceField(m));
+      nameField(m), colourField(m), startField(m), appsField(m), languageField(m), translateField(m), styleField(m), voiceField(m),
+      polishField(m), instructionsField(m));
     if (focused && focused.startsWith('mode-') && $(`#${focused}`)) $(`#${focused}`).focus();
   }
 

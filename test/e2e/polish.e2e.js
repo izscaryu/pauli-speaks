@@ -93,3 +93,32 @@ test('a dictation under four words never reaches the server', async (t) => {
   assert.deepEqual(state.pasted, ['See you tomorrow ']);
   assert.equal(server.asked.filter((a) => a.body.max_tokens > 1).length, 0, 'only the warm-up, no polish');
 });
+
+test('set up in the window: another server on this PC, a test, and a mode that polishes', async (t) => {
+  const server = await chatServer({ reply: 'So this is a test of the polish.' });
+  t.after(server.close);
+  const run = await launch();
+  t.after(run.close);
+  const { page } = run;
+  await page.click('.nav[data-page="settings"]');
+  await page.selectOption('#polish-provider', 'custom');
+  await page.fill('#polish-url', server.url);
+  await page.press('#polish-url', 'Tab');
+  await waitFor(() => page.evaluate(() => /Stays on this PC/.test(document.getElementById('polish-where').textContent)), { what: 'the note that the text stays here' });
+  await page.fill('#polish-model', 'fake-model');
+  await page.press('#polish-model', 'Tab');
+  await page.click('#polish-test');
+  await waitFor(() => page.evaluate(() => /Polished in/.test(document.getElementById('polish-rows').textContent)), { what: 'the test result' });
+  const saved = await page.evaluate(() => window.pauli.getSettings());
+  assert.deepEqual([saved.polish.provider, saved.polish.baseUrl, saved.polish.model, saved.polish.apiKeyEnc], ['custom', server.url, 'fake-model', undefined]);
+
+  await page.click('.nav[data-page="modes"]');
+  await page.selectOption('#mode-polish', 'prompt');
+  await page.waitForSelector('#mode-prompt');
+  await page.fill('#mode-prompt', 'Keep it short.');
+  await page.press('#mode-prompt', 'Tab');
+  await waitFor(async () => {
+    const s = await page.evaluate(() => window.pauli.getSettings());
+    return s.modes[0].aiPolish === 'prompt' && s.modes[0].prompt === 'Keep it short.';
+  }, { what: 'the mode saved' });
+});

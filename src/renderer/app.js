@@ -225,6 +225,7 @@ function historyItem(item) {
   const secs = Math.max(1, Math.round((item.durationMs || 0) / 1000));
   const meta = el('div', { class: 'meta' },
     item.kind === 'command' ? el('span', { class: 'tag ai' }, '✦ AI') : null,
+    item.polished ? el('span', { class: 'tag ai' }, t(item.text === item.polished ? 'history.polished' : 'history.polishUndone')) : null,
     item.translatedTo
       ? el('span', { class: 'tag tr' }, `${code(item.language)} → ${code(item.translatedTo)}`)
       : item.language ? el('span', { class: 'tag' }, code(item.language)) : null,
@@ -1061,6 +1062,7 @@ async function init() {
   if (!settings.onboarded) Welcome.start();
   HomeNotices.start();
   Privacy.start();
+  Polish.start();
 }
 
 api.onSettings((s) => {
