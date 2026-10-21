@@ -8,7 +8,7 @@ are typed into whatever app has the cursor. Speech recognition runs **on your ow
 [Releases](https://github.com/izscaryu/pauli-speaks/releases/latest). Installed copies update
 themselves. Can't install software on this PC? Use the [portable copy](#portable-copy).
 
-[Privacy](PRIVACY.md): what stays on your PC and what doesn't. · [Open-source licences](THIRD_PARTY_NOTICES.md) · [Code signing policy](docs/code-signing-policy.md)
+[Website](https://izscaryu.github.io/pauli-speaks/) · [Privacy](PRIVACY.md): what stays on your PC and what doesn't. · [Open-source licences](THIRD_PARTY_NOTICES.md) · [Code signing policy](docs/code-signing-policy.md)
 
 ## Screenshots
 
@@ -101,6 +101,9 @@ empty file named `portable` next to `Pauli Speaks.exe`.
   `"Pauli Speaks.exe" --toggle` (also `--start`, `--stop`, `--cancel`, `--paste-last`,
   `--copy-last`, `--undo-last`, `--press-enter`). Links only control dictation, since any web
   page can open one.
+- **Stream Deck plugin** ([integrations/streamdeck](integrations/streamdeck)): Toggle, Start,
+  Stop, Cancel and Paste last buttons. An **agent skill** ([integrations/agent-skill](integrations/agent-skill))
+  lets an AI coding agent start and stop hands-free dictation.
 - **Local Whisper** (Tiny / Base / Small / Large v3 Turbo). The model downloads once and then
   runs offline.
 - Optional **cloud mode** with any OpenAI-compatible API (Groq's free tier by default), with
@@ -143,8 +146,11 @@ empty file named `portable` next to `Pauli Speaks.exe`.
 - **Live preview** of your words while you speak, and **auto-stop** after silence in hands-free
   mode. Both are opt-in.
 - Weekly words chart and a day streak.
-- Floating status pill with a live waveform, start/stop sounds, history with copy, and
-  stats (words, WPM, time saved).
+- Floating status pill with a live waveform, a timer, the mode, a language chip to pick the
+  language for one dictation, and a stop button in hands-free. Drag it to the left, centre or
+  right of the screen.
+- A Windows 11 look (Mica on Windows 11), searchable Settings, History with copy, and stats
+  (words, WPM, time saved). Works with the keyboard alone, screen readers and contrast themes.
 - **Settings backup**: *Settings → Backup* exports your shortcuts, voice commands, dictionary,
   snippets and modes to a file and imports them again. API keys are never included.
 - Home warns you if the shortcut can't be seen, if another dictation app is running, or if the
