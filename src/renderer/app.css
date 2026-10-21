@@ -45,7 +45,11 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   transition-property: background-color, color;
   transition-duration: 120ms;
 }
-.nav svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* Fluent System Icons (icons.js), drawn in the text colour. 20 px in the navigation, filled for the current page. */
+.icon { display: block; flex: none; width: 20px; height: 20px; fill: currentColor; }
+.nav-icon { display: grid; flex: none; }
+.nav-icon .filled, .nav.active .nav-icon .icon:not(.filled) { display: none; }
+.nav.active .nav-icon .filled { display: block; }
 .nav { position: relative; }
 .nav:hover { background: var(--subtle-fill); color: var(--ink); }
 /* The current page: a subtle fill and a short accent line at its left edge (Windows 11 navigation). */
@@ -219,7 +223,7 @@ select { width: auto; min-width: 200px; }
 .icon-btn:hover { background: var(--sunken); color: var(--ink); }
 .icon-btn:active { transform: scale(0.94); }
 .icon-btn.danger:hover { color: var(--danger); }
-.icon-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn .icon { width: 16px; height: 16px; }
 .empty { padding: 28px 0; color: var(--ink-3); text-align: center; }
 
 /* ---------- buttons */
@@ -435,7 +439,7 @@ label.row { cursor: pointer; }
 }
 .drop:hover, .drop.over { border-color: var(--ink-3); background: var(--sunken); }
 .drop .btn { margin: 6px 0 2px; }
-.drop svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.drop-icon .icon { width: 24px; height: 24px; }
 .drop small { color: var(--ink-3); }
 .drop.busy { opacity: 0.55; pointer-events: none; }
 .check { gap: 8px; color: var(--ink-2); cursor: pointer; }
@@ -483,7 +487,8 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 }
 .tester:hover { border-color: var(--ink-3); }
 .tester:focus-visible, .tester:focus { outline: none; border-style: solid; border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent); }
-.tester > svg { width: 22px; height: 22px; flex: none; fill: none; stroke: var(--ink-2); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tester-icon { flex: none; color: var(--ink-2); }
+.tester-icon .icon { width: 24px; height: 24px; }
 .tester .grow { flex: 1; min-width: 0; }
 
 .action { display: grid; gap: 10px; padding: 14px 18px; }
@@ -519,7 +524,7 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 .phrase { display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 2px 0 10px; border: 1px solid var(--stroke-card); border-radius: 999px; background: var(--card); font-size: var(--fs-caption); }
 .phrase button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink-3); cursor: pointer; }
 .phrase button:hover { background: var(--sunken); color: var(--danger); }
-.phrase svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.phrase .icon { width: 12px; height: 12px; }
 .vc-row .does { color: var(--ink-2); }
 .vc-form { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: 10px; padding-top: 12px; border-top: 1px solid var(--stroke-card); }
 .vc-form:has(#vc-text:not([hidden])), .vc-form:has(#vc-snippet:not([hidden])) { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto; }
@@ -607,7 +612,7 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 .app-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 4px 0 10px; border-radius: 8px; background: var(--sunken); font-size: var(--fs-caption); line-height: 1; }
 .app-chip button { width: 22px; height: 22px; border: 0; border-radius: 4px; background: transparent; color: var(--ink-3); cursor: pointer; display: grid; place-items: center; padding: 0; }
 .app-chip button:hover { background: var(--stroke-card); color: var(--ink); }
-.app-chip svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.app-chip .icon { width: 12px; height: 12px; }
 .app-add { display: inline-flex; gap: 6px; }
 .field .app-add input[type=text] { width: 200px; }
 .recent-apps { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; flex-basis: 100%; }

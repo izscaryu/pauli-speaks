@@ -63,6 +63,13 @@ unmodified `silero_vad.onnx` from the Silero VAD release tag
 the work of the Silero Team, released under the
 [MIT License](https://github.com/snakers4/silero-vad/blob/v6.2.3/LICENSE).
 
+### Icons
+
+The main window's icons are [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons)
+from Microsoft (version 1.1.344 of `@fluentui/svg-icons`), MIT License, Copyright (c) 2020 Microsoft
+Corporation. Their outlines are copied unmodified into `src\renderer\icons.js` (inside `app.asar`), with the
+licence text.
+
 ### LGPL components
 
 libuiohook and libvips are used unmodified. Their source code is at

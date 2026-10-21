@@ -44,11 +44,7 @@ const LANGUAGES = [
   'da', 'no', 'fi', 'el', 'ar', 'hi', 'ja', 'ko', 'zh',
 ].map((c) => [c, I18n.languageName(c)]);
 const LANG_NAME = Object.fromEntries(LANGUAGES);
-const ICONS = {
-  copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
-  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
-  x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
-};
+const ICONS = { copy: Icons.svg('copy'), trash: Icons.svg('delete'), x: Icons.svg('dismiss') }; // icons.js (Fluent)
 
 let settings = null;
 let modelState = null;

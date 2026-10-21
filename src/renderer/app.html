@@ -14,14 +14,14 @@
       <strong>Pauli Speaks</strong>
     </div>
     <nav aria-label="Sections" data-i18n-aria-label="nav.label">
-      <button class="nav active" data-page="home" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i18n="nav.home">Home</span></button>
-      <button class="nav" data-page="shortcuts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg><span data-i18n="nav.shortcuts">Shortcuts</span></button>
-      <button class="nav" data-page="modes"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span data-i18n="nav.modes">Modes</span><span id="mode-count" class="count"></span></button>
-      <button class="nav" data-page="dictionary"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/></svg><span data-i18n="nav.dictionary">Dictionary &amp; snippets</span></button>
-      <button class="nav" data-page="history"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span data-i18n="nav.history">History</span></button>
-      <button class="nav" data-page="files"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M10 17v-5l4 2.5z"/></svg><span data-i18n="nav.files">Files</span></button>
-      <button class="nav" data-page="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span data-i18n="nav.settings">Settings</span></button>
-      <button class="nav" data-page="about"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span data-i18n="nav.about">About</span></button>
+      <button class="nav active" data-page="home" aria-current="page"><span class="nav-icon" data-icon="home" data-icon-filled></span><span data-i18n="nav.home">Home</span></button>
+      <button class="nav" data-page="shortcuts"><span class="nav-icon" data-icon="keyboard" data-icon-filled></span><span data-i18n="nav.shortcuts">Shortcuts</span></button>
+      <button class="nav" data-page="modes"><span class="nav-icon" data-icon="options" data-icon-filled></span><span data-i18n="nav.modes">Modes</span><span id="mode-count" class="count"></span></button>
+      <button class="nav" data-page="dictionary"><span class="nav-icon" data-icon="book" data-icon-filled></span><span data-i18n="nav.dictionary">Dictionary &amp; snippets</span></button>
+      <button class="nav" data-page="history"><span class="nav-icon" data-icon="history" data-icon-filled></span><span data-i18n="nav.history">History</span></button>
+      <button class="nav" data-page="files"><span class="nav-icon" data-icon="document" data-icon-filled></span><span data-i18n="nav.files">Files</span></button>
+      <button class="nav" data-page="settings"><span class="nav-icon" data-icon="settings" data-icon-filled></span><span data-i18n="nav.settings">Settings</span></button>
+      <button class="nav" data-page="about"><span class="nav-icon" data-icon="info" data-icon-filled></span><span data-i18n="nav.about">About</span></button>
     </nav>
     <div class="side-status">
       <div class="side-row"><span class="label" data-i18n="side.engine">Engine</span><span id="side-engine">–</span></div>
@@ -124,7 +124,7 @@
       </header>
 
       <div id="tester" class="tester" tabindex="0" aria-label="Test a key, pedal or mouse button. Focus here, then press something." data-i18n-aria-label="tester.label">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>
+        <span class="tester-icon" data-icon="keyboard-large"></span>
         <div class="grow">
           <div class="title" data-i18n="tester.title">Test a key, pedal or mouse button</div>
           <div id="tester-out" class="desc" aria-live="polite" data-i18n="tester.desc">Click here, then press something. You see exactly what Pauli Speaks' keyboard hook sees. Shortcuts pause while you test.</div>
@@ -203,7 +203,7 @@
       <label id="drop" class="drop">
         <!-- the button below opens the picker from the keyboard; the input stays out of the Tab order -->
         <input id="file-input" class="visually-hidden" type="file" tabindex="-1" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.flac,.webm,.mp4,.mkv,.mov" />
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+        <span class="drop-icon" data-icon="upload"></span>
         <span data-i18n="files.drop"><b data-i18n-slot="drop" data-i18n="files.dropHere">Drop a file here</b> or click to choose</span>
         <button id="file-choose" class="btn primary" type="button" data-i18n="files.choose">Choose file…</button>
         <small data-i18n="files.formats">mp3, m4a, wav, ogg, flac, webm, mp4, mov…</small>
@@ -514,6 +514,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <script src="i18n.js"></script>
   <script src="app-names.js"></script>
+  <script src="icons.js"></script>
   <script src="app.js"></script>
   <script src="modes.js"></script>
   <script src="polish.js"></script>
