@@ -155,8 +155,15 @@ function translationLabel() {
 
 document.querySelectorAll('.nav').forEach((b) =>
   b.addEventListener('click', () => {
-    document.querySelectorAll('.nav').forEach((n) => n.classList.toggle('active', n === b));
+    document.querySelectorAll('.nav').forEach((n) => {
+      n.classList.toggle('active', n === b);
+      if (n === b) n.setAttribute('aria-current', 'page');
+      else n.removeAttribute('aria-current');
+    });
     document.querySelectorAll('.page').forEach((p) => (p.hidden = p.id !== `page-${b.dataset.page}`));
+    // A screen reader hears where it went: the page's heading takes the focus.
+    const heading = document.querySelector(`#page-${b.dataset.page} h1`);
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
     if (rec) api.stopRecordingShortcut();
     rec = null;
     renderShortcuts();

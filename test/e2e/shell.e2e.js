@@ -61,3 +61,21 @@ test('the pill: its language chip picks the language for this dictation, and a d
   await pill.evaluate(() => window.pauli.pillMoved(5));
   await waitFor(async () => (await run.page.evaluate(() => window.pauli.getSettings())).pillPosition === 'left', { what: 'the pill on the left' });
 });
+
+test('accessibility: keyboard navigation names the current page, contrast themes and reduced motion are respected', async (t) => {
+  const run = await launch();
+  t.after(run.close);
+  const { page } = run;
+  await page.focus('.nav[data-page="history"]');
+  await page.keyboard.press('Enter');
+  await waitFor(() => page.evaluate(() => document.activeElement && document.activeElement.closest('#page-history') && document.activeElement.tagName === 'H1'), { what: 'focus on the History heading' });
+  assert.equal(await page.getAttribute('.nav[data-page="history"]', 'aria-current'), 'page');
+  assert.equal(await page.getAttribute('.nav[data-page="home"]', 'aria-current'), null);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  assert.ok(await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('#page-history')).animationDuration) < 0.01), 'no page animation');
+
+  await page.emulateMedia({ forcedColors: 'active' });
+  const border = await page.evaluate(() => getComputedStyle(document.querySelector('.nav[data-page="history"]')).outlineStyle);
+  assert.notEqual(border, 'none', 'the current page is outlined in a contrast theme');
+});

@@ -669,3 +669,21 @@ html.mica main { background: var(--mica-layer); border-top-left-radius: var(--ra
 .settings-sections a { padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); color: var(--ink-2); font-size: 13px; text-decoration: none; }
 .settings-sections a:hover { border-color: var(--ink-3); color: var(--ink); }
 #page-settings > section.panel { scroll-margin-top: 16px; }
+
+/* ---------- Accessibility */
+/* Light mode: text colours with at least 4.5:1 on their backgrounds (dark mode already has). */
+@media not (prefers-color-scheme: dark) {
+  :root { --ink-3: #6b665c; --signal: #b93520; --ok: #23704a; --warn: #8a560f; }
+}
+h1[tabindex="-1"]:focus { outline: none; } /* focused by the navigation for screen readers, not by Tab */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+/* Windows contrast themes: system colours, with borders where colour alone told things apart. */
+@media (forced-colors: active) {
+  .btn, input, select, textarea, .panel, .key, .segmented, .switch span, .tag, .chip { border: 1px solid CanvasText; }
+  .nav[aria-current="page"] { outline: 2px solid Highlight; outline-offset: -2px; }
+  :focus-visible { outline: 2px solid Highlight; }
+  .switch input:checked + span { background: Highlight; }
+  html.mica main, html.mica .sidebar { background: Canvas; }
+}

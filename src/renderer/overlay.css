@@ -217,3 +217,14 @@ html, body {
 .lang-chip { border: 0; cursor: pointer; font-family: inherit; }
 .lang-chip:hover { background: rgba(255, 255, 255, 0.18); }
 .pill { touch-action: none; }
+
+/* ---------- Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .rec, .dots i, .pill.reading .speaker, .preview, .tip { animation: none !important; }
+  * { transition-duration: 0.001ms !important; }
+}
+@media (forced-colors: active) {
+  .pill { border: 2px solid CanvasText; }
+  .rec { forced-color-adjust: none; } /* the red recording dot keeps its colour */
+  .icon-btn, .pill-action, .chip { border: 1px solid ButtonText; }
+}
