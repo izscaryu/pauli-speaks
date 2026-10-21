@@ -181,11 +181,12 @@ const Modes = (() => {
         el('span', {}, el('b', {}, label(m)), el('span', { class: 'sub' }, summary(m)))))));
     const m = find(selected);
     const focused = document.activeElement && document.activeElement.id;
-    $('#mode-detail').replaceChildren(
+    // A field that doesn't apply (instructions with AI polish off) is null; replaceChildren would show it as "null".
+    $('#mode-detail').replaceChildren(...[
       el('div', { class: 'mode-head' }, el('span', { class: 'dot big', style: `background:${m.color}` }), el('h2', {}, label(m)),
         m.id === 'default' ? null : el('button', { class: 'btn danger quiet', type: 'button', onclick: () => remove(m) }, t('modes.delete'))),
       nameField(m), colourField(m), startField(m), appsField(m), languageField(m), translateField(m), styleField(m), voiceField(m),
-      polishField(m), instructionsField(m));
+      polishField(m), instructionsField(m)].filter(Boolean));
     if (focused && focused.startsWith('mode-') && $(`#${focused}`)) $(`#${focused}`).focus();
   }
 

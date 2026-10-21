@@ -100,6 +100,10 @@ test('set up on the Modes and Shortcuts pages: F13 opens a Croatian chat mode, a
   await page.click('.nav[data-page="modes"]');
   await page.click('.mode-item:has-text("Croatian chat")');
   assert.match(await page.textContent('#mode-detail'), /F13/, 'the mode lists the shortcut that opens it');
+  // With AI polish off there are no instructions to edit, and nothing else in their place (a stray "null" once).
+  const strayNull = () => page.locator('#mode-detail').evaluate((box) => [...box.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim() === 'null'));
+  assert.equal(await strayNull(), false, 'no "null" text in the mode editor');
+  assert.equal(await page.locator('#mode-prompt').count(), 0);
 });
 
 test('Switch mode goes to the next mode and stays there; the app in front no longer decides', async (t) => {
