@@ -101,14 +101,14 @@ html, body {
 .rec, .timer, .badge { display: none; }
 .rec { width: 8px; height: 8px; border-radius: 50%; background: var(--signal); animation: pulse 1.1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.35; transform: scale(0.8); } }
-.timer { min-width: 34px; color: var(--muted); font: 600 11.5px/1 "Cascadia Mono", Consolas, monospace; font-variant-numeric: tabular-nums; }
+.timer { min-width: 34px; color: var(--muted); font: 600 11.5px/1 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 .badge {
   padding: 3px 7px;
   border-radius: 999px;
   background: rgba(255, 106, 82, 0.18);
   color: #ffb1a3;
-  font: 700 10.5px/1 "Cascadia Mono", Consolas, monospace;
-  letter-spacing: 0.04em;
+  font: 700 11px/1 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.02em;
 }
 .pill.listening .rec { display: block; }
 .pill.listening.locked .timer { display: block; }
@@ -133,7 +133,14 @@ html, body {
   40% { transform: translateY(-5px); opacity: 1; }
 }
 
-.label { display: none; padding: 0 6px; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
+.label { display: none; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The pill grows up to 360 px; only the text gives way, never the buttons. */
+.pill { max-width: 360px; }
+.pill > .label { flex: 0 1 auto; min-width: 0; }
+/* A warning or an error says so with an icon too, not by colour alone. */
+.msg-icon { display: none; width: 16px; height: 16px; margin-right: -4px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pill.message.warn .msg-icon { display: block; color: var(--warn); }
+.pill.message.error .msg-icon { display: block; color: #ffd0d5; }
 
 .cancel, .stop { display: none; }
 
@@ -188,6 +195,8 @@ html, body {
   font-size: 11.5px;
   white-space: nowrap;
 }
+/* a message's hint (where to allow the microphone) may take two lines */
+.tip { max-width: 440px; white-space: normal; text-align: center; text-wrap: balance; }
 .tip b { color: var(--text); font-weight: 600; }
 
 /* live preview: what Whisper has heard so far */

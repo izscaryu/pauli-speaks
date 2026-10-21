@@ -57,6 +57,29 @@ test('each Settings section link brings its section to the top, heading first, a
   assert.equal(await page.getAttribute('#accel button[data-accel="auto"]', 'aria-pressed'), 'false');
 });
 
+test('the pill: a blocked or missing microphone gets a short message and a button that fixes it', async (t) => {
+  const run = await launch();
+  t.after(run.close);
+  await new Promise((r) => setTimeout(r, 1500));
+  const pill = await waitFor(() => run.app.windows().find((w) => w.url().endsWith('overlay.html')), { what: 'the pill' });
+  const shown = () => pill.evaluate(() => ({
+    label: document.getElementById('label').textContent,
+    action: document.getElementById('action').hidden ? null : document.getElementById('action').textContent,
+    tip: document.getElementById('tip').hidden ? null : document.getElementById('tip').textContent,
+    warn: document.getElementById('pill').classList.contains('warn'),
+    fits: document.getElementById('label').scrollWidth <= document.getElementById('label').clientWidth,
+  }));
+  await pill.evaluate(() => window.pauli.sendRecorderError({ problem: 'blocked' }));
+  await waitFor(async () => (await shown()).action, { what: 'the blocked message' });
+  const blocked = await shown();
+  assert.deepEqual({ ...blocked, tip: !!blocked.tip }, { label: 'Microphone blocked', action: 'Open settings', tip: true, warn: true, fits: true });
+
+  await pill.evaluate(() => window.pauli.sendRecorderError({ problem: 'notFound' }));
+  await waitFor(async () => (await shown()).label === 'No microphone found', { what: 'the not-found message' });
+  assert.equal((await shown()).action, 'Choose mic');
+  assert.equal((await shown()).fits, true, 'the message is not cut off');
+});
+
 test('Home says a model is needed before one is downloaded, and Files can be opened from the keyboard', async (t) => {
   const run = await launch(); // a fresh data folder: no speech model on disk
   t.after(run.close);

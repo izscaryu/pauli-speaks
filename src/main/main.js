@@ -14,7 +14,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const { windowLook } = require('./window-look');
-const { nextLanguage, canSwitchLanguage, pillBounds, snapPosition } = require('./pill');
+const { nextLanguage, canSwitchLanguage, pillBounds, snapPosition, micFlash, pillActionTarget } = require('./pill');
 const path = require('node:path');
 const {
   app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell, session, clipboard, safeStorage, dialog, nativeTheme,
@@ -230,10 +230,13 @@ function sendOverlayState(state) {
 
 let flashTimer = null;
 
-/** @param {{id: string, label: string}|null} [action]  a button on the pill (Retry / Undo) */
-function flash(text, kind = 'info', ms = 2600, action = null) {
+/**
+ * @param {{id: string, label: string}|null} [action]  a button on the pill (Retry / Undo / the microphone's)
+ * @param {string|null} [hint]  a longer explanation above the pill
+ */
+function flash(text, kind = 'info', ms = 2600, action = null, hint = null) {
   showOverlay();
-  sendOverlayState({ state: 'message', text, kind, ms, action });
+  sendOverlayState({ state: 'message', text, kind, ms, action, hint });
   clearTimeout(flashTimer);
   flashTimer = setTimeout(hideOverlayIfIdle, ms + 300);
 }
@@ -885,8 +888,16 @@ function registerIpc() {
 
   ipcMain.on('dictation:toggle', () => controller.toggle());
   ipcMain.on('dictation:cancel', () => (reading ? stopReading() : controller.cancel()));
-  ipcMain.on('overlay:action', (_e, id) => (String(id).startsWith('unpolish-') ? polishUndo.take(String(id)) : flow.runPillAction(String(id)))
-    .catch((err) => log.error('Pill action failed', err)));
+  ipcMain.on('overlay:action', (_e, id) => {
+    const target = pillActionTarget(String(id)); // a microphone message's button: pill.js says where it goes
+    if (target) {
+      if (target.url && isAllowedExternalUrl(target.url)) shell.openExternal(target.url);
+      if (target.page) createMainWindow(target.page);
+      return;
+    }
+    (String(id).startsWith('unpolish-') ? polishUndo.take(String(id)) : flow.runPillAction(String(id)))
+      .catch((err) => log.error('Pill action failed', err));
+  });
   ipcMain.on('overlay:language', () => {
     if (controller.status !== 'listening' || controller.command || !canSwitchLanguage(settings.get().languages)) return;
     pickedLanguage = nextLanguage(pickedLanguage, settings.get().languages);
@@ -909,10 +920,11 @@ function registerIpc() {
     resolve(audio instanceof Float32Array ? audio : new Float32Array(audio || []));
   });
   ipcMain.on('recorder:silence', autoStopAfterSilence);
-  ipcMain.on('recorder:error', (_e, message) => {
-    log.error(`Microphone error: ${message}`);
+  ipcMain.on('recorder:error', (_e, report) => {
+    const m = micFlash(report, t);
+    log.error(`Microphone error: ${m.log}`);
     if (controller.isListening) controller.dismiss('mic-error');
-    flash(message, 'error', 4500);
+    flash(m.text, m.kind, m.action ? 8000 : 4500, m.action, m.hint);
   });
   ipcMain.on('tts:ended', () => {
     if (!reading) return;

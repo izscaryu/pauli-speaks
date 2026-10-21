@@ -22,6 +22,15 @@ for (let i = 0; i < BARS; i++) {
   bars.push(b);
 }
 
+// The pill's button after a message: [label, what a screen reader hears].
+const ACTION_TEXT = {
+  undo: ['overlay.transcribeAnyway', 'overlay.undoLabel'],
+  unpolish: ['overlay.undo', 'overlay.unpolishLabel'],
+  retry: ['common.retry', 'overlay.retryLabel'],
+  'mic-privacy': ['overlay.mic.openSettings', 'overlay.mic.openSettingsLabel'],
+  'mic-choose': ['overlay.mic.choose', 'overlay.mic.chooseLabel'],
+};
+
 let ui = { state: 'idle' };
 let messageTimer = null;
 let level = 0;
@@ -75,11 +84,17 @@ function render(state) {
   const action = state.state === 'message' && state.action ? state.action : null;
   actionBtn.hidden = !action;
   if (action) {
-    const kind = String(action.id).split('-')[0]; // undo-N (a cancel), unpolish-N (an AI edit), retry-N
-    actionBtn.textContent = t(kind === 'retry' ? 'common.retry' : 'overlay.undo');
-    actionBtn.setAttribute('aria-label', t(kind === 'undo' ? 'overlay.undoLabel' : kind === 'unpolish' ? 'overlay.unpolishLabel' : 'overlay.retryLabel'));
+    // undo-N (a cancel: transcribe it anyway), unpolish-N (an AI edit), retry-N; mic-privacy, mic-choose (pill.js)
+    const [text, aria] = ACTION_TEXT[action.id] || ACTION_TEXT[String(action.id).split('-')[0]] || ACTION_TEXT.retry;
+    actionBtn.textContent = t(text);
+    actionBtn.setAttribute('aria-label', t(aria));
   }
-  if (state.state !== 'idle') tip.hidden = true;
+  if (state.state !== 'idle' || !pill.matches(':hover')) tip.hidden = true; // the idle tip shows only while hovered
+  // A message with more to say (a blocked microphone: where to allow it) shows it above the pill.
+  if (state.state === 'message' && state.hint) {
+    tip.textContent = state.hint;
+    tip.hidden = false;
+  }
 
   if (state.state !== 'listening') noSound = false;
   showNoSound();
@@ -117,7 +132,7 @@ pill.addEventListener('mouseenter', () => {
 });
 pill.addEventListener('mouseleave', () => {
   window.pauli.setOverlayHover(false);
-  tip.hidden = true;
+  if (!(ui.state === 'message' && ui.hint)) tip.hidden = true; // a message's hint stays while the message does
 });
 // Drag the pill to the left, the centre or the right of the screen; main snaps it there and remembers.
 let drag = null;
@@ -257,14 +272,11 @@ function concat(list) {
   return audio;
 }
 
-function micErrorMessage(err) {
-  if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
-    return t('overlay.mic.blocked');
-  }
-  if (err && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) {
-    return t('overlay.mic.notFound');
-  }
-  return t('mic.error', { error: err && err.message ? err.message : String(err) });
+/** What went wrong with the microphone, for main to word (pill.js micFlash): blocked, not found, or something else. */
+function micProblem(err) {
+  if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) return { problem: 'blocked' };
+  if (err && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) return { problem: 'notFound' };
+  return { problem: 'other', detail: err && err.message ? err.message : String(err) };
 }
 
 /**
@@ -337,7 +349,7 @@ window.pauli.onRecorderStart(async ({ deviceId, sounds: playSounds, autoStopSile
   } catch (err) {
     active = false;
     teardown();
-    window.pauli.sendRecorderError(micErrorMessage(err));
+    window.pauli.sendRecorderError(micProblem(err));
   }
 });
 
