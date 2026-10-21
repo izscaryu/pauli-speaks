@@ -148,7 +148,8 @@ main { flex: 1; overflow-y: auto; padding: 28px 36px 48px; container-type: inlin
 .live .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .live.listening { background: var(--signal-soft); color: var(--signal); }
 .live.listening .dot { animation: pulse 1.1s ease-in-out infinite; }
-.live.processing { background: var(--warn-soft); color: var(--warn); }
+.live.processing, .live.warn { background: var(--warn-soft); color: var(--warn); }
+.live.error { background: var(--signal-soft); color: var(--signal); } /* the model didn't load */
 @keyframes pulse { 50% { opacity: 0.35; transform: scale(0.8); } }
 
 /* ---------- keycaps: the memorable detail */
@@ -457,7 +458,7 @@ label.row { cursor: pointer; }
   transition-duration: 120ms;
 }
 .drop:hover, .drop.over { border-color: var(--ink-3); background: var(--surface-2); }
-.drop input { display: none; }
+.drop .btn { margin: 6px 0 2px; }
 .drop svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .drop small { color: var(--ink-3); }
 .drop.busy { opacity: 0.55; pointer-events: none; }
@@ -710,3 +711,5 @@ h1[tabindex="-1"]:focus { outline: none; } /* focused by the navigation for scre
   html.mica main, html.mica .sidebar { background: Canvas; }
 }
 .search-miss { display: none !important; } /* settings-search.js: not what the search is looking for */
+/* For screen readers and the keyboard only (the file input behind "Choose file…"). */
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

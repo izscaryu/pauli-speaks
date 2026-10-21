@@ -188,10 +188,27 @@ function renderStrip() {
   $('#side-translate').textContent = translationLabel();
 }
 
+/** Why dictation can't work yet: the chosen speech model is missing, downloading, loading or broken. [class, text] or null. */
+function modelProblem() {
+  if (!settings || settings.engine !== 'local' || !modelState) return null;
+  const ours = modelState.model === settings.localModel;
+  if (ours && modelState.status === 'ready') return null;
+  if (ours && modelState.status === 'downloading') return ['warn', t('live.downloading', { percent: modelState.percent || 0 })];
+  if (ours && modelState.status === 'loading') return ['warn', t('live.loadingModel')];
+  if (ours && modelState.status === 'error') return ['error', t('live.modelError')];
+  const m = modelState.models.find((x) => x.id === settings.localModel);
+  return m && !m.downloaded ? ['warn', t('live.needsModel')] : null;
+}
+
 function renderLive() {
   const live = $('#live');
   const { status, locked, translateTo, mode, chip } = dictation;
-  live.className = `live ${status === 'listening' ? 'listening' : status === 'processing' ? 'processing' : ''}`;
+  const problem = status === 'listening' || status === 'processing' ? null : modelProblem();
+  live.className = `live ${status === 'listening' ? 'listening' : status === 'processing' ? 'processing' : problem ? problem[0] : ''}`;
+  if (problem) {
+    $('#live-text').textContent = problem[1];
+    return;
+  }
   let text = t('live.ready');
   if (status === 'listening' && mode === 'command') text = t('live.command');
   else if (status === 'listening') {
@@ -474,6 +491,8 @@ let lastFile = null;
 api.onFileProgress(({ done, total }) => {
   $('#file-meter').firstElementChild.style.width = `${Math.round((done / Math.max(1, total)) * 100)}%`;
 });
+// A button inside the drop zone's label doesn't open the picker by itself; this is the way in from the keyboard.
+$('#file-choose').addEventListener('click', () => $('#file-input').click());
 $('#file-input').addEventListener('change', (e) => {
   const f = e.target.files[0];
   e.target.value = '';
@@ -1091,6 +1110,7 @@ api.onModelState((m) => {
   renderAcceleration();
   renderBanner();
   renderStrip();
+  renderLive();
 });
 api.onHistory(() => {
   loadHistory();

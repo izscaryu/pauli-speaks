@@ -31,6 +31,23 @@ test('Settings search keeps the sections and rows that match, and Esc brings eve
   assert.deepEqual(await ownHidden(), before, 'rows hidden by their own code stay hidden after a search');
 });
 
+test('Home says a model is needed before one is downloaded, and Files can be opened from the keyboard', async (t) => {
+  const run = await launch(); // a fresh data folder: no speech model on disk
+  t.after(run.close);
+  const { page } = run;
+  await waitFor(async () => (await page.textContent('#live-text')) === 'Model needed', { what: '"Model needed" on Home' });
+  assert.match(await page.getAttribute('#live', 'class'), /\bwarn\b/, 'shown as a warning, not as ready');
+
+  await page.click('.nav[data-page="files"]'); // focuses the page heading
+  let reached = false;
+  for (let i = 0; i < 5 && !reached; i++) {
+    await page.keyboard.press('Tab');
+    reached = await page.evaluate(() => document.activeElement && document.activeElement.id === 'file-choose');
+  }
+  assert.ok(reached, 'Tab reaches "Choose file…"');
+  assert.equal(await page.textContent('#file-choose'), 'Choose file…');
+});
+
 test('History has its own page; Home shows the latest dictations and links to it', async (t) => {
   const run = await launch();
   t.after(run.close);

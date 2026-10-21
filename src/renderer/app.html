@@ -200,9 +200,11 @@
         </div>
       </header>
       <label id="drop" class="drop">
-        <input id="file-input" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.flac,.webm,.mp4,.mkv,.mov" />
+        <!-- the button below opens the picker from the keyboard; the input stays out of the Tab order -->
+        <input id="file-input" class="visually-hidden" type="file" tabindex="-1" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.flac,.webm,.mp4,.mkv,.mov" />
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
         <span data-i18n="files.drop"><b data-i18n-slot="drop" data-i18n="files.dropHere">Drop a file here</b> or click to choose</span>
+        <button id="file-choose" class="btn primary" type="button" data-i18n="files.choose">Choose file…</button>
         <small data-i18n="files.formats">mp3, m4a, wav, ogg, flac, webm, mp4, mov…</small>
       </label>
       <div class="inline">
