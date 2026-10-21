@@ -61,12 +61,30 @@
         link.textContent = titleOf(panel);
         link.addEventListener('click', (e) => {
           e.preventDefault();
-          panel.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-          panel.querySelector('input, select, textarea, button')?.focus({ preventScroll: true });
+          jump(panel);
         });
         return link;
       }));
     }
+
+    /**
+     * Brings a section to the top of the window and focuses its heading, so a screen reader starts there. The last
+     * sections are shorter than the window: room is added below them (until the page is left) so they reach the top.
+     */
+    function jump(panel) {
+      const main = page.closest('main');
+      if (!panel || !main) return;
+      const below = page.getBoundingClientRect().bottom - panel.getBoundingClientRect().top - (parseFloat(page.style.paddingBottom) || 0);
+      page.style.paddingBottom = below < main.clientHeight ? `${Math.ceil(main.clientHeight - below)}px` : '';
+      panel.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      const heading = panel.querySelector('h2');
+      if (heading) {
+        heading.tabIndex = -1;
+        heading.focus({ preventScroll: true });
+      }
+    }
+    // The added room goes once the page is left.
+    new MutationObserver(() => { if (page.hidden) page.style.paddingBottom = ''; }).observe(page, { attributes: true, attributeFilter: ['hidden'] });
 
     function apply() {
       const list = panels();
@@ -89,7 +107,7 @@
     box.addEventListener('keydown', (e) => { if (e.key === 'Escape' && box.value) { e.stopPropagation(); box.value = ''; apply(); } });
     // Panels that redraw themselves (AI polish, models) keep the filter.
     new MutationObserver(() => { if (box.value) apply(); }).observe(page, { childList: true, subtree: true });
-    return { apply };
+    return { apply, jump: (id) => jump(document.getElementById(id)) };
   }
 
   return { matches, filterSections, setupWindow };

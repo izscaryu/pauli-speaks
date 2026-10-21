@@ -109,6 +109,14 @@ function bindingChips(b) {
 }
 const code = (c) => (c || '??').toUpperCase();
 
+/** A segmented control's choice: the chosen button looks pressed and says so to a screen reader (aria-pressed). */
+function markChoice(selector, chosen) {
+  document.querySelectorAll(selector).forEach((b) => {
+    b.classList.toggle('active', chosen(b));
+    b.setAttribute('aria-pressed', String(chosen(b)));
+  });
+}
+
 let toastTimer = null;
 function toast(text) {
   const box = $('#toast');
@@ -772,10 +780,8 @@ function renderTranslation() {
   const needsBest = tr.target !== 'en';
   const turbo = settings.engine === 'local' && /turbo/i.test(settings.localModel);
   const quality = needsBest ? 'best' : tr.quality;
-  document.querySelectorAll('#tr-quality button').forEach((b) => {
-    b.classList.toggle('active', b.dataset.quality === quality);
-    b.disabled = needsBest && b.dataset.quality === 'fast';
-  });
+  markChoice('#tr-quality button', (b) => b.dataset.quality === quality);
+  document.querySelectorAll('#tr-quality button').forEach((b) => (b.disabled = needsBest && b.dataset.quality === 'fast'));
   $('#tr-quality-desc').textContent = needsBest
     ? t('translation.quality.otherLanguages')
     : quality === 'fast'
@@ -806,7 +812,7 @@ $('#tr-download').addEventListener('click', () => api.loadTranslator());
 // ------------------------------------------------------------------ settings: speech
 
 function renderEngine() {
-  document.querySelectorAll('#engine button').forEach((b) => b.classList.toggle('active', b.dataset.engine === settings.engine));
+  markChoice('#engine button', (b) => b.dataset.engine === settings.engine);
   $('#local-settings').hidden = settings.engine !== 'local';
   $('#cloud-settings').hidden = settings.engine !== 'cloud';
   $('#cloud-url').value = settings.cloud.baseUrl;
@@ -860,7 +866,7 @@ function renderLanguages() {
 
 function renderAcceleration() {
   const accel = settings.acceleration === 'cpu' ? 'cpu' : 'auto';
-  document.querySelectorAll('#accel button').forEach((b) => b.classList.toggle('active', b.dataset.accel === accel));
+  markChoice('#accel button', (b) => b.dataset.accel === accel);
   const m = modelState;
   let desc = t('accel.desc.default');
   if (m && m.status === 'ready') {
@@ -1057,8 +1063,11 @@ document.querySelectorAll('[data-update-install]').forEach((b) => b.addEventList
 api.onUpdateState(renderUpdate);
 api.getUpdateState().then(renderUpdate);
 
+/** "settings", or "settings#microphone" for one section of it (the pill's Choose mic). */
 function showPage(page) {
-  document.querySelector(`.nav[data-page="${page}"]`)?.click();
+  const [id, section] = String(page).split('#');
+  document.querySelector(`.nav[data-page="${id}"]`)?.click();
+  if (section && id === 'settings') window.SettingsSearch?.jump(section); // settings-search.js (not there yet at the very start)
 }
 api.onNavigate(showPage);
 

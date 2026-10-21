@@ -345,7 +345,10 @@ label.row { cursor: pointer; }
 }
 .segmented button b { display: block; color: var(--ink); }
 .segmented button small { color: var(--ink-3); font-size: 12px; }
-.segmented button.active { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
+.segmented button { position: relative; }
+/* The chosen one: a card fill with an edge, and an accent line under it (dark used to tell them apart by 1.1:1). */
+.segmented button.active { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--shadow), inset 0 0 0 1px var(--line); }
+.segmented button.active::after { content: ""; position: absolute; left: 50%; bottom: 2px; width: 16px; height: 3px; margin-left: -8px; border-radius: 2px; background: var(--accent); }
 
 .model { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; min-height: 52px; padding: 8px 0; border-top: 1px solid var(--line); cursor: pointer; }
 .model:first-child { border-top: 0; }
@@ -691,14 +694,14 @@ html.mica main { background: var(--mica-layer); border-top-left-radius: var(--ra
 .settings-sections { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
 .settings-sections a { padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); color: var(--ink-2); font-size: 13px; text-decoration: none; }
 .settings-sections a:hover { border-color: var(--ink-3); color: var(--ink); }
-#page-settings > section.panel { scroll-margin-top: 16px; }
+#page-settings > section.panel { scroll-margin-top: 4px; } /* a jump puts the heading about 20 px from the top */
 
 /* ---------- Accessibility */
 /* Light mode: text colours with at least 4.5:1 on their backgrounds (dark mode already has). */
 @media not (prefers-color-scheme: dark) {
   :root { --ink-3: #6b665c; --signal: #b93520; --ok: #23704a; --warn: #8a560f; }
 }
-h1[tabindex="-1"]:focus { outline: none; } /* focused by the navigation for screen readers, not by Tab */
+h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; } /* focused by the navigation and the Settings jumps for screen readers, not by Tab */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 }
@@ -708,6 +711,7 @@ h1[tabindex="-1"]:focus { outline: none; } /* focused by the navigation for scre
   .nav[aria-current="page"] { outline: 2px solid Highlight; outline-offset: -2px; }
   :focus-visible { outline: 2px solid Highlight; }
   .switch input:checked + span { background: Highlight; }
+  .segmented button.active::after { forced-color-adjust: none; background: Highlight; }
   html.mica main, html.mica .sidebar { background: Canvas; }
 }
 .search-miss { display: none !important; } /* settings-search.js: not what the search is looking for */

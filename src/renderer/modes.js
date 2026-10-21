@@ -122,7 +122,7 @@ const Modes = (() => {
     const off = !settings.polish || settings.polish.provider === 'off';
     const hint = off && m.aiPolish !== 'off' ? t('modes.polish.noProvider') : t(`modes.polish.hint.${m.aiPolish}`);
     return field(t('modes.polish'), hint, select,
-      off ? el('button', { class: 'btn quiet', type: 'button', onclick: () => { showPage('settings'); document.getElementById('polish')?.scrollIntoView(); } }, t('modes.polish.setUp')) : null);
+      off ? el('button', { class: 'btn quiet', type: 'button', onclick: () => showPage('settings#polish') }, t('modes.polish.setUp')) : null);
   }
 
   function instructionsField(m) {

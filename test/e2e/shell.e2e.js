@@ -31,6 +31,32 @@ test('Settings search keeps the sections and rows that match, and Esc brings eve
   assert.deepEqual(await ownHidden(), before, 'rows hidden by their own code stay hidden after a search');
 });
 
+test('each Settings section link brings its section to the top, heading first, and focuses the heading', async (t) => {
+  const run = await launch();
+  t.after(run.close);
+  const { page } = run;
+  await page.emulateMedia({ reducedMotion: 'reduce' }); // a jump without the smooth scroll, so it can be measured at once
+  await page.click('.nav[data-page="settings"]');
+  const links = await page.$$eval('.settings-sections a', (as) => as.map((a) => a.getAttribute('href')));
+  assert.ok(links.length >= 8, `${links.length} links`);
+  const off = [];
+  for (const href of links) {
+    await page.click(`.settings-sections a[href="${href}"]`);
+    const where = await waitFor(() => page.evaluate((sel) => {
+      const heading = document.querySelector(`${sel} h2`);
+      const top = heading.getBoundingClientRect().top - document.querySelector('main').getBoundingClientRect().top;
+      return document.activeElement === heading ? { top: Math.round(top) } : null;
+    }, href), { what: `the heading of ${href} focused` });
+    if (where.top < 0 || where.top > 24) off.push(`${href}: heading at ${where.top} px`);
+  }
+  assert.deepEqual(off, []);
+
+  // A segmented control says which choice is on, to a screen reader too.
+  await page.click('#accel button[data-accel="cpu"]');
+  await waitFor(async () => (await page.getAttribute('#accel button[data-accel="cpu"]', 'aria-pressed')) === 'true', { what: 'CPU only pressed' });
+  assert.equal(await page.getAttribute('#accel button[data-accel="auto"]', 'aria-pressed'), 'false');
+});
+
 test('Home says a model is needed before one is downloaded, and Files can be opened from the keyboard', async (t) => {
   const run = await launch(); // a fresh data folder: no speech model on disk
   t.after(run.close);
