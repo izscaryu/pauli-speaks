@@ -1,0 +1,121 @@
+{
+  "Name": "Pauli Speaks",
+  "Version": "1.0.0.0",
+  "Author": "Patrik Pauli",
+  "Description": "Buttons for Pauli Speaks, the free and private voice typing app: toggle, start, stop or cancel dictation, and paste the last text.",
+  "UUID": "com.pauli.speaks.streamdeck",
+  "Category": "Pauli Speaks",
+  "CategoryIcon": "imgs/category",
+  "Icon": "imgs/plugin",
+  "CodePath": "bin/plugin.js",
+  "SDKVersion": 3,
+  "Software": {
+    "MinimumVersion": "7.1"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "Nodejs": {
+    "Version": "24"
+  },
+  "Actions": [
+    {
+      "Name": "Toggle dictation",
+      "UUID": "com.pauli.speaks.streamdeck.toggle",
+      "Icon": "imgs/actions/toggle",
+      "Tooltip": "Starts dictation, or stops it and pastes the text.",
+      "PropertyInspectorPath": "ui/inspector.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "SupportedInMultiActions": true,
+      "States": [
+        {
+          "Image": "imgs/keys/toggle",
+          "Title": "Dictate",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "Name": "Start dictation",
+      "UUID": "com.pauli.speaks.streamdeck.start",
+      "Icon": "imgs/actions/start",
+      "Tooltip": "Starts hands-free dictation.",
+      "PropertyInspectorPath": "ui/inspector.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "SupportedInMultiActions": true,
+      "States": [
+        {
+          "Image": "imgs/keys/start",
+          "Title": "Start",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "Name": "Stop dictation",
+      "UUID": "com.pauli.speaks.streamdeck.stop",
+      "Icon": "imgs/actions/stop",
+      "Tooltip": "Stops dictation and pastes the text.",
+      "PropertyInspectorPath": "ui/inspector.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "SupportedInMultiActions": true,
+      "States": [
+        {
+          "Image": "imgs/keys/stop",
+          "Title": "Stop",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "Name": "Cancel dictation",
+      "UUID": "com.pauli.speaks.streamdeck.cancel",
+      "Icon": "imgs/actions/cancel",
+      "Tooltip": "Stops dictation and throws the recording away.",
+      "PropertyInspectorPath": "ui/inspector.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "SupportedInMultiActions": true,
+      "States": [
+        {
+          "Image": "imgs/keys/cancel",
+          "Title": "Cancel",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    },
+    {
+      "Name": "Paste last",
+      "UUID": "com.pauli.speaks.streamdeck.paste-last",
+      "Icon": "imgs/actions/paste-last",
+      "Tooltip": "Pastes the last dictated text again.",
+      "PropertyInspectorPath": "ui/inspector.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "SupportedInMultiActions": true,
+      "States": [
+        {
+          "Image": "imgs/keys/paste-last",
+          "Title": "Paste last",
+          "TitleAlignment": "bottom",
+          "FontSize": 12
+        }
+      ]
+    }
+  ]
+}

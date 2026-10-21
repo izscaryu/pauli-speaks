@@ -1,0 +1,5 @@
+# Built by `npm run build` / `npm run pack`
+com.pauli.speaks.streamdeck.sdPlugin/bin/
+com.pauli.speaks.streamdeck.sdPlugin/logs/
+dist/
+node_modules/

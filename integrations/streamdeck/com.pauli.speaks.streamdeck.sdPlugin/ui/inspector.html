@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Pauli Speaks</title>
+  <!-- Everything is in this file: the settings page loads nothing from the web. -->
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 8px 12px; background: #2d2d2d; color: #d8d8d8; font: 13px/1.4 "Segoe UI", sans-serif; }
+    .row { display: grid; grid-template-columns: 96px 1fr; gap: 8px; align-items: start; margin: 0 0 10px; }
+    label { padding-top: 5px; color: #969696; }
+    input { width: 100%; box-sizing: border-box; padding: 4px 6px; border: 1px solid #3d3d3d; border-radius: 3px; background: #3d3d3d; color: #d8d8d8; font: inherit; }
+    input:focus { outline: 1px solid #ff6a52; }
+    input[aria-invalid="true"] { border-color: #ff6a52; }
+    button { margin-top: 6px; padding: 3px 10px; border: 1px solid #5a5a5a; border-radius: 3px; background: #3d3d3d; color: #d8d8d8; font: inherit; cursor: pointer; }
+    .hint { margin: 4px 0 0; color: #969696; font-size: 12px; overflow-wrap: anywhere; }
+    .bad { color: #ff8a76; }
+    .about { margin: 0 0 10px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <p class="about" id="about"></p>
+
+  <div class="row" id="mode-row" hidden>
+    <label for="mode">Mode</label>
+    <div>
+      <input id="mode" type="text" spellcheck="false" autocomplete="off" maxlength="40" placeholder="The app picks" />
+      <p class="hint" id="mode-hint">Optional. The mode's id: the end of its link on the Modes page in Pauli Speaks, e.g. <b>code</b> in …?mode=code.</p>
+    </div>
+  </div>
+
+  <div class="row" id="app-row" hidden>
+    <label for="app">App</label>
+    <div>
+      <input id="app" type="text" spellcheck="false" autocomplete="off" placeholder="Found by itself" />
+      <p class="hint" id="app-hint"></p>
+      <button type="button" id="app-auto" hidden>Find it again</button>
+    </div>
+  </div>
+
+  <script>
+    // Stream Deck calls connectElgatoStreamDeckSocket when it opens this page.
+    // Mode: a per-key setting. App path: a setting shared by every key of this plugin.
+    const ABOUT = {
+      toggle: 'Starts dictation, or stops it and pastes the text.',
+      start: 'Starts hands-free dictation. Stop it with the Stop key or your shortcut.',
+      stop: 'Stops dictation and pastes the text.',
+      cancel: 'Stops dictation and throws the recording away. Nothing is pasted.',
+      'paste-last': 'Pastes the last dictated text again, where the cursor is.',
+    };
+    const MODE_NAME = /^[A-Za-z0-9_-]{1,40}$/; // as in lib/commands.js and the app
+
+    let socket;
+    let context;
+    let actionUUID;
+
+    const $ = (id) => document.getElementById(id);
+    const send = (event, extra) => socket.send(JSON.stringify({ event, context, ...extra }));
+
+    function showMode(value) {
+      const mode = value.trim();
+      const ok = mode === '' || MODE_NAME.test(mode);
+      $('mode').setAttribute('aria-invalid', String(!ok));
+      $('mode-hint').classList.toggle('bad', !ok);
+      return ok ? mode : null;
+    }
+
+    function showApp({ exePath, chosen }) {
+      const hint = $('app-hint');
+      hint.classList.toggle('bad', !exePath);
+      $('app-auto').hidden = !chosen;
+      if (exePath) hint.textContent = (chosen ? 'Using ' : 'Found ') + exePath;
+      else if (chosen) hint.textContent = 'No Pauli Speaks.exe at that path. Enter the full path, or find it again.';
+      else hint.textContent = 'Pauli Speaks isn’t in its usual folder. Enter the full path to Pauli Speaks.exe.';
+    }
+
+    function saveApp(value) {
+      send('setGlobalSettings', { payload: { exePath: value.trim() } });
+      send('sendToPlugin', { action: actionUUID, payload: { event: 'findApp' } });
+    }
+
+    function connectElgatoStreamDeckSocket(port, uuid, registerEvent, info, actionInfo) {
+      context = uuid;
+      const { action, payload } = JSON.parse(actionInfo);
+      actionUUID = action;
+      const name = action.split('.').pop();
+      $('about').textContent = ABOUT[name] || '';
+
+      socket = new WebSocket('ws://127.0.0.1:' + port);
+      socket.onopen = () => {
+        socket.send(JSON.stringify({ event: registerEvent, uuid }));
+        if (name === 'toggle' || name === 'start') {
+          $('mode-row').hidden = false;
+          $('mode').value = (payload.settings && payload.settings.mode) || '';
+          showMode($('mode').value);
+        }
+        if (name === 'paste-last') {
+          $('app-row').hidden = false;
+          send('getGlobalSettings');
+          send('sendToPlugin', { action: actionUUID, payload: { event: 'findApp' } });
+        }
+      };
+      socket.onmessage = (msg) => {
+        const data = JSON.parse(msg.data);
+        if (data.event === 'didReceiveGlobalSettings' && document.activeElement !== $('app')) {
+          $('app').value = data.payload.settings.exePath || '';
+        }
+        if (data.event === 'sendToPropertyInspector' && data.payload && data.payload.event === 'app') showApp(data.payload);
+      };
+    }
+
+    $('mode').addEventListener('input', (e) => {
+      const mode = showMode(e.target.value);
+      if (mode !== null) send('setSettings', { payload: { mode } });
+    });
+    $('app').addEventListener('change', (e) => saveApp(e.target.value));
+    $('app-auto').addEventListener('click', () => {
+      $('app').value = '';
+      saveApp('');
+    });
+  </script>
+</body>
+</html>

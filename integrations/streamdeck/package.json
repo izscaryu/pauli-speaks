@@ -1,0 +1,25 @@
+{
+  "name": "pauli-speaks-streamdeck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Stream Deck buttons for Pauli Speaks: toggle, start, stop and cancel dictation, paste the last text.",
+  "license": "MIT",
+  "author": "Patrik Pauli",
+  "homepage": "https://github.com/izscaryu/pauli-speaks",
+  "scripts": {
+    "build": "rollup -c",
+    "validate": "streamdeck validate com.pauli.speaks.streamdeck.sdPlugin --no-update-check",
+    "pack": "npm run build && streamdeck pack com.pauli.speaks.streamdeck.sdPlugin --output dist --force --no-update-check",
+    "link": "npm run build && streamdeck link com.pauli.speaks.streamdeck.sdPlugin",
+    "restart": "streamdeck restart com.pauli.speaks.streamdeck"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "3.0.1"
+  },
+  "devDependencies": {
+    "@elgato/cli": "1.10.1",
+    "@rollup/plugin-commonjs": "29.0.3",
+    "@rollup/plugin-node-resolve": "16.0.3",
+    "rollup": "4.64.0"
+  }
+}
