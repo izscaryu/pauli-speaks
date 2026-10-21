@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { launch, setUpSettings, waitFor } = require('./helpers');
+const { launch, setUpSettings, waitFor, SETTINGS_VERSION } = require('./helpers');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -153,7 +153,7 @@ test('settings from 1.4 come in as modes: app styles, Always translate and the t
   const file = path.join(run.dir, 'settings.json');
   const saved = await waitFor(() => {
     const s = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return s.settingsVersion === 7 ? s : null;
+    return s.settingsVersion === SETTINGS_VERSION ? s : null;
   }, { what: 'the migrated settings' });
   assert.deepEqual(saved.modes.map((m) => [m.id, m.style, m.translateTo, m.apps]), [
     ['default', 'normal', null, []], ['chat', 'casual', null, ['slack.exe']], ['formal', 'formal', null, ['outlook.exe']], ['translate', 'normal', 'de', []],
