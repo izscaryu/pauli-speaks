@@ -191,7 +191,11 @@ const Modes = (() => {
   }
 
   async function remove(m) {
-    if (!confirm(t('modes.deleteConfirm', { name: label(m) }))) return;
+    const yes = await Dialog.confirmDialog({
+      title: t('modes.deleteDialog.title', { name: label(m) }), body: t('modes.deleteDialog.body'),
+      confirm: t('modes.deleteDialog.confirm'), cancel: t('common.cancel'), tone: 'danger',
+    });
+    if (!yes) return;
     selected = 'default';
     // Shortcuts that opened it go back to Automatic.
     const bindings = settings.bindings.map((b) => (b.mode === m.id ? (({ mode, ...rest }) => rest)(b) : b));

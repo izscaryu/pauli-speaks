@@ -270,13 +270,17 @@ select { width: auto; min-width: 200px; max-width: 320px; }
 .btn.danger:hover { background: var(--danger-soft); }
 .btn.danger.primary { border-color: var(--danger-fill); background: var(--danger-fill); color: var(--on-color); font-weight: 600; }
 
-/* Settings → Privacy: the in-page confirmation for the two delete buttons */
-.confirm { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); border-radius: var(--r-card); background: var(--danger-soft); }
-.confirm[hidden] { display: none; }
-.confirm h3 { margin: 0; font-size: var(--fs-body); }
-.confirm ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
-.confirm .desc { margin: 0; }
-.confirm .buttons { display: flex; justify-content: flex-end; gap: 8px; }
+/* ---------- ContentDialog (dialog.js): asks before anything that can't be undone */
+.dialog { width: 448px; max-width: 90vw; padding: 0; border: 1px solid var(--stroke-card); border-radius: var(--r-card); background: var(--card); color: var(--ink); box-shadow: var(--shadow-dialog); animation: dialog-in var(--d-slow) var(--ease-decel); }
+.dialog::backdrop { background: var(--scrim); }
+.dialog form { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 24px; }
+.dialog h2 { font: var(--t-subtitle); }
+.dialog-body { display: flex; flex-direction: column; gap: 8px; color: var(--ink-2); text-wrap: pretty; }
+.dialog-body p { margin: 0; }
+.dialog-body ul { display: flex; flex-direction: column; gap: 4px; margin: 0; padding-left: 20px; }
+.dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.dialog-buttons .btn { min-width: 96px; }
+@keyframes dialog-in { from { opacity: 0; transform: scale(0.97); } }
 .inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
 /* ---------- settings rows (Windows 11 style: text left, control right) */
@@ -691,7 +695,7 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 
 /* ---------- Windows 11: geometry and Mica (window-look.js) */
 /* --r-card (8 px) for cards, dialogs and the window's panels; --r-ctl (4 px) for controls and rows. */
-.btn, input, select, textarea, .nav, .segmented button, .confirm .btn { border-radius: var(--r-ctl); }
+.btn, input, select, textarea, .nav, .segmented button { border-radius: var(--r-ctl); }
 .segmented { border-radius: var(--r-card); }
 /* With Mica the desktop tints the window: the sidebar sits on the material, the content on a layer that lets
    little of it through (.88 or more, so text keeps its contrast over any wallpaper). */

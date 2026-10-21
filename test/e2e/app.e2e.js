@@ -71,8 +71,8 @@ test('Settings → Speech lists the downloaded models and deletes one of them', 
   }
   await run.page.click('.nav[data-page="settings"]');
   await waitFor(async () => (await run.page.$$('#model-disk .disk-item')).length === 2, { what: 'the two models' });
-  run.page.on('dialog', (d) => d.accept());
   await run.page.click('#model-disk .icon-btn >> nth=0');
+  await run.page.click('dialog[open] [data-dialog="confirm"]'); // the app's own dialog (dialogs.e2e.js)
   await waitFor(async () => (await run.page.$$eval('#model-disk .name', (e) => e.map((x) => x.textContent))).join() === 'Offline translator', { what: 'one model left' });
   assert.equal(fs.existsSync(path.join(run.dir, 'models', 'onnx-community', 'whisper-base')), false);
   assert.ok(fs.existsSync(path.join(run.dir, 'models', 'Xenova', 'nllb-200-distilled-600M')));

@@ -1,6 +1,6 @@
 'use strict';
-// Settings → Privacy: the transcript-history choice, the recordings switch, and the two delete buttons with their
-// in-page confirmation (no window.confirm). The crash-recovery switch is an ordinary data-setting toggle in app.js.
+// Settings → Privacy: the transcript-history choice, the recordings switch, and the two delete buttons, which ask
+// first in a dialog (dialog.js). The crash-recovery switch is an ordinary data-setting toggle in app.js.
 // It also keeps Settings → Speech's list of downloaded models (size, last use, Delete), from the same data.
 // Loaded after app.js and home-notices.js; uses these app.js globals: api, $, el, save, settings, toast, ICONS.
 
@@ -42,7 +42,7 @@ const Privacy = (() => {
       console.error('counting transcripts failed', err);
     }
     if (drops === 0) return save({ historyRetention: next });
-    confirmBox({
+    ask({
       title: t(next === 'off' ? 'privacy.confirm.offTitle' : 'privacy.confirm.24hTitle'),
       items: [drops ? t('privacy.confirm.deletes', { count: drops }) : t('privacy.confirm.deletesAll')],
       note: t(next === 'off' ? 'privacy.confirm.offNote' : 'privacy.confirm.24hNote'),
@@ -85,7 +85,11 @@ const Privacy = (() => {
   }
 
   async function deleteOne(m) {
-    if (!confirm(t('models.disk.confirm', { name: modelName(m), size: size(m.bytes) }))) return;
+    const yes = await Dialog.confirmDialog({
+      title: t('models.disk.dialogTitle', { name: modelName(m) }), body: t('models.disk.dialogBody', { size: size(m.bytes) }),
+      confirm: t('common.delete'), cancel: t('common.cancel'), tone: 'danger',
+    });
+    if (!yes) return;
     const r = await api.deleteModel(m.id);
     toast(r.ok ? t('models.disk.deleted', { name: modelName(m) }) : r.error || t('privacy.models.failed'));
     await refreshModels();
@@ -93,58 +97,36 @@ const Privacy = (() => {
 
   // ---------------------------------------------------------------- the confirmation
 
-  const box = () => $('#privacy-confirm');
-  const close = () => { box().hidden = true; box().replaceChildren(); };
-  let onCancelOpen = null; // what Cancel undoes for the confirmation on screen (a retention choice goes back)
-
-  /** Cancel, Escape, or another confirmation taking its place. */
-  function cancelOpen() {
-    const undo = onCancelOpen;
-    onCancelOpen = null;
-    close();
-    if (undo) undo();
-  }
-
-  /** A confirmation in the page: what goes, then Cancel / the destructive button. */
-  function confirmBox({ title, items, note, label, run, onCancel = null }) {
-    if (onCancelOpen) cancelOpen();
-    onCancelOpen = onCancel;
-    const cancel = el('button', { class: 'btn', onclick: cancelOpen }, t('common.cancel'));
-    const go = el('button', { class: 'btn danger primary' }, label);
-    go.addEventListener('click', async () => {
-      onCancelOpen = null;
-      go.disabled = true;
-      cancel.disabled = true;
-      go.textContent = t('privacy.deleting');
-      try {
-        await run();
-      } catch (err) {
-        console.error('deleting failed', err);
-        toast(t('privacy.deleteFailed'));
-      } finally {
-        close();
-      }
-    });
-    const panel = box();
-    panel.setAttribute('role', 'alertdialog');
-    panel.setAttribute('aria-label', title);
-    panel.onkeydown = (e) => { if (e.key === 'Escape' && !cancel.disabled) { e.stopPropagation(); cancelOpen(); } };
-    panel.replaceChildren(
-      el('h3', {}, title),
-      el('ul', {}, ...items.map((item) => el('li', {}, item))),
-      el('p', { class: 'desc' }, note),
-      el('div', { class: 'buttons' }, cancel, go));
-    panel.hidden = false;
-    cancel.focus();
-    panel.scrollIntoView({ block: 'nearest' });
+  /**
+   * Asks in a dialog what goes, with [label] [Cancel]; on yes runs `run` while the button that asked says
+   * "Deleting…", on no (Cancel or Esc) runs `onCancel` (a retention choice goes back).
+   */
+  async function ask({ title, items, note, label, run, onCancel = null }) {
+    const trigger = document.activeElement;
+    const yes = await Dialog.confirmDialog({ title, list: items, note, confirm: label, cancel: t('common.cancel'), tone: 'danger' });
+    if (!yes) {
+      if (onCancel) onCancel();
+      return;
+    }
+    const busy = trigger instanceof HTMLButtonElement ? trigger : null;
+    const was = busy && busy.textContent;
+    if (busy) { busy.disabled = true; busy.textContent = t('privacy.deleting'); }
+    try {
+      await run();
+    } catch (err) {
+      console.error('deleting failed', err);
+      toast(t('privacy.deleteFailed'));
+    } finally {
+      if (busy && busy.textContent === t('privacy.deleting')) { busy.textContent = was; busy.disabled = false; }
+    }
   }
 
   function askDeleteAll() {
-    confirmBox({
+    ask({
       title: t('privacy.all.confirmTitle'),
       items: ['privacy.all.history', 'privacy.all.recordings', 'privacy.all.dictionary', 'privacy.all.settings'].map((key) => t(key)),
       note: t('privacy.all.note'),
-      label: t('privacy.all.title'),
+      label: t('privacy.all.confirm'),
       run: async () => {
         const r = await api.deleteAllData();
         HomeNotices.refreshRecovery(); // a leftover recording is gone too
@@ -156,7 +138,7 @@ const Privacy = (() => {
   async function askDeleteModels() {
     await refreshModels();
     if (!models.models.length) return;
-    confirmBox({
+    ask({
       title: t('privacy.models.confirmTitle'),
       items: models.models.map((m) => `${modelName(m)} (${size(m.bytes)})`),
       note: t('privacy.models.note'),

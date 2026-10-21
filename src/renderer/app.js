@@ -375,7 +375,11 @@ function renderRecent() {
 
 $('#history-search').addEventListener('input', renderHistory);
 $('#clear-history').addEventListener('click', async () => {
-  if (confirm(t('history.clearConfirm'))) await api.clearHistory();
+  const yes = await Dialog.confirmDialog({
+    title: t('history.clearDialog.title'), body: t('history.clearDialog.body', { count: historyItems.length }),
+    confirm: t('history.clearDialog.confirm'), cancel: t('common.cancel'), tone: 'danger',
+  });
+  if (yes) await api.clearHistory();
 });
 
 let slowNoteDismissed = false; // the "Large v3 Turbo is slow" note, hidden for this session
@@ -707,7 +711,11 @@ document.addEventListener('keydown', (e) => {
 }, true));
 
 $('#sc-reset').addEventListener('click', async () => {
-  if (!confirm(t('shortcuts.resetConfirm'))) return;
+  const yes = await Dialog.confirmDialog({
+    title: t('shortcuts.resetDialog.title'), body: t('shortcuts.resetDialog.body'),
+    confirm: t('shortcuts.resetDialog.confirm'), cancel: t('common.cancel'), tone: 'danger',
+  });
+  if (!yes) return;
   rec = null;
   settings = await api.resetShortcuts();
   renderAll();
