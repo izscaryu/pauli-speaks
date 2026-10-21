@@ -64,6 +64,15 @@ contextBridge.exposeInMainWorld('pauli', {
   onModelState: on('model:state'),
   testCloud: () => ipcRenderer.invoke('cloud:test'),
 
+  // AI polish (Settings → AI polish): servers on this PC, a test, and Foundry Local's models
+  findPolishServers: () => ipcRenderer.invoke('polish:detect'),
+  testPolish: () => ipcRenderer.invoke('polish:test'),
+  foundryCatalog: () => ipcRenderer.invoke('foundry:catalog'),
+  foundryDownload: (id) => ipcRenderer.invoke('foundry:download', id),
+  foundryCancel: () => ipcRenderer.invoke('foundry:cancel'),
+  foundryRemove: (id) => ipcRenderer.invoke('foundry:remove', id),
+  onFoundryProgress: on('foundry:progress'),
+
   getDictationStatus: () => ipcRenderer.invoke('dictation:status'),
   onDictationStatus: on('dictation:status'),
   onError: on('app:error'),

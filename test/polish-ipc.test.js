@@ -41,3 +41,52 @@ test('polish:test says what is missing or what went wrong, in words', async () =
   const failing = setup({ chat: async () => { throw new Error('fetch failed'); } });
   assert.deepEqual(await failing.ipc.invoke('polish:test'), { ok: false, error: 'fetch failed' });
 });
+
+// ---------------------------------------------------------------- Foundry Local
+
+function foundrySetup(foundryOverrides = {}) {
+  const ipc = fakeIpc();
+  const calls = [];
+  let endpoint = { error: 'starting' };
+  const foundry = {
+    catalog: async () => [{ id: 'qwen2.5-0.5b-instruct-generic-cpu:4', sizeMb: 822, cached: false, recommended: true }],
+    download: async (id) => { calls.push(['download', id]); },
+    cancel: async () => { calls.push(['cancel']); },
+    remove: async (id) => { calls.push(['remove', id]); },
+    start: async () => { calls.push(['start']); endpoint = { baseUrl: 'http://127.0.0.1:55545/v1', apiKey: '', requireKey: false, model: 'q' }; },
+    ...foundryOverrides,
+  };
+  registerPolishIpc(ipc, {
+    polisher: { endpoint: () => endpoint }, detectServers: async () => [], foundry,
+    chat: async (cfg) => { calls.push(['chat', cfg.baseUrl]); return 'Polished.'; },
+  });
+  return { ipc, calls };
+}
+
+test('foundry:catalog lists the models offered; when Foundry Local can\'t start, the window gets the reason', async () => {
+  assert.equal((await foundrySetup().ipc.invoke('foundry:catalog'))[0].recommended, true);
+  const broken = foundrySetup({ catalog: async () => { throw new Error('Foundry Local runs on Windows x64 only'); } });
+  assert.deepEqual(await broken.ipc.invoke('foundry:catalog'), { error: 'Foundry Local runs on Windows x64 only' });
+});
+
+test('foundry:download downloads the model the window names (after it asked the user); cancel stops it', async () => {
+  const { ipc, calls } = foundrySetup();
+  assert.deepEqual(await ipc.invoke('foundry:download', 'qwen2.5-0.5b-instruct-generic-cpu:4'), { ok: true });
+  await ipc.invoke('foundry:cancel');
+  assert.deepEqual(calls, [['download', 'qwen2.5-0.5b-instruct-generic-cpu:4'], ['cancel']]);
+  const cancelled = foundrySetup({ download: async () => { throw Object.assign(new Error('aborted'), { code: 'AbortError' }); } });
+  assert.deepEqual(await cancelled.ipc.invoke('foundry:download', 'x'), { ok: false, cancelled: true, error: 'aborted' });
+});
+
+test('foundry:remove deletes one downloaded model', async () => {
+  const { ipc, calls } = foundrySetup();
+  assert.deepEqual(await ipc.invoke('foundry:remove', 'qwen2.5-0.5b-instruct-generic-cpu:4'), { ok: true });
+  assert.deepEqual(calls, [['remove', 'qwen2.5-0.5b-instruct-generic-cpu:4']]);
+});
+
+test('polish:test with Foundry Local not running yet starts it and then tests', async () => {
+  const { ipc, calls } = foundrySetup();
+  const out = await ipc.invoke('polish:test');
+  assert.equal(out.ok, true);
+  assert.deepEqual(calls, [['start'], ['chat', 'http://127.0.0.1:55545/v1']]);
+});

@@ -52,12 +52,13 @@ const { createPolisher } = require('./polish');
 const { createPolishUndo } = require('./polish-undo');
 const { registerPolishIpc } = require('./polish-ipc');
 const { detectServers } = require('./polish-servers');
+const { createFoundryLocal } = require('./foundry-local');
 const { LocalAsr } = require('./asr/local-asr');
 const { transcribeCloud } = require('./asr/cloud');
 const { createEngines } = require('./asr/engines');
 const { createWhisperEngine } = require('./asr/engines/whisper');
 const { createCloudEngine } = require('./asr/engines/cloud');
-const { MODELS, isModelDownloaded, canWhisperTranslate, buildPrompt } = require('./asr/whisper-local');
+const { MODELS, READY_MARKER, isModelDownloaded, canWhisperTranslate, buildPrompt } = require('./asr/whisper-local');
 const { NLLB_MODEL, NLLB_SIZE, NLLB_CODES } = require('./asr/translator-local');
 const { Updater } = require('./updater');
 const { setupPortable } = require('./portable');
@@ -128,6 +129,7 @@ let run = null; // transcribe, clean up, paste; command mode (dictation-run.js)
 let typing = null; // paste, Enter, undo last, voice commands (typing.js)
 let polisher = null; // AI polish per mode (polish.js), and its Undo on the pill (polish-undo.js)
 let polishUndo = null;
+let foundry = null; // Foundry Local, when AI polish runs there (foundry-local.js)
 let reading = false;
 let files = null; // Files → transcribe a file (files.js)
 let updater = null;
@@ -753,7 +755,7 @@ function registerIpc() {
     preloadModel,
     log,
   });
-  registerPolishIpc(ipcMain, { polisher, detectServers: () => detectServers(), chat: chatComplete });
+  registerPolishIpc(ipcMain, { polisher, detectServers: () => detectServers(), chat: chatComplete, foundry });
   registerDiagnosticsIpc(ipcMain, {
     appVersion: () => app.getVersion(), isPortable: () => portable.active, getSettings: () => settings.get(), os,
     hasApiKey: () => { try { return !!settings.getApiKey(); } catch { return false; } },
@@ -772,12 +774,12 @@ function registerIpc() {
   languageHints = createLanguageHints({ getSettings: () => settings.get(), updateSettings: (patch) => settings.update(patch), broadcast, log });
   languageHints.registerIpc(ipcMain);
   registerPrivacyIpc(ipcMain, {
-    catalog: () => [...MODELS.map((m) => ({ id: m.id, label: `Whisper ${m.label}`, kind: 'speech' })), { id: NLLB_MODEL, label: 'Offline translator', kind: 'translator' }],
+    catalog: () => [...MODELS.map((m) => ({ id: m.id, label: `Whisper ${m.label}`, kind: 'speech' })), { id: NLLB_MODEL, label: 'Offline translator', kind: 'translator' }, { id: 'foundry', label: 'Foundry Local (AI polish)', kind: 'polish' }],
     modelsDir,
     dictationActive: () => controller.status !== 'idle',
     fileActive: () => files.busy,
     modelsBusy: () => [modelState.status, translatorState.status].some((st) => st === 'downloading' || st === 'loading'),
-    unloadModels: () => asr.stop(),
+    unloadModels: () => { foundry.dispose(); return asr.stop(); }, // Foundry Local lets go of its files too
     afterModelsDeleted: forgetModels,
     deleteAll: () => deleteAllData({
       history, audioHistory, settings, recoveryFile: recovery,
@@ -913,6 +915,7 @@ function applySettings(data, patch) {
     app.setLoginItemSettings({ openAtLogin: !!data.launchAtLogin, args: ['--hidden'] });
   }
   if ('betaUpdates' in patch) updater?.setPrerelease(data.betaUpdates);
+  if (patch.polish && data.polish.provider !== 'foundry') foundry.dispose(); // its model no longer needs the memory
   privacy.apply(patch);
   if ('crashRecovery' in patch) recoveryIpc.crashRecoveryChanged(); // before the window hears about it
   if ('showIdlePill' in patch && overlay && controller.status === 'idle') {
@@ -1003,7 +1006,12 @@ function init() {
     settings, lastPaste, history, controller, VK, flash, log, pasteText: io.pasteText, pressKey: io.pressKey, getSelectedText: io.getSelectedText,
     foregroundApp, keysDown: () => keyboard.engine.pressed.size, writeClipboard: io.writeClipboard,
   });
-  polisher = createPolisher({ settings, keys: { cloud: () => settings.getApiKey(), polish: () => settings.getPolishKey() }, chat: chatComplete, log });
+  foundry = createFoundryLocal({
+    workerPath: path.join(__dirname, 'foundry', 'worker.js'), modelsDir: modelsDir(), logsDir: path.dirname(log.file),
+    getModel: () => settings.get().polish.model, onProgress: (p) => broadcast('foundry:progress', p), log,
+    onUsed: () => fs.writeFileSync(path.join(modelsDir(), 'foundry', READY_MARKER), new Date().toISOString()), // Settings lists it
+  });
+  polisher = createPolisher({ settings, keys: { cloud: () => settings.getApiKey(), polish: () => settings.getPolishKey() }, chat: chatComplete, foundry, log });
   polishUndo = createPolishUndo({ typing, history, lastPasted: () => lastPaste.last && lastPaste.last.text, flash });
   run = createDictationRun({
     polish: (o) => polisher.polish(o), offerUnpolish: (o) => polishUndo.offer(o),
@@ -1182,6 +1190,7 @@ if (!app.requestSingleInstanceLock()) {
     updater?.stop();
     keyboard?.stop();
     asr?.dispose();
+    foundry?.dispose();
   });
   app.on('window-all-closed', () => {
     // keep running in the tray

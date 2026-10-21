@@ -19,11 +19,19 @@ const forkWorker = (modulePath, options) => require('electron').utilityProcess.f
  * @param {string} d.logsDir
  * @param {() => string} d.getModel  settings.polish.model
  * @param {(p: {id: string, percent: number}) => void} d.onProgress
+ * @param {() => void} [d.onUsed]  a model was downloaded or started (main marks the folder, so Settings lists it)
  * @param {{info: Function, warn: Function}} d.log
  * @param {(modulePath: string, options: object) => object} [d.fork]
  */
 function createFoundryLocal(d) {
   const fork = d.fork || forkWorker;
+  const used = () => {
+    try {
+      d.onUsed?.();
+    } catch (err) {
+      d.log.warn(`Foundry Local: couldn't mark the models folder (${err.message})`);
+    }
+  };
   let child = null;
   let nextId = 1;
   const pending = new Map();
@@ -86,6 +94,7 @@ function createFoundryLocal(d) {
     const t0 = Date.now();
     const promise = request('start', model, START_TIMEOUT_MS).then(({ url }) => {
       running = { url, model };
+      used();
       d.log.info(`Foundry Local ready in ${Date.now() - t0}ms`);
       return url;
     }).finally(() => { if (starting && starting.promise === promise) starting = null; });
@@ -98,7 +107,7 @@ function createFoundryLocal(d) {
     /** Where polish sends text now, or null when the chosen model isn't running. */
     url: () => (running && running.model === d.getModel() ? running.url : null),
     catalog: () => request('catalog', null, CATALOG_TIMEOUT_MS),
-    download: (modelId) => request('download', modelId),
+    download: (modelId) => request('download', modelId).then((r) => { used(); return r; }),
     cancel: () => (child ? request('cancel', null) : Promise.resolve(null)),
     remove: (modelId) => request('remove', modelId).then(() => { if (running && running.model === modelId) running = null; }),
     stop: () => (child ? request('stop', null).then(() => { running = null; }) : Promise.resolve()),

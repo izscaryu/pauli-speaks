@@ -23,12 +23,13 @@ function fakeFork() {
 function setup({ model = 'qwen2.5-0.5b-instruct-generic-cpu:4' } = {}) {
   const f = fakeFork();
   const progress = [];
+  const used = [];
   const s = { polish: { provider: 'foundry', model } };
   const foundry = createFoundryLocal({
     fork: f.fork, workerPath: 'C:\\app\\src\\main\\foundry\\worker.js', modelsDir: 'C:\\data\\models', logsDir: 'C:\\data\\logs',
-    getModel: () => s.polish.model, onProgress: (p) => progress.push(p), log: { info() {}, warn() {} },
+    getModel: () => s.polish.model, onProgress: (p) => progress.push(p), onUsed: () => used.push(Date.now()), log: { info() {}, warn() {} },
   });
-  return { foundry, ...f, progress, s };
+  return { foundry, ...f, progress, s, used };
 }
 
 const tick = () => new Promise((r) => setImmediate(r));
@@ -105,4 +106,16 @@ test('dispose ends the worker (quit, or before its models are deleted)', async (
   assert.equal(forks[0].child.killed, true);
   assert.equal(foundry.url(), null);
   foundry.dispose(); // nothing running: fine
+});
+
+test('a finished download and every start mark the models folder as used (Settings lists it, with its size)', async () => {
+  const { foundry, forks, used } = setup();
+  const d = foundry.download('qwen2.5-0.5b-instruct-generic-cpu:4');
+  forks[0].child.reply(0, { ok: true, result: { cached: true } });
+  await d;
+  assert.equal(used.length, 1);
+  const st = foundry.start();
+  forks[0].child.reply(1, { ok: true, result: { url: 'http://127.0.0.1:1/v1' } });
+  await st;
+  assert.equal(used.length, 2);
 });
