@@ -11,6 +11,7 @@ const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const { DEFAULT_MODES, normalizeModes, v6to7 } = require('./modes');
 const { normalizePolish } = require('./polish');
+const { POSITIONS } = require('./pill');
 const { normalizeBindings } = require('./shortcut-rules');
 const { DEFAULT_VOICE_COMMANDS, normalizeVoiceCommands } = require('./voice-commands');
 
@@ -60,6 +61,7 @@ const DEFAULTS = Object.freeze({
   restoreClipboard: true,
   sounds: true,
   showIdlePill: true,
+  pillPosition: 'center', // pill.js: left | center | right, where it was dragged to
   launchAtLogin: false,
   betaUpdates: false,
   dictionary: [{ from: 'polyspeaks', to: 'Pauli Speaks' }],
@@ -156,6 +158,11 @@ function v7to8(saved) {
   return { ...saved, polish: normalizePolish(saved.polish) };
 }
 
+/** Version 8 → 9 (Windows 11 shell): the pill can be dragged to the left or the right; it starts in the centre. */
+function v8to9(saved) {
+  return { ...saved, pillPosition: POSITIONS.includes(saved.pillPosition) ? saved.pillPosition : 'center' };
+}
+
 /** Every change to the shape of settings.json is a step here, in order. v6 → v7 (modes) is in modes.js. */
 const MIGRATIONS = Object.freeze([
   { from: 1, to: 2, run: v1to2 },
@@ -165,6 +172,7 @@ const MIGRATIONS = Object.freeze([
   { from: 5, to: 6, run: v5to6 },
   { from: 6, to: 7, run: v6to7 },
   { from: 7, to: 8, run: v7to8 },
+  { from: 8, to: 9, run: v8to9 },
 ]);
 
 /** 'system' or something shaped like a locale code; strings.js falls back to English for a code without a file. */
@@ -198,6 +206,7 @@ function migrateSettings(saved) {
   if ('voiceCommands' in out) out.voiceCommands = normalizeVoiceCommands(out.voiceCommands);
   if ('modes' in out) out.modes = normalizeModes(out.modes);
   if ('polish' in out) out.polish = normalizePolish(out.polish);
+  if ('pillPosition' in out && !POSITIONS.includes(out.pillPosition)) out.pillPosition = 'center';
   return out;
 }
 
@@ -290,6 +299,8 @@ class Settings extends EventEmitter {
         if (typeof apiKey === 'string') next.polish.apiKeyEnc = apiKey.trim() ? this.crypto.encrypt(apiKey.trim()) : '';
       } else if (k === 'uiLanguage') {
         if (isUiLanguage(v)) next.uiLanguage = v;
+      } else if (k === 'pillPosition') {
+        if (POSITIONS.includes(v)) next.pillPosition = v;
       } else if (NESTED.includes(k)) {
         next[k] = { ...next[k], ...v };
       } else {

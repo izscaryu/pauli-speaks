@@ -89,6 +89,8 @@ contextBridge.exposeInMainWorld('pauli', {
   toggleDictation: () => ipcRenderer.send('dictation:toggle'),
   cancelDictation: () => ipcRenderer.send('dictation:cancel'),
   pillAction: (id) => ipcRenderer.send('overlay:action', id),
+  pillLanguage: () => ipcRenderer.send('overlay:language'), // the next language for this dictation (pill.js)
+  pillMoved: (screenX) => ipcRenderer.send('overlay:moved', screenX), // dropped: left, centre or right
   onRecorderStart: on('recorder:start'),
   onRecorderStop: on('recorder:stop'),
   onRecorderSnapshot: on('recorder:snapshot'),

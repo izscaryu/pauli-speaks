@@ -3,7 +3,7 @@
 // Settings search that keeps only the rows that match.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { launch, waitFor } = require('./helpers');
+const { launch, setUpSettings, waitFor } = require('./helpers');
 
 const visiblePanels = (page) => page.evaluate(() => [...document.querySelectorAll('#page-settings > section.panel')]
   .filter((p) => !p.hidden).map((p) => p.querySelector('h2').textContent));
@@ -41,4 +41,23 @@ test('History has its own page; Home shows the latest dictations and links to it
   await page.click('#page-home [data-go="history"]');
   await waitFor(() => page.evaluate(() => !document.getElementById('page-history').hidden), { what: 'the History page' });
   assert.match(await page.locator('#history').textContent(), /Testing the history page/);
+});
+
+test('the pill: its language chip picks the language for this dictation, and a dropped pill stays on that side', async (t) => {
+  const run = await launch({ settings: setUpSettings({ languages: ['hr', 'en'] }) });
+  t.after(run.close);
+  await new Promise((r) => setTimeout(r, 1500));
+  const pill = await waitFor(() => run.app.windows().find((w) => w.url().endsWith('overlay.html')), { what: 'the pill' });
+  await run.key('F13', true);
+  await waitFor(() => pill.evaluate(() => !document.getElementById('lang').hidden), { what: 'the language chip' });
+  assert.equal(await pill.locator('#lang').textContent(), 'Auto');
+  await pill.click('#lang');
+  await waitFor(async () => (await pill.locator('#lang').textContent()) === 'HR', { what: 'HR on the chip' });
+  await new Promise((r) => setTimeout(r, 800));
+  await run.key('F13', false);
+  const state = await waitFor(async () => { const s = await run.state(); return s.recognised.length ? s : null; }, { what: 'the transcription' });
+  assert.deepEqual(state.recognised[0].languages, ['hr']);
+
+  await pill.evaluate(() => window.pauli.pillMoved(5));
+  await waitFor(async () => (await run.page.evaluate(() => window.pauli.getSettings())).pillPosition === 'left', { what: 'the pill on the left' });
 });

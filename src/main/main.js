@@ -14,6 +14,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const { windowLook } = require('./window-look');
+const { nextLanguage, canSwitchLanguage, pillBounds, snapPosition } = require('./pill');
 const path = require('node:path');
 const {
   app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell, session, clipboard, safeStorage, dialog, nativeTheme,
@@ -130,6 +131,7 @@ let run = null; // transcribe, clean up, paste; command mode (dictation-run.js)
 let typing = null; // paste, Enter, undo last, voice commands (typing.js)
 let polisher = null; // AI polish per mode (polish.js), and its Undo on the pill (polish-undo.js)
 let polishUndo = null;
+let pickedLanguage = null; // chosen on the pill for the running dictation (pill.js), null: your languages
 let foundry = null; // Foundry Local, when AI polish runs there (foundry-local.js)
 let reading = false;
 let files = null; // Files → transcribe a file (files.js)
@@ -155,12 +157,7 @@ function broadcast(channel, payload) {
 function positionOverlay() {
   if (!overlay) return;
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-  const wa = display.workArea;
-  overlay.setBounds({
-    x: Math.round(wa.x + (wa.width - OVERLAY_SIZE.width) / 2),
-    y: Math.round(wa.y + wa.height - OVERLAY_SIZE.height - 6),
-    ...OVERLAY_SIZE,
-  });
+  overlay.setBounds(pillBounds({ position: settings.get().pillPosition, workArea: display.workArea, size: OVERLAY_SIZE }));
 }
 
 function createOverlay() {
@@ -344,6 +341,8 @@ function listeningState(extra = {}) {
     mode: controller.command ? 'command' : run.translatingNow() ? 'translate' : 'dictate',
     translateTo: run.translatingNow() ? run.sessionMode().translateTo : null,
     chip: modeChip(),
+    language: pickedLanguage,
+    canSwitchLanguage: !controller.command && canSwitchLanguage(settings.get().languages),
     ...extra,
   };
 }
@@ -351,6 +350,7 @@ function listeningState(extra = {}) {
 function startRecording() {
   if (reading) stopReading();
   retry.expireUndo(); // before the new crash file begins: the cancelled one's is deleted now
+  pickedLanguage = null;
   polishUndo.expire(); // this dictation's paste will replace the polished one
   if (!controller.command) polisher.warm(controller.mode); // a local model loads while the user speaks
   typing.enterAfterPaste = false; // sessionApp: set when the controller resolved the mode, just before
@@ -887,6 +887,17 @@ function registerIpc() {
   ipcMain.on('dictation:cancel', () => (reading ? stopReading() : controller.cancel()));
   ipcMain.on('overlay:action', (_e, id) => (String(id).startsWith('unpolish-') ? polishUndo.take(String(id)) : flow.runPillAction(String(id)))
     .catch((err) => log.error('Pill action failed', err)));
+  ipcMain.on('overlay:language', () => {
+    if (controller.status !== 'listening' || !canSwitchLanguage(settings.get().languages)) return;
+    pickedLanguage = nextLanguage(pickedLanguage, settings.get().languages);
+    sendOverlayState(listeningState());
+  });
+  ipcMain.on('overlay:moved', (_e, screenX) => {
+    if (!Number.isFinite(screenX)) return;
+    const wa = screen.getDisplayNearestPoint({ x: Math.round(screenX), y: screen.getCursorScreenPoint().y }).workArea;
+    settings.update({ pillPosition: snapPosition(screenX, wa) });
+    positionOverlay();
+  });
   ipcMain.on('overlay:hover', (_e, inside) => {
     if (overlay) overlay.setIgnoreMouseEvents(!inside, { forward: true });
   });
@@ -1000,6 +1011,7 @@ function init() {
   controller.on('status', ({ status, locked }) => {
     if (status === 'listening') sendOverlayState(listeningState());
     tray?.setImage(nativeImage.createFromPath(asset(trayIcon(status))));
+    if (status === 'idle') pickedLanguage = null; // the pill's pick was for that dictation only
     const live = listeningState();
     broadcast('dictation:status', { status, locked, translateTo: live.translateTo, mode: live.mode, chip: status === 'idle' ? null : live.chip });
     updateTrayMenu();
@@ -1022,6 +1034,7 @@ function init() {
     sessionApp: () => sessionApp, saveRecording: (id, audio) => privacy.saveRecording(id, audio), onRecorded: () => flow.noteRecorded(),
     feedLanguage: (hint) => languageHints.feed(hint),
   });
+  run.setLanguageOverride(() => pickedLanguage);
   flow = createDictationFlow({
     ...run, retry, history, controller, speechGate, // run: runDictation, runCommand, transcribe, dictationText, …
     takeListening: () => { const s = listening; listening = null; return s; },

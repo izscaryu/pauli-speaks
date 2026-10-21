@@ -213,3 +213,7 @@ html, body {
 .pill.reading .speaker { display: block; animation: pulse 1.4s ease-in-out infinite; }
 .pill.reading .label { display: block; }
 .pill.reading .cancel { display: grid; order: 9; }
+/* The language chip (pill.js): a button that looks like the mode chip. */
+.lang-chip { border: 0; cursor: pointer; font-family: inherit; }
+.lang-chip:hover { background: rgba(255, 255, 255, 0.18); }
+.pill { touch-action: none; }

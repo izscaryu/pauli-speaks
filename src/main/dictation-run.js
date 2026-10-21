@@ -47,8 +47,13 @@ function createDictationRun(d) {
     return !controller.command && !!sessionMode().translateTo;
   }
 
-  /** The mode's language, or your languages. */
-  const languagesFor = (mode) => (mode.language ? [mode.language] : settings.get().languages);
+  let languageOverride = () => null; // the language picked on the pill for this dictation (pill.js), if any
+
+  /** The pill's pick, the mode's language, or your languages. */
+  const languagesFor = (mode) => {
+    const picked = languageOverride();
+    return picked ? [picked] : mode.language ? [mode.language] : settings.get().languages;
+  };
 
   /** Clean-up options: your settings with the mode's style and voice commands. */
   const cleanOpts = (s, mode, more = {}) => ({ ...s, style: mode.style, voiceCommandsEnabled: s.voiceCommandsEnabled && mode.voiceCommands, ...more });
@@ -205,7 +210,10 @@ function createDictationRun(d) {
     if (shouldRunFollowUps(await typing.paste(output)) && typing.enterAfterPaste) await typing.pressEnterNow();
   }
 
-  return { sessionMode, translatingNow, transcribe, keptMeta, dictationText, record, dictationEntry, runDictation, runCommand };
+  return {
+    /** @param {() => string|null} fn  the language picked on the pill for the running dictation */
+    setLanguageOverride(fn) { languageOverride = fn; },
+    sessionMode, translatingNow, transcribe, keptMeta, dictationText, record, dictationEntry, runDictation, runCommand };
 }
 
 module.exports = { createDictationRun };

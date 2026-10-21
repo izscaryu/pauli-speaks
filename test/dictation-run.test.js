@@ -331,3 +331,14 @@ test('Esc while polishing aborts the request: the polish gets a signal that the 
   assert.deepEqual(calls.pasted, [], 'cancelled: nothing pasted');
   assert.equal(listener, null, 'the listener is removed afterwards');
 });
+
+test('a language picked on the pill decides this dictation, over the mode\'s and your list', async () => {
+  const { run, calls, s } = rig();
+  s.languages = ['hr', 'en'];
+  let picked = 'en';
+  run.setLanguageOverride(() => picked);
+  await run.transcribe(audio(), mode({ language: 'hr' }));
+  picked = null;
+  await run.transcribe(audio(), mode());
+  assert.deepEqual(calls.languages, [['en'], ['hr', 'en']]);
+});

@@ -10,6 +10,7 @@ const label = document.getElementById('label');
 const tip = document.getElementById('tip');
 const badge = document.getElementById('badge');
 const chip = document.getElementById('chip');
+const langBtn = document.getElementById('lang');
 const timer = document.getElementById('timer');
 const previewEl = document.getElementById('preview');
 const actionBtn = document.getElementById('action');
@@ -41,6 +42,13 @@ function render(state) {
   badge.hidden = !((state.state === 'listening' || state.state === 'processing') && (command || state.translateTo));
   badge.textContent = command ? '✦ AI' : state.translateTo ? `→ ${state.translateTo.toUpperCase()}` : '';
   badge.classList.toggle('ai', command);
+  // The language chip while listening (two or more languages): click it to choose this dictation's language.
+  const langOn = state.state === 'listening' && !!state.canSwitchLanguage;
+  langBtn.hidden = !langOn;
+  if (langOn) {
+    langBtn.textContent = state.language ? state.language.toUpperCase() : t('overlay.lang.auto');
+    langBtn.setAttribute('aria-label', t('overlay.lang.label', { language: state.language ? I18n.languageName(state.language) : t('overlay.lang.yours') }));
+  }
   // The mode chip (colour + name) while listening: a mode a shortcut, link, Switch mode or the app picked.
   const modeChip = state.state === 'listening' && state.chip ? state.chip : null;
   chip.hidden = !modeChip;
@@ -111,8 +119,24 @@ pill.addEventListener('mouseleave', () => {
   window.pauli.setOverlayHover(false);
   tip.hidden = true;
 });
+// Drag the pill to the left, the centre or the right of the screen; main snaps it there and remembers.
+let drag = null;
+let dragged = false;
+pill.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || e.target.closest('button')) return;
+  drag = { x: e.screenX, id: e.pointerId };
+  pill.setPointerCapture(e.pointerId);
+});
+pill.addEventListener('pointerup', (e) => {
+  if (!drag || drag.id !== e.pointerId) return;
+  dragged = Math.abs(e.screenX - drag.x) > 24;
+  drag = null;
+  if (dragged) window.pauli.pillMoved(e.screenX);
+});
+langBtn.addEventListener('click', () => window.pauli.pillLanguage());
 pill.addEventListener('click', (e) => {
-  if (e.target.closest('.icon-btn, .pill-action')) return;
+  if (dragged) { dragged = false; return; } // the end of a drag, not a click
+  if (e.target.closest('.icon-btn, .pill-action, .lang-chip')) return;
   if (ui.state === 'idle') window.pauli.toggleDictation();
 });
 document.getElementById('stop').addEventListener('click', () => window.pauli.toggleDictation());

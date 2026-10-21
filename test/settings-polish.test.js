@@ -20,7 +20,7 @@ const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 test('a new install has AI polish off', () => {
   assert.deepEqual(DEFAULTS.polish, OFF);
-  assert.equal(SETTINGS_VERSION, 8);
+  assert.ok(SETTINGS_VERSION >= 8);
 });
 
 test('v7 → v8 on its own: AI polish arrives switched off, everything else is kept', () => {
@@ -29,14 +29,14 @@ test('v7 → v8 on its own: AI polish arrives switched off, everything else is k
   assert.deepEqual(step.run(v7), { ...v7, polish: OFF });
   const already = { polish: { provider: 'ollama', model: 'qwen2.5:1.5b' } };
   assert.deepEqual(step.run(already).polish, { ...OFF, provider: 'ollama', model: 'qwen2.5:1.5b' }, 'kept when there');
-  assert.equal(runMigrations({ settingsVersion: 7 }, MIGRATIONS, SETTINGS_VERSION).settingsVersion, 8);
+  assert.equal(runMigrations({ settingsVersion: 7 }, MIGRATIONS, SETTINGS_VERSION).settingsVersion, SETTINGS_VERSION);
 });
 
 test('a v7 file is backed up as settings.v7.json and saved as v8 with AI polish off', () => {
   const file = tempFile({ settingsVersion: 7, onboarded: true, engine: 'local' });
   const s = new Settings(file, plain);
   assert.deepEqual(s.get().polish, OFF);
-  assert.equal(readJson(file).settingsVersion, 8);
+  assert.equal(readJson(file).settingsVersion, SETTINGS_VERSION);
   assert.deepEqual(readJson(file).polish, OFF);
   assert.equal(readJson(path.join(path.dirname(file), 'settings.v7.json')).settingsVersion, 7);
 });
