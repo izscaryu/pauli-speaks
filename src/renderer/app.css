@@ -661,3 +661,11 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 html.mica body { background: transparent; }
 html.mica .sidebar { background: var(--mica-side); border-right-color: transparent; }
 html.mica main { background: var(--mica-layer); border-top-left-radius: var(--radius); }
+
+/* ---------- Settings: sections and search (settings-search.js) */
+#page-settings .topbar { align-items: flex-start; }
+#settings-search { width: 260px; margin-left: auto; }
+.settings-sections { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
+.settings-sections a { padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); color: var(--ink-2); font-size: 13px; text-decoration: none; }
+.settings-sections a:hover { border-color: var(--ink-3); color: var(--ink); }
+#page-settings > section.panel { scroll-margin-top: 16px; }
