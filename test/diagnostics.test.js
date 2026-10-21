@@ -143,6 +143,25 @@ test('diagnostics:copy puts the block on the clipboard from the real settings, w
   assert.equal(calls.opened.length, 0);
 });
 
+test('AI polish: off, or where it goes and which modes polish at which level', () => {
+  assert.ok(buildDiagnostics(info()).includes('- AI polish: off'));
+  const on = buildDiagnostics(info({ polish: { provider: 'ollama', model: 'qwen2.5:1.5b', host: '127.0.0.1:11434', hasApiKey: false, modes: ['chat medium', 'code prompt'] } }));
+  assert.ok(on.includes('- AI polish: ollama, qwen2.5:1.5b at 127.0.0.1:11434 (chat medium, code prompt)'), on);
+  const custom = buildDiagnostics(info({ polish: { provider: 'custom', model: 'm', host: 'llm.example.org', hasApiKey: true, modes: [] } }));
+  assert.ok(custom.includes('- AI polish: custom, m at llm.example.org, own API key set (no mode polishes)'), custom);
+});
+
+test('diagnostics:copy names the polish provider from the real settings, never its key', async () => {
+  const ipc = fakeIpc();
+  const { d, calls, settings } = deps();
+  settings.polish = { provider: 'custom', baseUrl: 'https://llm.example.org/v1', model: 'm', apiKeyEnc: 'polish-encrypted-blob' };
+  settings.modes = [{ ...settings.modes[0], aiPolish: 'light' }, ...settings.modes.slice(1)];
+  registerDiagnosticsIpc(ipc, d);
+  await ipc.invoke('diagnostics:copy');
+  assert.ok(calls.copied[0].includes('AI polish: custom, m at llm.example.org, own API key set (default light)'), calls.copied[0]);
+  assert.ok(!calls.copied[0].includes('polish-encrypted-blob'));
+});
+
 test('diagnostics:report copies, then opens the bug form on GitHub', async () => {
   const ipc = fakeIpc();
   const { d, calls } = deps();

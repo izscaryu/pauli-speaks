@@ -14,6 +14,13 @@ function engineLine(e) {
   return `local, ${e.localModel}, acceleration ${e.acceleration}`;
 }
 
+/** "ollama, qwen2.5:1.5b at 127.0.0.1:11434 (chat medium)": where AI polish goes and which modes use it. */
+function polishLine(p) {
+  if (!p || !p.provider || p.provider === 'off') return 'off';
+  const modes = p.modes && p.modes.length ? p.modes.join(', ') : 'no mode polishes';
+  return `${p.provider}, ${p.model || 'no model'} at ${p.host || '?'}${p.hasApiKey ? ', own API key set' : ''} (${modes})`;
+}
+
 function stateLine(s) {
   if (!s) return 'unknown';
   const main = s.status === 'error' ? `error: ${s.error}` : `${s.status}${s.device ? ` on ${s.device}` : ''}`;
@@ -69,6 +76,7 @@ function buildDiagnostics(info) {
     ...systemLines(info.system),
     `- GPU: ${gpuLine(info.gpu)}`,
     `- Engine: ${engineLine(engine)}`,
+    `- AI polish: ${polishLine(info.polish)}`,
     `- Speech model: ${stateLine(info.model)}`,
     `- Translator: ${stateLine(info.translator)}`,
     `- Downloaded models: ${models}`,

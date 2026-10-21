@@ -10,6 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const { DEFAULT_MODES, normalizeModes, v6to7 } = require('./modes');
+const { normalizePolish } = require('./polish');
 const { normalizeBindings } = require('./shortcut-rules');
 const { DEFAULT_VOICE_COMMANDS, normalizeVoiceCommands } = require('./voice-commands');
 
@@ -32,6 +33,8 @@ const DEFAULTS = Object.freeze({
   command: {
     model: 'llama-3.3-70b-versatile',
   },
+  // AI polish (polish.js): where each mode's polish level goes. Off until chosen; 'cloud' is the Cloud API below.
+  polish: { provider: 'off', baseUrl: '', model: '', apiKeyEnc: '' },
   readAloud: {
     voice: '',
     rate: 1,
@@ -74,7 +77,7 @@ const DEFAULTS = Object.freeze({
 // reset() leaves these out of the change it announces: the model they name would start downloading.
 const RESET_QUIET = ['engine', 'localModel', 'acceleration', 'translation'];
 
-const NESTED = ['cloud', 'translation', 'command', 'readAloud', 'languageHints'];
+const NESTED = ['cloud', 'translation', 'command', 'readAloud', 'languageHints', 'polish'];
 
 /** Known settings only - never inherited names like "__proto__" or "constructor" from a file or the window. */
 const isSetting = (k) => Object.hasOwn(DEFAULTS, k);
@@ -148,6 +151,11 @@ function v5to6(saved) {
   return { ...saved, uiLanguage: typeof saved.uiLanguage === 'string' ? saved.uiLanguage : 'system' };
 }
 
+/** Version 7 → 8 (AI polish): where polish goes arrives switched off; each mode's level was already 'off'. */
+function v7to8(saved) {
+  return { ...saved, polish: normalizePolish(saved.polish) };
+}
+
 /** Every change to the shape of settings.json is a step here, in order. v6 → v7 (modes) is in modes.js. */
 const MIGRATIONS = Object.freeze([
   { from: 1, to: 2, run: v1to2 },
@@ -156,6 +164,7 @@ const MIGRATIONS = Object.freeze([
   { from: 4, to: 5, run: v4to5 },
   { from: 5, to: 6, run: v5to6 },
   { from: 6, to: 7, run: v6to7 },
+  { from: 7, to: 8, run: v7to8 },
 ]);
 
 /** 'system' or something shaped like a locale code; strings.js falls back to English for a code without a file. */
@@ -188,6 +197,7 @@ function migrateSettings(saved) {
   if ('bindings' in out) out.bindings = normalizeBindings(out.bindings);
   if ('voiceCommands' in out) out.voiceCommands = normalizeVoiceCommands(out.voiceCommands);
   if ('modes' in out) out.modes = normalizeModes(out.modes);
+  if ('polish' in out) out.polish = normalizePolish(out.polish);
   return out;
 }
 
@@ -235,11 +245,20 @@ class Settings extends EventEmitter {
   /** Settings safe to hand to a renderer (no secrets). */
   getPublic() {
     const { apiKeyEnc, ...cloud } = this.data.cloud;
-    return { ...this.data, cloud: { ...cloud, hasApiKey: !!apiKeyEnc } };
+    const { apiKeyEnc: polishKeyEnc, ...polish } = this.data.polish;
+    return { ...this.data, cloud: { ...cloud, hasApiKey: !!apiKeyEnc }, polish: { ...polish, hasApiKey: !!polishKeyEnc } };
   }
 
   getApiKey() {
-    const enc = this.data.cloud.apiKeyEnc;
+    return this.#decrypt(this.data.cloud.apiKeyEnc);
+  }
+
+  /** AI polish with a custom URL: its own key ('' when none). */
+  getPolishKey() {
+    return this.#decrypt(this.data.polish.apiKeyEnc);
+  }
+
+  #decrypt(enc) {
     if (!enc) return '';
     try {
       return this.crypto.decrypt(enc);
@@ -262,6 +281,10 @@ class Settings extends EventEmitter {
         next.voiceCommands = normalizeVoiceCommands(v);
       } else if (k === 'modes') {
         next.modes = normalizeModes(v);
+      } else if (k === 'polish') {
+        const { apiKey, hasApiKey, apiKeyEnc, ...rest } = v && typeof v === 'object' ? v : {};
+        next.polish = normalizePolish({ ...next.polish, ...rest });
+        if (typeof apiKey === 'string') next.polish.apiKeyEnc = apiKey.trim() ? this.crypto.encrypt(apiKey.trim()) : '';
       } else if (k === 'uiLanguage') {
         if (isUiLanguage(v)) next.uiLanguage = v;
       } else if (NESTED.includes(k)) {

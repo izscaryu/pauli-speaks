@@ -129,7 +129,7 @@ const backupOf = (file, v) => path.join(path.dirname(file), `settings.v${v}.json
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 test('migrations form an unbroken chain up to the current version', () => {
-  assert.equal(SETTINGS_VERSION, 7);
+  assert.equal(SETTINGS_VERSION, 8);
   MIGRATIONS.forEach((m, i) => {
     assert.equal(m.from, i + 1);
     assert.equal(m.to, m.from + 1);
@@ -428,7 +428,7 @@ test('a v6 file is backed up as settings.v6.json and saved as v7: its app styles
   assert.equal(s.get().sounds, false);
   assert.deepEqual(readJson(backupOf(file, 6)), v6);
   const saved = readJson(file);
-  assert.equal(saved.settingsVersion, 7);
+  assert.equal(saved.settingsVersion, SETTINGS_VERSION);
   assert.equal(saved.appStyles, undefined);
   assert.deepEqual(new Settings(file, plain).get().modes, s.get().modes, 'a migrated file loads unchanged');
 });

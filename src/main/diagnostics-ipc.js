@@ -79,6 +79,11 @@ function registerDiagnosticsIpc(ipcMain, deps) {
         engine: s.engine, localModel: s.localModel, acceleration: s.acceleration,
         cloudModel: s.cloud && s.cloud.model, cloudHost: hostOf(s.cloud && s.cloud.baseUrl), hasApiKey: !!deps.hasApiKey(),
       },
+      polish: s.polish && {
+        provider: s.polish.provider, model: s.polish.model, hasApiKey: s.polish.provider === 'custom' && !!s.polish.apiKeyEnc,
+        host: s.polish.provider === 'foundry' ? 'this PC' : hostOf(s.polish.provider === 'cloud' ? s.cloud && s.cloud.baseUrl : s.polish.baseUrl),
+        modes: (s.modes || []).filter((m) => m.aiPolish && m.aiPolish !== 'off').map((m) => `${m.id} ${m.aiPolish}`),
+      },
       model: pickState(deps.getModelState()),
       translator: pickState(deps.getTranslatorState()),
       models: await attempt('model folders', () => deps.modelIds

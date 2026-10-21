@@ -19,6 +19,22 @@ const WARM_TIMEOUT_MS = 60 * 1000; // a cold load of a bigger model takes a whil
 const PROVIDERS = ['off', 'ollama', 'lmstudio', 'foundry', 'cloud', 'custom'];
 const DEFAULT_URLS = Object.freeze({ ollama: 'http://127.0.0.1:11434/v1', lmstudio: 'http://127.0.0.1:1234/v1' });
 
+/**
+ * settings.polish, every field present and valid (from the file or the window): a known provider, an http(s) URL,
+ * a model name of sensible length. apiKeyEnc is the custom URL's own key, encrypted like the Cloud API key.
+ */
+function normalizePolish(raw) {
+  const p = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const url = typeof p.baseUrl === 'string' ? p.baseUrl.trim() : '';
+  const model = typeof p.model === 'string' ? p.model.trim() : '';
+  return {
+    provider: typeof p.provider === 'string' && PROVIDERS.includes(p.provider) ? p.provider : 'off',
+    baseUrl: url.length <= 500 && /^https?:\/\/[^\s]+$/i.test(url) ? url : '',
+    model: model.length <= 200 ? model : '',
+    apiKeyEnc: typeof p.apiKeyEnc === 'string' ? p.apiKeyEnc : '',
+  };
+}
+
 /** localhost, 127.x.x.x or ::1: the text stays on this PC. */
 function isLocalUrl(url) {
   let host;
@@ -147,5 +163,5 @@ function createPolisher(d) {
 }
 
 module.exports = {
-  createPolisher, acceptPolish, isLocalUrl, timeoutFor, PROVIDERS, DEFAULT_URLS, LOCAL_TIMEOUT_MS, CLOUD_TIMEOUT_MS, WARM_EVERY_MS,
+  createPolisher, acceptPolish, normalizePolish, isLocalUrl, timeoutFor, PROVIDERS, DEFAULT_URLS, LOCAL_TIMEOUT_MS, CLOUD_TIMEOUT_MS, WARM_EVERY_MS,
 };
