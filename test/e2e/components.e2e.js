@@ -115,3 +115,34 @@ test('keycaps press down on Home while you talk', async (t) => {
   assert.deepEqual(during, [true]);
   await waitFor(async () => (await pressed()).join() === 'false', { what: 'the keycap back up' });
 });
+
+test('hit areas: icon buttons are 32 px or more on every page, a chip\'s ✕ 24 px; checked radios and boxes are accent', async (t) => {
+  const run = await launch();
+  t.after(run.close);
+  const { page } = run;
+  const small = [];
+  for (const id of PAGES) {
+    await page.click(`.nav[data-page="${id}"]`);
+    small.push(...await page.evaluate((pageId) => {
+      const out = [];
+      for (const [sel, min] of [['.icon-btn', 32], ['.phrase button, .app-chip button', 24]]) {
+        for (const b of document.querySelectorAll(`#page-${pageId} :is(${sel})`)) {
+          const r = b.getBoundingClientRect();
+          if (r.width && (r.width < min || r.height < min)) out.push(`${pageId}: ${b.className || b.tagName} ${r.width}×${r.height}`);
+        }
+      }
+      return out;
+    }, id));
+  }
+  assert.deepEqual(small, []);
+  await page.click('.nav[data-page="settings"]');
+  const accent = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--accent)';
+    document.body.append(probe);
+    const want = getComputedStyle(probe).color;
+    probe.remove();
+    return { want, radio: getComputedStyle(document.querySelector('.model input[type=radio]')).accentColor };
+  });
+  assert.equal(accent.radio, accent.want);
+});

@@ -358,7 +358,7 @@ label.row { cursor: pointer; }
 
 .model { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; min-height: 52px; padding: 8px 0; border-top: 1px solid var(--stroke-card); cursor: pointer; }
 .model:first-child { border-top: 0; }
-.model input { width: 16px; min-height: 0; accent-color: var(--ink); }
+.model input { width: 16px; min-height: 0; accent-color: var(--accent); }
 .state { color: var(--ink-3); font-size: var(--fs-caption); font-variant-numeric: tabular-nums; }
 .state.ok { color: var(--ok); font-weight: 600; }
 .state.busy { color: var(--warn); font-weight: 600; }
@@ -483,7 +483,7 @@ label.row { cursor: pointer; }
 .drop small { color: var(--ink-3); }
 .drop.busy { opacity: 0.55; pointer-events: none; }
 .check { gap: 8px; color: var(--ink-2); cursor: pointer; }
-.check input { width: 16px; min-height: 0; accent-color: var(--ink); }
+.check input { width: 16px; min-height: 0; accent-color: var(--accent); }
 #file-text { min-height: 220px; font-size: var(--fs-body); line-height: 1.6; background: var(--card); }
 
 /* ---------- snippets & app rules */
@@ -502,7 +502,7 @@ label.row { cursor: pointer; }
 .item.failed .err { max-width: 420px; overflow: hidden; color: var(--danger); text-overflow: ellipsis; white-space: nowrap; }
 .item.failed .retry-row { margin-top: 8px; }
 .item.failed .retry-row .desc { color: var(--ink-3); font-size: var(--fs-caption); }
-input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(--ink); background: none; border: 0; box-shadow: none; }
+input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(--accent); background: none; border: 0; box-shadow: none; }
 
 /* ---------- shortcuts page */
 .group-title { margin: 6px 0 -10px; } /* 24 px above (with the page gap), 8 px below */
@@ -559,13 +559,13 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 .links { display: grid; gap: 6px; }
 .link { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .link code { padding: 3px 8px; border-radius: 6px; background: var(--sunken); font: var(--fs-caption)/1.5 var(--mono); word-break: break-all; }
-.link .icon-btn { width: 30px; height: 30px; }
+.link .icon-btn { width: 32px; height: 32px; }
 
 .vc-list { display: flex; flex-direction: column; }
 .vc-row { display: grid; grid-template-columns: minmax(0, 1.4fr) 20px minmax(0, 1fr); gap: 10px; align-items: center; min-height: 48px; padding: 6px 0; border-top: 1px solid var(--stroke-card); }
 .phrases { display: flex; flex-wrap: wrap; gap: 6px; }
-.phrase { display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 2px 0 10px; border: 1px solid var(--stroke-card); border-radius: 999px; background: var(--card); font-size: var(--fs-caption); }
-.phrase button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink-3); cursor: pointer; }
+.phrase { display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 2px 0 10px; border: 1px solid var(--stroke-control); border-radius: var(--r-ctl); background: var(--card); font-size: var(--fs-caption); }
+.phrase button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink-3); cursor: pointer; }
 .phrase button:hover { background: var(--sunken); color: var(--danger); }
 .phrase .icon { width: 12px; height: 12px; }
 .vc-row .does { color: var(--ink-2); }
@@ -664,7 +664,7 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 .swatch:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .app-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .app-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 4px 0 10px; border-radius: 8px; background: var(--sunken); font-size: var(--fs-caption); line-height: 1; }
-.app-chip button { width: 22px; height: 22px; border: 0; border-radius: 4px; background: transparent; color: var(--ink-3); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.app-chip button { width: 24px; height: 24px; border: 0; border-radius: 4px; background: transparent; color: var(--ink-3); cursor: pointer; display: grid; place-items: center; padding: 0; }
 .app-chip button:hover { background: var(--stroke-card); color: var(--ink); }
 .app-chip .icon { width: 12px; height: 12px; }
 .app-add { display: inline-flex; gap: 6px; }
@@ -677,7 +677,7 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 /* ---------- Settings → Speech: downloaded models (privacy.js) */
 .model-disk { display: grid; gap: 2px; }
 .disk-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; min-height: 38px; padding: 0 4px 0 10px; border-radius: 8px; background: var(--sunken); }
-.disk-item .icon-btn { width: 30px; height: 30px; }
+.disk-item .icon-btn { width: 32px; height: 32px; }
 
 /* Narrow content (a 900 px window leaves about 600 px): the mode list becomes a strip above the editor, the
    editor's labels go above their controls, a shortcut row keeps its remove button on the first line, and the
