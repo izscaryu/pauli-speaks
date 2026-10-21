@@ -67,6 +67,8 @@ test('Paste last needs the app', () => {
   assert.deepEqual(commandFor('pasteLast', {}), { error: 'no-app' });
   assert.deepEqual(commandFor('pasteLast', { exePath: 'Pauli Speaks.exe' }), { error: 'no-app' });
   assert.deepEqual(commandFor('pasteLast', { exePath: 'C:\\Windows\\notepad.txt' }), { error: 'no-app' });
+  assert.deepEqual(commandFor('pasteLast', { exePath: 'C:\\Tools\\other.exe' }), { error: 'no-app' }, 'only the app itself');
+  assert.deepEqual(commandFor('pasteLast', { exePath: '\\\\host\\share\\Pauli Speaks.exe' }), { error: 'no-app' }, 'not from a network share');
 });
 
 test('unknown actions do nothing', () => {
@@ -82,8 +84,8 @@ test('settings may be missing', () => {
 });
 
 test('how a command is started', () => {
-  assert.deepEqual(launchFor({ kind: 'link', url: 'pauli-speaks://dictate/stop' }), {
-    file: 'rundll32.exe',
+  assert.deepEqual(launchFor({ kind: 'link', url: 'pauli-speaks://dictate/stop' }, { SystemRoot: 'C:\\Windows' }), {
+    file: 'C:\\Windows\\System32\\rundll32.exe', // by full path: never one in the current folder
     args: ['url.dll,FileProtocolHandler', 'pauli-speaks://dictate/stop'],
   });
   assert.deepEqual(launchFor({ kind: 'exe', file: EXE, args: ['--paste-last'] }), { file: EXE, args: ['--paste-last'] });
@@ -95,7 +97,8 @@ test('how a command is started', () => {
 test('what counts as the app', () => {
   assert.equal(isAppExe(EXE), true);
   assert.equal(isAppExe('D:\\Apps\\Pauli Speaks\\Pauli Speaks.EXE'), true);
-  assert.equal(isAppExe('\\\\server\\share\\Pauli Speaks.exe'), true);
+  assert.equal(isAppExe('\\\\server\\share\\Pauli Speaks.exe'), false, 'not from a network share');
+  assert.equal(isAppExe('C:\\Tools\\other.exe'), false, 'only the app itself');
   assert.equal(isAppExe('Pauli Speaks.exe'), false, 'not a full path');
   assert.equal(isAppExe('C:\\Apps\\Pauli Speaks'), false, 'a folder');
   assert.equal(isAppExe('"C:\\Apps\\Pauli Speaks.exe"'), false, 'quotes');

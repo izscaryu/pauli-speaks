@@ -342,3 +342,13 @@ test('a language picked on the pill decides this dictation, over the mode\'s and
   await run.transcribe(audio(), mode());
   assert.deepEqual(calls.languages, [['en'], ['hr', 'en']]);
 });
+
+test('a language picked on the pill does not carry into Command mode', async () => {
+  const { run, calls, controller, s } = rig();
+  s.languages = ['hr', 'en'];
+  run.setLanguageOverride(() => 'en');
+  controller.command = true;
+  controller.mode = mode();
+  await run.runCommand(audio(), 1);
+  assert.deepEqual(calls.languages[0], ['hr', 'en']);
+});

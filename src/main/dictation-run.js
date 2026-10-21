@@ -51,7 +51,7 @@ function createDictationRun(d) {
 
   /** The pill's pick, the mode's language, or your languages. */
   const languagesFor = (mode) => {
-    const picked = languageOverride();
+    const picked = controller.command ? null : languageOverride(); // Command mode keeps its own language
     return picked ? [picked] : mode.language ? [mode.language] : settings.get().languages;
   };
 

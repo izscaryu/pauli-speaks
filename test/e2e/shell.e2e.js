@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const { launch, setUpSettings, waitFor } = require('./helpers');
 
 const visiblePanels = (page) => page.evaluate(() => [...document.querySelectorAll('#page-settings > section.panel')]
-  .filter((p) => !p.hidden).map((p) => p.querySelector('h2').textContent));
+  .filter((p) => getComputedStyle(p).display !== 'none').map((p) => p.querySelector('h2').textContent));
 
 test('Settings search keeps the sections and rows that match, and Esc brings everything back', async (t) => {
   const run = await launch();
@@ -19,13 +19,16 @@ test('Settings search keeps the sections and rows that match, and Esc brings eve
 
   await page.fill('#settings-search', 'filler');
   assert.deepEqual(await visiblePanels(page), ['Text']);
-  assert.equal(await page.evaluate(() => [...document.querySelectorAll('#page-settings section.panel:not([hidden]) .row')].filter((r) => !r.hidden).length), 1);
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll('#page-settings section.panel .row')].filter((r) => r.offsetParent !== null).length), 1);
 
   await page.fill('#settings-search', 'nothing like this');
   await waitFor(() => page.evaluate(() => !document.querySelector('#page-settings > .empty').hidden), { what: 'the no-match note' });
 
+  const ownHidden = () => page.evaluate(() => [document.getElementById('model-disk-row').hidden, document.getElementById('tr-model-row').hidden]);
+  const before = await ownHidden();
   await page.press('#settings-search', 'Escape');
   assert.deepEqual(await visiblePanels(page), all);
+  assert.deepEqual(await ownHidden(), before, 'rows hidden by their own code stay hidden after a search');
 });
 
 test('History has its own page; Home shows the latest dictations and links to it', async (t) => {
@@ -34,9 +37,7 @@ test('History has its own page; Home shows the latest dictations and links to it
   const { page } = run;
   await new Promise((r) => setTimeout(r, 1500));
   await run.set('transcript', 'testing the history page');
-  await run.key('F13', true);
-  await new Promise((r) => setTimeout(r, 1500));
-  await run.key('F13', false);
+  await run.dictate();
   await waitFor(() => page.evaluate(() => document.querySelector('#recent').textContent.includes('Testing the history page')), { what: 'Recent on Home' });
   await page.click('#page-home [data-go="history"]');
   await waitFor(() => page.evaluate(() => !document.getElementById('page-history').hidden), { what: 'the History page' });
@@ -48,13 +49,12 @@ test('the pill: its language chip picks the language for this dictation, and a d
   t.after(run.close);
   await new Promise((r) => setTimeout(r, 1500));
   const pill = await waitFor(() => run.app.windows().find((w) => w.url().endsWith('overlay.html')), { what: 'the pill' });
-  await run.key('F13', true);
-  await waitFor(() => pill.evaluate(() => !document.getElementById('lang').hidden), { what: 'the language chip' });
-  assert.equal(await pill.locator('#lang').textContent(), 'Auto');
-  await pill.click('#lang');
-  await waitFor(async () => (await pill.locator('#lang').textContent()) === 'HR', { what: 'HR on the chip' });
-  await new Promise((r) => setTimeout(r, 800));
-  await run.key('F13', false);
+  await run.dictate('F13', { ms: 1600, during: async () => {
+    await waitFor(() => pill.evaluate(() => !document.getElementById('lang').hidden), { what: 'the language chip' });
+    assert.equal(await pill.locator('#lang').textContent(), 'Auto');
+    await pill.click('#lang');
+    await waitFor(async () => (await pill.locator('#lang').textContent()) === 'HR', { what: 'HR on the chip' });
+  } });
   const state = await waitFor(async () => { const s = await run.state(); return s.recognised.length ? s : null; }, { what: 'the transcription' });
   assert.deepEqual(state.recognised[0].languages, ['hr']);
 

@@ -34,13 +34,16 @@ function cleanMode(mode) {
   return MODE_NAME.test(trimmed) ? trimmed : null;
 }
 
-/** A full Windows path to an .exe, with nothing that could smuggle in more arguments. */
+/**
+ * A full local path to the app's own exe (Pauli Speaks.exe, not a network share), with nothing that could smuggle
+ * in more arguments. Only the app is ever started, whatever is typed into the button's settings.
+ */
 function isAppExe(file) {
   return (
     typeof file === 'string' &&
     file.length < 1024 &&
-    /^([A-Za-z]:\\|\\\\)/.test(file) &&
-    /\.exe$/i.test(file) &&
+    /^[A-Za-z]:\\/.test(file) &&
+    path.win32.basename(file).toLowerCase() === EXE_NAME.toLowerCase() &&
     !/["\x00-\x1f]/.test(file)
   );
 }
@@ -64,11 +67,13 @@ function commandFor(action, settings) {
 }
 
 /** The process to start for a command, or null for anything that isn't one of ours. */
-function launchFor(command) {
+function launchFor(command, env = process.env) {
   if (!command) return null;
   if (command.kind === 'link' && typeof command.url === 'string' && command.url.startsWith(`${PROTOCOL}://`)) {
-    // Asks Windows to open the link, which hands it to the running app (or starts it).
-    return { file: 'rundll32.exe', args: ['url.dll,FileProtocolHandler', command.url] };
+    // Asks Windows to open the link, which hands it to the running app (or starts it). rundll32 by its full path,
+    // so a rundll32.exe in the current folder is never the one that runs.
+    const rundll32 = path.win32.join(env.SystemRoot || env.windir || 'C:\\Windows', 'System32', 'rundll32.exe');
+    return { file: rundll32, args: ['url.dll,FileProtocolHandler', command.url] };
   }
   if (command.kind === 'exe' && isAppExe(command.file)) return { file: command.file, args: command.args };
   return null;

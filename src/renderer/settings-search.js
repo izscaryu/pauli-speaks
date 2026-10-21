@@ -34,7 +34,10 @@
     if (!page) return { apply() {} };
     const panels = () => [...page.querySelectorAll(':scope > section.panel')];
     const titleOf = (panel) => (panel.querySelector('h2') || {}).textContent || '';
-    const rowsOf = (panel) => [...panel.querySelectorAll('.row')];
+    // Rows that their own code hides (a part of the panel that doesn't apply) are left out of the search, and the
+    // search hides with its own class, so it never shows what that code hid.
+    const rowsOf = (panel) => [...panel.querySelectorAll('.row')].filter((row) => !row.parentElement.closest('[hidden]') && !row.hidden);
+    const miss = (node, on) => node.classList.toggle('search-miss', on);
 
     const box = document.createElement('input');
     box.type = 'search';
@@ -69,10 +72,11 @@
       const list = panels();
       const result = filterSections(list.map((p) => ({ title: titleOf(p), rows: rowsOf(p).map((r) => r.textContent) })), box.value);
       list.forEach((panel, i) => {
-        panel.hidden = !result[i].show;
-        rowsOf(panel).forEach((row, j) => { row.hidden = !result[i].rows[j]; });
+        miss(panel, !result[i].show);
+        panel.querySelectorAll('.row.search-miss').forEach((row) => miss(row, false));
+        rowsOf(panel).forEach((row, j) => miss(row, !result[i].rows[j]));
       });
-      [...sections.children].forEach((link, i) => { link.hidden = !result[i] || !result[i].show; });
+      [...sections.children].forEach((link, i) => miss(link, !result[i] || !result[i].show));
       empty.hidden = result.some((r) => r.show);
     }
 

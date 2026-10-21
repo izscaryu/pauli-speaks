@@ -687,3 +687,4 @@ h1[tabindex="-1"]:focus { outline: none; } /* focused by the navigation for scre
   .switch input:checked + span { background: Highlight; }
   html.mica main, html.mica .sidebar { background: Canvas; }
 }
+.search-miss { display: none !important; } /* settings-search.js: not what the search is looking for */

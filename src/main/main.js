@@ -888,14 +888,15 @@ function registerIpc() {
   ipcMain.on('overlay:action', (_e, id) => (String(id).startsWith('unpolish-') ? polishUndo.take(String(id)) : flow.runPillAction(String(id)))
     .catch((err) => log.error('Pill action failed', err)));
   ipcMain.on('overlay:language', () => {
-    if (controller.status !== 'listening' || !canSwitchLanguage(settings.get().languages)) return;
+    if (controller.status !== 'listening' || controller.command || !canSwitchLanguage(settings.get().languages)) return;
     pickedLanguage = nextLanguage(pickedLanguage, settings.get().languages);
     sendOverlayState(listeningState());
   });
   ipcMain.on('overlay:moved', (_e, screenX) => {
     if (!Number.isFinite(screenX)) return;
     const wa = screen.getDisplayNearestPoint({ x: Math.round(screenX), y: screen.getCursorScreenPoint().y }).workArea;
-    settings.update({ pillPosition: snapPosition(screenX, wa) });
+    const position = snapPosition(screenX, wa);
+    if (position !== settings.get().pillPosition) settings.update({ pillPosition: position });
     positionOverlay();
   });
   ipcMain.on('overlay:hover', (_e, inside) => {
