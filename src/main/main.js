@@ -71,7 +71,7 @@ const { e2eEnabled, createE2E } = require('./e2e');
 const { createLanguageHints } = require('./language-hints');
 const { readChangelog } = require('./changelog');
 const { registerI18nIpc } = require('./i18n-ipc');
-const { trayTemplate, trayHints } = require('./tray-menu');
+const { trayTemplate, trayHints, trayIcon } = require('./tray-menu');
 const { t, languageName } = require('./strings');
 const { REPO } = require('./repo');
 
@@ -999,6 +999,7 @@ function init() {
   });
   controller.on('status', ({ status, locked }) => {
     if (status === 'listening') sendOverlayState(listeningState());
+    tray?.setImage(nativeImage.createFromPath(asset(trayIcon(status))));
     const live = listeningState();
     broadcast('dictation:status', { status, locked, translateTo: live.translateTo, mode: live.mode, chip: status === 'idle' ? null : live.chip });
     updateTrayMenu();

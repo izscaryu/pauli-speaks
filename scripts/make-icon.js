@@ -1,5 +1,5 @@
 'use strict';
-// Generates assets/icon.png (256px app icon) and assets/tray.png (32px) with a
+// Generates assets/icon.png (256px app icon: an ink squircle with a coral voice line) and the 32px tray icons, with a
 // tiny PNG encoder - no image dependencies. Run: npm run icon
 
 const fs = require('node:fs');
@@ -50,44 +50,34 @@ function sdRoundRect(px, py, cx, cy, hw, hh, r) {
   const qy = Math.abs(py - cy) - hh + r;
   return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
 }
-function sdArc(px, py, cx, cy, radius, thick) {
-  // lower half-ring (the microphone holder "U")
-  if (py >= cy) return Math.abs(Math.hypot(px - cx, py - cy) - radius) - thick / 2;
-  const d1 = Math.hypot(px - (cx - radius), py - cy);
-  const d2 = Math.hypot(px - (cx + radius), py - cy);
-  return Math.min(d1, d2) - thick / 2;
+/** Inside the squircle (a superellipse, like Windows 11 app tiles): <= 0. Approximate distance, fine for edges. */
+function sdSquircle(px, py, half, n = 5) {
+  const x = Math.abs(px - 0.5) / half;
+  const y = Math.abs(py - 0.5) / half;
+  return (Math.pow(Math.pow(x, n) + Math.pow(y, n), 1 / n) - 1) * half;
 }
 
-function draw(size) {
+const INK = [29, 28, 26];
+// The voice line: five rounded bars, tallest in the middle, in one signal colour.
+const BARS = [0.16, 0.3, 0.42, 0.3, 0.16];
+const COLOURS = { idle: [241, 239, 233], coral: [255, 106, 82], amber: [224, 163, 71] };
+
+function draw(size, bar) {
   const px = Buffer.alloc(size * size * 4);
   const aa = 1.2 / size;
+  const step = 0.11;
+  const w = size <= 32 ? 0.075 : 0.06; // thicker bars where pixels are few
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const u = (x + 0.5) / size;
       const v = (y + 0.5) / size;
-      // rounded badge with a violet -> cyan diagonal gradient
-      const d = sdRoundRect(u, v, 0.5, 0.5, 0.46, 0.46, 0.22);
-      const a = clamp(0.5 - d / aa, 0, 1);
-      const t = clamp(u * 0.6 + v * 0.4, 0, 1) * 0.55;
-      let r = 108 + (63 - 108) * t;
-      let g = 92 + (196 - 92) * t;
-      let b = 246 + (240 - 246) * t;
-      // white microphone glyph
-      const cap = sdRoundRect(u, v, 0.5, 0.39, 0.095, 0.17, 0.095);
-      const arc = sdArc(u, v, 0.5, 0.45, 0.19, 0.045);
-      const stem = sdRoundRect(u, v, 0.5, 0.72, 0.0225, 0.07, 0.01);
-      const base = sdRoundRect(u, v, 0.5, 0.79, 0.12, 0.0225, 0.0225);
-      const gcov = clamp(0.5 - Math.min(cap, arc, stem, base) / aa, 0, 1);
-      const outA = gcov + a * (1 - gcov);
-      if (outA > 0) {
-        r = (255 * gcov + r * a * (1 - gcov)) / outA;
-        g = (255 * gcov + g * a * (1 - gcov)) / outA;
-        b = (255 * gcov + b * a * (1 - gcov)) / outA;
-      }
+      const tile = clamp(0.5 - sdSquircle(u, v, 0.47) / aa, 0, 1);
+      let line = Infinity;
+      BARS.forEach((h, i) => { line = Math.min(line, sdRoundRect(u, v, 0.5 + (i - 2) * step, 0.5, w / 2, h / 2, w / 2)); });
+      const gcov = clamp(0.5 - line / aa, 0, 1) * tile;
+      const outA = gcov + tile * (1 - gcov);
       const i = (y * size + x) * 4;
-      px[i] = Math.round(r);
-      px[i + 1] = Math.round(g);
-      px[i + 2] = Math.round(b);
+      for (let c = 0; c < 3; c++) px[i + c] = outA > 0 ? Math.round((bar[c] * gcov + INK[c] * tile * (1 - gcov)) / outA) : 0;
       px[i + 3] = Math.round(outA * 255);
     }
   }
@@ -96,6 +86,9 @@ function draw(size) {
 
 const out = path.join(__dirname, '..', 'assets');
 fs.mkdirSync(out, { recursive: true });
-fs.writeFileSync(path.join(out, 'icon.png'), draw(256));
-fs.writeFileSync(path.join(out, 'tray.png'), draw(32));
-console.log('Wrote assets/icon.png and assets/tray.png');
+fs.writeFileSync(path.join(out, 'icon.png'), draw(256, COLOURS.coral));
+// Tray (tray-menu.js trayIcon): idle, listening (coral, the colour of recording) and processing (amber).
+fs.writeFileSync(path.join(out, 'tray.png'), draw(32, COLOURS.idle));
+fs.writeFileSync(path.join(out, 'tray-listening.png'), draw(32, COLOURS.coral));
+fs.writeFileSync(path.join(out, 'tray-processing.png'), draw(32, COLOURS.amber));
+console.log('Wrote assets/icon.png and the tray icons');

@@ -35,4 +35,7 @@ function trayHints({ hold, any }) {
   };
 }
 
-module.exports = { trayTemplate, trayHints };
+/** The tray icon for the dictation status (assets/, drawn by scripts/make-icon.js): coral bars while listening, amber while working. */
+const trayIcon = (status) => (status === 'listening' ? 'tray-listening.png' : status === 'processing' ? 'tray-processing.png' : 'tray.png');
+
+module.exports = { trayTemplate, trayHints, trayIcon };

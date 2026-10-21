@@ -51,3 +51,11 @@ test('hints name the first hold shortcut, else any dictate shortcut, else the ba
   assert.equal(trayHints({ hold: '', any: '' }).tooltip, 'Pauli Speaks - click the bar to dictate');
   assert.match(trayHints({ hold: '', any: '' }).balloon, /^Click the bar to dictate/);
 });
+
+test('trayIcon: the tray shows whether Pauli Speaks is listening or working', () => {
+  const { trayIcon } = require('../src/main/tray-menu');
+  assert.equal(trayIcon('idle'), 'tray.png');
+  assert.equal(trayIcon('listening'), 'tray-listening.png');
+  assert.equal(trayIcon('processing'), 'tray-processing.png');
+  assert.equal(trayIcon('anything else'), 'tray.png');
+});
