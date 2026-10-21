@@ -3,7 +3,7 @@
 // button. Retry transcribes the recording Pauli Speaks kept in memory, fills in the entry and
 // copies the text (it isn't typed anywhere). Without a saved recording it is gone after a restart.
 // With "Keep recordings for 24 hours" on the recording is also saved on disk: it can be played and retried after a restart.
-// Loaded after app.js; uses these app.js globals: api, el, toast, ICONS, and HistoryAudio.
+// Loaded after app.js; uses these app.js globals: api, el, toast, ICONS, timeOf, timeWithSeconds, and HistoryAudio.
 
 const FailedHistory = (() => {
   async function retry(entry, button) {
@@ -22,7 +22,7 @@ const FailedHistory = (() => {
     const retryBtn = entry.canRetry ? el('button', { class: 'btn', 'aria-label': t('history.failed.retryLabel') }, t('common.retry')) : null;
     retryBtn?.addEventListener('click', () => retry(entry, retryBtn));
     return el('div', { class: 'item failed' },
-      el('time', { datetime: entry.createdAt }, I18n.date(d, { hour: '2-digit', minute: '2-digit' })),
+      el('time', { datetime: entry.createdAt, title: timeWithSeconds(d) }, timeOf(d)),
       el('div', {},
         el('p', {}, t('history.failed.title')),
         el('div', { class: 'meta' },

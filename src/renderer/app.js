@@ -132,7 +132,8 @@ async function save(patch, message = t('common.saved')) {
 }
 
 const fmtNum = (n) => (n >= 10000 ? I18n.num(n, { notation: 'compact', maximumFractionDigits: 1 }) : I18n.num(n));
-const timeOf = (d) => I18n.date(d, { hour: '2-digit', minute: '2-digit' });
+const timeOf = (d) => I18n.date(d, { hour: 'numeric', minute: '2-digit' });
+const timeWithSeconds = (d) => I18n.date(d, { hour: 'numeric', minute: '2-digit', second: '2-digit' }); // the tooltip: two at the same minute
 const modelSlug = (id) => String(id).split('/').pop();
 const modelNoteText = (m) => t(`models.note.${modelSlug(m.id)}`);
 
@@ -263,7 +264,7 @@ function historyItem(item) {
     item.translatedTo
       ? el('span', { class: 'tag tr' }, `${code(item.language)} → ${code(item.translatedTo)}`)
       : item.language ? el('span', { class: 'tag' }, code(item.language)) : null,
-    item.app ? el('span', { class: 'tag app' }, item.app.replace(/\.exe$/i, '')) : null,
+    item.app ? el('span', { class: 'tag app', title: item.app }, AppNames.appName(item.app)) : null,
     t('history.meta', { count: item.words, secs, engine: item.engine }));
   const body = el('div', {},
     item.instruction ? el('div', { class: 'instr' }, `“${item.instruction}”`) : null,
@@ -280,7 +281,7 @@ function historyItem(item) {
     body.insertBefore(orig, meta);
   }
   return el('div', { class: 'item' },
-    el('time', { datetime: item.createdAt }, timeOf(d)),
+    el('time', { datetime: item.createdAt, title: timeWithSeconds(d) }, timeOf(d)),
     body,
     el('div', { class: 'actions' },
       ...HistoryAudio.buttons(item), // history-audio.js

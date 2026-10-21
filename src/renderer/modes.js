@@ -3,7 +3,7 @@
 // name, colour, language, translation, style, voice commands, AI polish (level and own instructions), the apps that
 // switch it on (with recent apps from History to pick from) and the shortcuts and link that open it. The main process checks every change (modes.js).
 // Loaded after app.js; uses these app.js globals: api, $, el, save, settings, toast, ICONS, LANGUAGES, LANG_NAME,
-// STYLES, bindingChips, recentApps, modelState, showPage.
+// STYLES, bindingChips, recentApps, modelState, showPage; and AppNames (app-names.js).
 
 const Modes = (() => {
   const BUILTIN = new Set(['default', 'chat', 'code', 'formal', 'translate']);
@@ -21,7 +21,7 @@ const Modes = (() => {
   }
 
   const find = (id) => (settings.modes || []).find((m) => m.id === id) || null;
-  const appName = (exe) => exe.replace(/\.exe$/i, '');
+  const appName = (exe) => AppNames.appName(exe); // app-names.js: "Word", not WINWORD.EXE
 
   /** "Translate → English · Formal · outlook, olk" */
   function summary(m) {
@@ -138,21 +138,21 @@ const Modes = (() => {
       const name = raw.trim().toLowerCase();
       if (!name) return;
       const exe = name.endsWith('.exe') ? name : `${name}.exe`;
-      if (m.apps.includes(exe)) return toast(t('modes.apps.already', { name: exe }));
-      update({ apps: [...m.apps, exe] }, t('common.addedItem', { name: exe }));
+      if (m.apps.includes(exe)) return toast(t('modes.apps.already', { name: appName(exe) }));
+      update({ apps: [...m.apps, exe] }, t('common.addedItem', { name: appName(exe) }));
     };
     const input = el('input', { id: 'mode-app', type: 'text', list: 'mode-recent-apps', placeholder: t('styles.appFile'), 'aria-label': t('modes.apps.add') });
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(input.value); } });
     const recent = recentApps.filter((a) => !m.apps.includes(a.toLowerCase())).slice(0, 6);
     return field(t('modes.apps'), t('modes.apps.hint'), el('div', { class: 'app-chips' },
-      ...m.apps.map((a) => el('span', { class: 'app-chip' }, a, el('button', {
-        type: 'button', title: t('common.remove'), 'aria-label': t('common.removeItem', { name: a }), html: ICONS.x,
-        onclick: () => update({ apps: m.apps.filter((x) => x !== a) }, t('common.removedItem', { name: a })),
+      ...m.apps.map((a) => el('span', { class: 'app-chip', title: a }, appName(a), el('button', {
+        type: 'button', title: t('common.remove'), 'aria-label': t('common.removeItem', { name: appName(a) }), html: ICONS.x,
+        onclick: () => update({ apps: m.apps.filter((x) => x !== a) }, t('common.removedItem', { name: appName(a) })),
       }))),
       el('span', { class: 'app-add' }, input, el('button', { class: 'btn', type: 'button', onclick: () => add(input.value) }, t('common.add'))),
       el('datalist', { id: 'mode-recent-apps' }, ...recent.map((a) => el('option', { value: a }))),
       recent.length ? el('div', { class: 'recent-apps' }, el('span', { class: 'desc' }, t('modes.apps.recent')),
-        ...recent.map((a) => el('button', { class: 'btn quiet small', type: 'button', 'aria-label': t('modes.apps.addRecent', { name: a }), onclick: () => add(a) }, `+ ${a}`))) : null));
+        ...recent.map((a) => el('button', { class: 'btn quiet small', type: 'button', title: a, 'aria-label': t('modes.apps.addRecent', { name: appName(a) }), onclick: () => add(a) }, `+ ${appName(a)}`))) : null));
   }
 
   function startField(m) {
