@@ -129,23 +129,27 @@ main {
 .key {
   display: inline-grid;
   place-items: center;
-  min-width: 26px;
+  min-width: 28px;
   height: 24px;
-  padding: 0 7px;
+  padding: 0 8px;
   border: 1px solid var(--key-edge);
   border-bottom-width: 3px;
-  border-radius: 6px;
+  border-radius: var(--r-ctl);
   background: var(--key-top);
   color: var(--ink);
   font: 600 var(--fs-caption)/1 var(--mono);
   white-space: nowrap;
+  transition-property: transform, border-bottom-width, background-color, color, border-color;
+  transition-duration: var(--d-fast);
 }
+/* Pressed while you dictate: the key goes down and turns coral (app.js renderLive). */
+.key.pressed { transform: translateY(2px); border-bottom-width: 1px; border-color: var(--key-pressed); background: var(--live-soft); color: var(--key-pressed); }
 /* "Not set": a flat, dashed slot rather than a keycap. Its own padding, or the list rule .empty (28px) wins. */
 .key.empty {
   padding: 0 8px;
   border-style: dashed;
   border-bottom-width: 1px;
-  border-color: color-mix(in srgb, var(--ink-3) 55%, transparent); /* visible on light and dark */
+  border-color: var(--stroke-strong);
   background: transparent;
   color: var(--ink-3);
   font-family: inherit;
@@ -161,24 +165,28 @@ main {
 .statline span { color: var(--ink-3); font-size: var(--fs-caption); }
 
 /* ---------- inputs */
+/* Fields (Windows 11 TextBox): card fill, control edges and a darker bottom edge that says "type here". */
 input, select, textarea {
   width: 100%;
-  min-height: 36px;
-  padding: 7px 11px;
+  min-height: 32px;
+  padding: 5px 10px;
   border: 1px solid var(--stroke-control);
-  border-radius: 8px;
+  border-radius: var(--r-ctl);
   background: var(--card);
   color: var(--ink);
-  border-bottom-color: var(--stroke-strong); /* the edge that says "type here", as Windows 11 text boxes have */
+  border-bottom-color: var(--stroke-strong);
   font: inherit;
   outline: none;
   transition-property: border-color, box-shadow;
-  transition-duration: 120ms;
+  transition-duration: var(--d-fast);
 }
+::placeholder { color: var(--ink-3); opacity: 1; }
+input[aria-invalid="true"], textarea[aria-invalid="true"] { border-bottom-color: var(--danger); box-shadow: inset 0 -1px 0 var(--danger); }
+input:disabled, select:disabled, textarea:disabled { color: var(--ink-disabled); border-bottom-color: var(--stroke-control); }
 /* One focus mark on a field: its bottom edge turns to a 2 px accent line (no outline, no halo on top). */
 input:focus, select:focus, textarea:focus { border-bottom-color: var(--accent); box-shadow: inset 0 -1px 0 var(--accent); }
 input:not([type=checkbox], [type=radio], [type=range]):focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
-select { width: auto; min-width: 200px; }
+select { width: auto; min-width: 200px; max-width: 320px; }
 
 .pad { display: flex; flex-direction: column; gap: 6px; }
 .pad-label { font: var(--t-body-strong); color: var(--ink); }
@@ -203,54 +211,64 @@ select { width: auto; min-width: 200px; }
 .item p { margin: 0; white-space: pre-wrap; word-break: break-word; text-wrap: pretty; }
 .item .orig { margin-top: 4px; color: var(--ink-2); font-size: var(--fs-body); }
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; color: var(--ink-3); font-size: var(--fs-caption); }
-.tag { padding: 1px 7px; border-radius: 999px; background: var(--sunken); color: var(--ink-2); font-size: var(--fs-caption); font-weight: 600; line-height: 1.6; }
+/* Badges: 20 px, neutral (translation, AI, the app, the language), never mono; .badge has a tone. */
+.tag, .badge { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--r-ctl); background: var(--sunken); color: var(--ink-2); font: 600 var(--fs-caption)/1 var(--font); white-space: nowrap; }
 .linkish { border: 0; padding: 0; background: none; color: var(--accent); font: inherit; font-size: var(--fs-caption); cursor: pointer; }
 .actions { display: flex; gap: 2px; opacity: 0; transition: opacity 120ms; }
 .item:hover .actions, .item:focus-within .actions { opacity: 1; }
+/* Icon buttons: subtle, 36 px in lists and 32 elsewhere, named by a tooltip (tooltip.js). */
 .icon-btn {
   display: grid;
   place-items: center;
   width: 36px;
   height: 36px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--r-ctl);
   background: transparent;
   color: var(--ink-2);
   cursor: pointer;
   transition-property: background-color, color, transform;
-  transition-duration: 120ms;
+  transition-duration: var(--d-fast);
 }
-.icon-btn:hover { background: var(--sunken); color: var(--ink); }
-.icon-btn:active { transform: scale(0.94); }
-.icon-btn.danger:hover { color: var(--danger); }
+.icon-btn:hover { background: var(--subtle-fill); color: var(--ink); }
+.icon-btn:active { background: var(--subtle-fill-strong); transform: scale(0.97); }
+.icon-btn.danger:hover { background: var(--danger-soft); color: var(--danger); }
 .icon-btn .icon { width: 16px; height: 16px; }
 .empty { padding: 28px 0; color: var(--ink-3); text-align: center; }
 
 /* ---------- buttons */
+/* Buttons (Windows 11): 32 px, regular weight. Secondary (.btn) = card fill with a control edge; primary = ink
+   fill, 600; quiet = subtle (no fill until hover); link = accent text; danger = red text, and a red fill only as
+   the primary button of a dialog. Pressed = 97 %. Disabled = grey text and no hover. */
 .btn {
-  min-height: 34px;
-  padding: 0 14px;
+  min-height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--stroke-control);
-  border-radius: 8px;
+  border-bottom-color: color-mix(in srgb, var(--stroke-strong) 40%, var(--stroke-control));
+  border-radius: var(--r-ctl);
   background: var(--card);
   color: var(--ink);
-  font-family: inherit;
-  font-size: var(--fs-body);
-  font-weight: 600;
+  font: var(--t-body);
   white-space: nowrap;
   cursor: pointer;
-  transition-property: background-color, border-color, transform;
-  transition-duration: 120ms;
+  transition-property: background-color, border-color, transform, opacity;
+  transition-duration: var(--d-fast);
 }
-.btn:hover { border-color: var(--ink-3); }
+.btn:hover { background: var(--card-hover); border-color: var(--stroke-strong); }
 .btn:active { transform: scale(0.97); }
-.btn.primary { border-color: var(--ink); background: var(--ink); color: var(--on-primary); }
+.btn.primary { border-color: var(--ink); background: var(--ink); color: var(--on-primary); font-weight: 600; }
+.btn.primary:hover { opacity: 0.9; }
+.btn.primary:active { opacity: 0.8; }
 .btn.quiet { border-color: transparent; background: transparent; color: var(--ink-2); }
-.btn.quiet:hover { background: var(--sunken); color: var(--ink); }
-.btn:disabled { opacity: 0.5; cursor: default; transform: none; }
-.btn.danger { border-color: color-mix(in srgb, var(--danger) 45%, transparent); color: var(--danger); }
-.btn.danger:hover { border-color: var(--danger); }
-.btn.danger.primary { border-color: var(--danger-fill); background: var(--danger-fill); color: var(--on-color); }
+.btn.quiet:hover { background: var(--subtle-fill); color: var(--ink); }
+.btn.link { min-height: 24px; padding: 0; border-color: transparent; background: none; color: var(--accent); text-decoration: underline transparent; }
+.btn.link:hover { text-decoration-color: currentColor; }
+.btn.link:active { transform: none; }
+.btn:disabled, .btn:disabled:hover { border-color: var(--stroke-card); background: var(--card); color: var(--ink-disabled); opacity: 1; cursor: default; transform: none; }
+.btn.quiet:disabled, .btn.link:disabled { border-color: transparent; background: transparent; }
+.btn.danger { border-color: transparent; background: transparent; color: var(--danger); }
+.btn.danger:hover { background: var(--danger-soft); }
+.btn.danger.primary { border-color: var(--danger-fill); background: var(--danger-fill); color: var(--on-color); font-weight: 600; }
 
 /* Settings → Privacy: the in-page confirmation for the two delete buttons */
 .confirm { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); border-radius: var(--r-card); background: var(--danger-soft); }
@@ -281,50 +299,57 @@ label.row { cursor: pointer; }
 .row .err { grid-column: 1 / -1; color: var(--danger); font-size: var(--fs-caption); }
 .row.recording .chips { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 8px; }
 
-.switch { position: relative; display: inline-block; width: 40px; height: 22px; flex: none; }
+.switch { position: relative; display: inline-block; width: 40px; height: 20px; flex: none; }
 .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
 /* Off: an outlined track with a grey knob, so it can't be mistaken for disabled. On: filled, with a white knob. */
-.switch span { position: absolute; inset: 0; border: 1px solid var(--stroke-strong); border-radius: 999px; background: transparent; transition-property: background-color, border-color; transition-duration: 150ms; pointer-events: none; }
+.switch span { position: absolute; inset: 0; border: 1px solid var(--stroke-strong); border-radius: var(--r-full); background: transparent; transition-property: background-color, border-color; transition-duration: var(--d-normal); pointer-events: none; }
 .switch span::after {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--r-full);
   background: var(--ink-2);
-  transition-property: transform, background-color;
-  transition-duration: 150ms;
-  transition-timing-function: ease-out;
+  transition-property: transform, width, height, top, left, background-color;
+  transition-duration: var(--d-normal);
+  transition-timing-function: var(--ease-standard);
 }
+/* Hover: the knob grows 2 px. Pressed: it stretches. */
+.switch:hover span::after { top: 2px; left: 2px; width: 14px; height: 14px; }
+.switch:active span::after { width: 17px; }
 .switch input:checked + span { border-color: var(--toggle-on); background: var(--toggle-on); }
-.switch input:checked + span::after { background: var(--on-color); box-shadow: var(--shadow-knob); }
-.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:checked + span::after { top: 2px; left: 2px; width: 14px; height: 14px; background: var(--on-color); box-shadow: var(--shadow-knob); transform: translateX(20px); }
+.switch:hover input:checked + span::after { top: 1px; left: 1px; width: 16px; height: 16px; }
+.switch:active input:checked + span::after { width: 17px; transform: translateX(19px); }
 .switch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
 .switch input:disabled { cursor: default; }
-.switch input:disabled + span { opacity: 0.4; }
+.switch input:disabled + span { border-color: var(--ink-disabled); }
+.switch input:disabled + span::after { background: var(--ink-disabled); }
 
-.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 10px; background: var(--sunken); }
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 2px; border-radius: var(--r-ctl); background: var(--sunken); }
 .segmented.small { display: inline-grid; grid-template-columns: auto auto; }
 .segmented button {
-  min-height: 34px;
-  padding: 6px 14px;
-  border: 0;
-  border-radius: 7px;
+  min-height: 28px;
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--r-ctl);
   background: transparent;
   color: var(--ink-2);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition-property: background-color, color, box-shadow;
-  transition-duration: 120ms;
+  transition-property: background-color, color, border-color;
+  transition-duration: var(--d-fast);
 }
+.segmented button:hover { background: var(--subtle-fill); color: var(--ink); }
+.segmented button:disabled { color: var(--ink-disabled); background: transparent; cursor: default; }
 .segmented button b { display: block; color: var(--ink); }
 .segmented button small { color: var(--ink-3); font-size: var(--fs-caption); }
 .segmented button { position: relative; }
 /* The chosen one: a card fill with an edge, and an accent line under it (dark used to tell them apart by 1.1:1). */
-.segmented button.active { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: var(--shadow-card), inset 0 0 0 1px var(--stroke-card); }
+.segmented button.active { border-color: var(--stroke-control); background: var(--card); color: var(--ink); font-weight: 600; }
 .segmented button.active::after { content: ""; position: absolute; left: 50%; bottom: 2px; width: 16px; height: 3px; margin-left: -8px; border-radius: 2px; background: var(--accent); }
 
 .model { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; min-height: 52px; padding: 8px 0; border-top: 1px solid var(--stroke-card); cursor: pointer; }
@@ -336,24 +361,35 @@ label.row { cursor: pointer; }
 
 .lang-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .lang-chips button {
-  min-height: 30px;
-  padding: 0 12px;
-  border: 1px solid var(--stroke-card);
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--stroke-control);
+  border-radius: var(--r-ctl);
   background: var(--card);
   color: var(--ink-2);
   font: inherit;
   font-size: var(--fs-body);
   cursor: pointer;
   transition-property: background-color, color, border-color;
-  transition-duration: 120ms;
+  transition-duration: var(--d-fast);
 }
-.lang-chips button.active { border-color: var(--ink); background: var(--ink); color: var(--on-primary); }
+.lang-chips button:hover { border-color: var(--stroke-strong); color: var(--ink); }
+/* Chosen: an accent tint and a check (icons.js puts it in, so it isn't colour alone). */
+.lang-chips button.active { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.lang-chips .icon { width: 12px; height: 12px; }
 
-.meter { height: 4px; overflow: hidden; border-radius: 4px; background: var(--stroke-card); }
-.meter.big { height: 8px; margin: 4px 0 6px; }
-.meter i { display: block; width: 0; height: 100%; background: var(--warn); transition: width 120ms linear; }
-.meter.big i { background: var(--ok); }
+/* Progress: a 4 px accent bar on a stroke track; .indeterminate when there is no percent. */
+.meter { height: 4px; overflow: hidden; border-radius: 2px; background: var(--stroke-card); }
+.meter.big { margin: 4px 0 6px; }
+.meter i { display: block; width: 0; height: 100%; border-radius: 2px; background: var(--accent); transition: width var(--d-fast) linear; }
+.meter.indeterminate i { width: 30%; animation: shimmer 1.2s var(--ease-standard) infinite; }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+/* The microphone level: 12 segments of 6 x 12 px, grey, filling green as you speak. */
+.meter.level { width: 94px; height: 12px; border-radius: 0; background: repeating-linear-gradient(90deg, var(--stroke-control) 0 6px, transparent 6px 8px); }
+.meter.level i { border-radius: 0; background: repeating-linear-gradient(90deg, var(--ok) 0 6px, transparent 6px 8px); background-size: 94px 100%; transition-duration: 60ms; }
 
 /* ---------- banner */
 .banner { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: var(--r-card); background: var(--warn-soft); }
@@ -469,7 +505,10 @@ input[type=range] { width: 200px; min-height: 0; padding: 0; accent-color: var(-
 .group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 6px 0 -10px; }
 .group-head .group-title { margin: 0; }
 .panel.flush { padding: 0; gap: 0; }
-.badge { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); font-size: var(--fs-caption); font-weight: 600; vertical-align: 1px; }
+.badge { margin-left: 8px; vertical-align: 1px; background: var(--ok-soft); color: var(--ok); }
+.badge.info { background: var(--info-soft); color: var(--info); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.danger { background: var(--danger-soft); color: var(--danger); }
 .muted { color: var(--ink-3); }
 
 .tester {
@@ -675,13 +714,22 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; } /* focused b
 }
 /* Windows contrast themes: system colours, with borders where colour alone told things apart. */
 @media (forced-colors: active) {
-  .btn, input, select, textarea, .panel, .key, .segmented, .switch span, .tag, .chip { border: 1px solid CanvasText; }
+  .btn, input, select, textarea, .panel, .key, .segmented, .switch span, .tag, .badge, .chip, .lang-chips button, .tooltip, .dialog { border: 1px solid CanvasText; }
+  .btn:disabled { border-color: GrayText; color: GrayText; }
+  .switch span::after { forced-color-adjust: none; background: CanvasText; }
+  .switch input:checked + span { forced-color-adjust: none; background: Highlight; border-color: Highlight; }
+  .switch input:checked + span::after { background: HighlightText; }
+  .lang-chips button.active { border: 2px solid Highlight; }
+  .key.pressed { border-color: Highlight; }
+  .meter.level { forced-color-adjust: none; background: repeating-linear-gradient(90deg, GrayText 0 6px, transparent 6px 8px); }
+  .meter i, .meter.level i { forced-color-adjust: none; background: Highlight; }
   .nav[aria-current="page"] { outline: 2px solid Highlight; outline-offset: -2px; }
   :focus-visible { outline: 2px solid Highlight; }
-  .switch input:checked + span { background: Highlight; }
-  .segmented button.active::after { forced-color-adjust: none; background: Highlight; }
+  .segmented [aria-checked="true"]::after { forced-color-adjust: none; background: Highlight; }
   html.mica main, html.mica .sidebar { background: Canvas; }
 }
 .search-miss { display: none !important; } /* settings-search.js: not what the search is looking for */
 /* For screen readers and the keyboard only (the file input behind "Choose file…"). */
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+/* ---------- tooltip (tooltip.js): names an icon button after half a second, or at once on keyboard focus */
+.tooltip { position: fixed; z-index: 20; max-width: 320px; padding: 4px 8px; border-radius: var(--r-ctl); background: var(--ink); color: var(--on-primary); font: var(--t-caption); box-shadow: var(--shadow-tooltip); pointer-events: none; }

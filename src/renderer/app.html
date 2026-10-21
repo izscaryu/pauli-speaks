@@ -297,7 +297,7 @@
           </div>
           <div class="row">
             <div><div class="title" data-i18n="translation.quality.title">Quality</div><div id="tr-quality-desc" class="desc"></div></div>
-            <div class="segmented small" id="tr-quality">
+            <div class="segmented small" id="tr-quality" role="radiogroup" aria-label="Quality" data-i18n-aria-label="translation.quality.title">
               <button data-quality="fast" data-i18n="translation.quality.fast">Fast</button>
               <button data-quality="best" data-i18n="translation.quality.best">Best</button>
             </div>
@@ -311,7 +311,7 @@
 
       <section class="panel">
         <h2 data-i18n="speech.title">Speech recognition</h2>
-        <div class="segmented" id="engine">
+        <div class="segmented" id="engine" role="radiogroup" aria-label="Speech recognition" data-i18n-aria-label="speech.title">
           <button data-engine="local"><b data-i18n="speech.local.title">On this PC</b><small data-i18n="speech.local.desc">Free · private · works offline</small></button>
           <button data-engine="cloud"><b data-i18n="speech.cloud.title">Cloud API</b><small data-i18n="speech.cloud.desc">Groq free tier · fastest</small></button>
         </div>
@@ -319,7 +319,7 @@
           <div id="models"></div>
           <div class="row">
             <div><div class="title" data-i18n="accel.title">Acceleration</div><div class="desc" id="accel-desc"></div></div>
-            <div class="segmented small" id="accel">
+            <div class="segmented small" id="accel" role="radiogroup" aria-label="Acceleration" data-i18n-aria-label="accel.title">
               <button data-accel="auto" data-i18n="accel.gpu">GPU</button>
               <button data-accel="cpu" data-i18n="accel.cpu">CPU only</button>
             </div>
@@ -400,7 +400,7 @@
               <button id="mic-test" class="btn" data-i18n="common.test">Test</button>
             </div>
           </div>
-          <div id="mic-meter" class="meter big" hidden><i></i></div>
+          <div id="mic-meter" class="meter big level" hidden><i></i></div>
         </div>
       </section>
 
@@ -515,6 +515,7 @@
   <script src="i18n.js"></script>
   <script src="app-names.js"></script>
   <script src="icons.js"></script>
+  <script src="tooltip.js"></script>
   <script src="app.js"></script>
   <script src="modes.js"></script>
   <script src="polish.js"></script>

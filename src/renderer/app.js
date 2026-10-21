@@ -57,12 +57,15 @@ let dictation = { status: 'idle' };
 
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
+  const iconButton = /\bicon-btn\b/.test(attrs.class || '');
   for (const [k, v] of Object.entries(attrs)) {
     if (k === 'class') node.className = v;
+    else if (k === 'title' && iconButton && v) node.dataset.tooltip = v; // tooltip.js shows it (not the browser's title)
     else if (k === 'html') node.innerHTML = v; // only used with the static ICONS above
     else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
     else if (v !== undefined && v !== null && v !== false) node.setAttribute(k, v === true ? '' : v);
   }
+  if (iconButton && node.dataset.tooltip && !node.hasAttribute('aria-label')) node.setAttribute('aria-label', node.dataset.tooltip);
   for (const c of children.flat()) if (c != null) node.append(c instanceof Node ? c : String(c));
   return node;
 }
@@ -105,13 +108,47 @@ function bindingChips(b) {
 }
 const code = (c) => (c || '??').toUpperCase();
 
-/** A segmented control's choice: the chosen button looks pressed and says so to a screen reader (aria-pressed). */
+/** An icon from icons.js as a node, for el() children. */
+function icon(name) {
+  const box = document.createElement('span');
+  box.innerHTML = Icons.svg(name);
+  return box.firstChild;
+}
+
+/**
+ * A segmented control's choice. The control is a radio group: the chosen button is checked (aria-checked) and the
+ * only one in the Tab order; the arrow keys move the choice (below).
+ */
 function markChoice(selector, chosen) {
   document.querySelectorAll(selector).forEach((b) => {
     b.classList.toggle('active', chosen(b));
-    b.setAttribute('aria-pressed', String(chosen(b)));
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(chosen(b)));
+    b.tabIndex = chosen(b) ? 0 : -1;
   });
 }
+
+// Arrow keys in a segmented radio group choose the next or previous option (skipping disabled ones), as Windows
+// does. A choice that saves may draw the group again: focus then goes to the new button in the same place.
+document.addEventListener('keydown', (e) => {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  const group = step && e.target.closest?.('.segmented[role="radiogroup"]');
+  if (!group) return;
+  const options = [...group.querySelectorAll('[role="radio"]')];
+  const from = options.indexOf(e.target);
+  const next = [...options.slice(from + 1), ...options.slice(0, from)].filter((b) => !b.disabled).at(step > 0 ? 0 : -1);
+  if (!next) return;
+  e.preventDefault();
+  const at = options.indexOf(next);
+  next.focus();
+  next.click();
+  const until = Date.now() + 1000;
+  (function refocus() {
+    const now = document.getElementById(group.id)?.querySelectorAll('[role="radio"]')[at];
+    if (now && now !== document.activeElement && (!document.activeElement || document.activeElement === document.body)) return now.focus();
+    if (Date.now() < until) requestAnimationFrame(refocus);
+  })();
+});
 
 let toastTimer = null;
 function toast(text) {
@@ -178,6 +215,7 @@ document.querySelectorAll('.nav').forEach((b) =>
     if (rec) api.stopRecordingShortcut();
     rec = null;
     hideToast();
+    Tooltip.hide();
     renderShortcuts();
     if (b.dataset.page === 'settings') renderMics();
   }),
@@ -198,6 +236,14 @@ function renderStrip() {
   $('#cancel-chips').replaceChildren(...bindingChips(firstBinding('cancel')));
   $('#side-engine').textContent = modelLabel();
   $('#side-translate').textContent = translationLabel();
+  pressKeys();
+}
+
+/** Home's keycaps go down while you talk: Hold to talk while you hold it, Hands-free while it listens by itself. */
+function pressKeys() {
+  const listening = dictation.status === 'listening' && dictation.mode !== 'command';
+  document.querySelectorAll('#ptt-chips .key').forEach((k) => k.classList.toggle('pressed', listening && !dictation.locked));
+  document.querySelectorAll('#hf-chips .key').forEach((k) => k.classList.toggle('pressed', listening && !!dictation.locked));
 }
 
 /** Why dictation can't work yet: the chosen speech model is missing, downloading, loading or broken. [class, text] or null. */
@@ -217,6 +263,7 @@ function renderLive() {
   const { status, locked, translateTo, mode, chip } = dictation;
   const problem = status === 'listening' || status === 'processing' ? null : modelProblem();
   live.className = `live ${status === 'listening' ? 'listening' : status === 'processing' ? 'processing' : problem ? problem[0] : ''}`;
+  pressKeys();
   if (problem) {
     $('#live-text').textContent = problem[1];
     return;
@@ -557,11 +604,13 @@ function saveBindings(bindings, message) {
 function behaviourControl(b) {
   if (b.trigger === 'doubleTap') return el('span', { class: 'desc', title: t('shortcuts.doubleTapToggles') }, behaviourName('toggle'));
   const label = keyText(b.keys);
-  return el('div', { class: 'segmented small three', role: 'group', 'aria-label': t('shortcuts.behaviourFor', { keys: label }) },
+  return el('div', { class: 'segmented small three', id: `behaviour-${b.id}`, role: 'radiogroup', 'aria-label': t('shortcuts.behaviourFor', { keys: label }) },
     ...BEHAVIOURS.map((value) => el('button', {
       class: b.behaviour === value ? 'active' : '',
       title: t(`behaviour.${value}.hint`),
-      'aria-pressed': String(b.behaviour === value),
+      role: 'radio',
+      'aria-checked': String(b.behaviour === value),
+      tabindex: b.behaviour === value ? 0 : -1,
       onclick: () => b.behaviour !== value && saveBindings(settings.bindings.map((x) => (x.id === b.id ? { ...x, behaviour: value } : x)), t('shortcuts.behaviourSaved', { keys: label, behaviour: behaviourName(value) })),
     }, behaviourName(value))));
 }
@@ -862,11 +911,13 @@ function renderModels() {
 function renderLanguages() {
   const chosen = settings.languages || [];
   $('#languages').replaceChildren(
-    el('button', { class: chosen.length === 0 ? 'active' : '', onclick: () => save({ languages: [] }) }, t('speech.languages.auto')),
+    el('button', { class: chosen.length === 0 ? 'active' : '', 'aria-pressed': String(chosen.length === 0), onclick: () => save({ languages: [] }) },
+      chosen.length === 0 ? icon('check') : null, t('speech.languages.auto')),
     ...LANGUAGES.map(([c, name]) => el('button', {
       class: chosen.includes(c) ? 'active' : '',
+      'aria-pressed': String(chosen.includes(c)),
       onclick: () => save({ languages: chosen.includes(c) ? chosen.filter((x) => x !== c) : [...chosen, c] }),
-    }, name)));
+    }, chosen.includes(c) ? icon('check') : null, name)));
 }
 
 function renderAcceleration() {

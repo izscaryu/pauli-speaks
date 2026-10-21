@@ -64,7 +64,7 @@ const Welcome = (() => {
             chips.querySelector(`[data-lang="${c}"]`)?.focus();
           },
           'data-lang': c,
-        }, name)));
+        }, chosen.includes(c) ? icon('check') : null, name)));
         draw();
         body.append(
           title(t('welcome.languages.title')),
@@ -226,7 +226,7 @@ const Welcome = (() => {
             open();
           },
         });
-        meter = el('div', { class: 'meter big', role: 'presentation' }, el('i'));
+        meter = el('div', { class: 'meter big level', role: 'presentation' }, el('i'));
         status = el('p', { class: 'wm-status', role: 'status', 'aria-live': 'polite' });
         fix = el('button', { class: 'btn', hidden: true, onclick: () => api.openExternal(MIC_PRIVACY_URL) }, t('welcome.mic.openSettings'));
         body.append(title(t('welcome.mic.title')), select, meter, el('div', { class: 'inline' }, status, fix));

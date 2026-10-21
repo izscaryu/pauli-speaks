@@ -51,10 +51,10 @@ test('each Settings section link brings its section to the top, heading first, a
   }
   assert.deepEqual(off, []);
 
-  // A segmented control says which choice is on, to a screen reader too.
+  // A segmented control says which choice is on, to a screen reader too (a radio group, aria-checked).
   await page.click('#accel button[data-accel="cpu"]');
-  await waitFor(async () => (await page.getAttribute('#accel button[data-accel="cpu"]', 'aria-pressed')) === 'true', { what: 'CPU only pressed' });
-  assert.equal(await page.getAttribute('#accel button[data-accel="auto"]', 'aria-pressed'), 'false');
+  await waitFor(async () => (await page.getAttribute('#accel button[data-accel="cpu"]', 'aria-checked')) === 'true', { what: 'CPU only checked' });
+  assert.equal(await page.getAttribute('#accel button[data-accel="auto"]', 'aria-checked'), 'false');
 });
 
 test('the pill: a blocked or missing microphone gets a short message and a button that fixes it', async (t) => {
