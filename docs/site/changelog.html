@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's new · Pauli Speaks</title>
+<meta name="description" content="What changed in each version of Pauli Speaks, the free push-to-talk voice typing app for Windows.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="en" href="changelog.html">
+<link rel="alternate" hreflang="hr" href="hr/changelog.html">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Site"><a href="getting-started.html">Get started</a><a href="shortcuts.html">Shortcuts</a><a href="voice-commands.html">Voice commands</a><a href="privacy.html">Privacy</a><a href="compare.html">Compare</a><a href="faq.html">FAQ</a></nav>
+    <a class="lang" href="hr/changelog.html" hreflang="hr" lang="hr">Hrvatski</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page changelog">
+  <h1>What's new</h1>
+  <p class="lead">What changed in each version. The app shows the newest section once after an update.</p>
+  <p class="meta">The full list is <a href="https://github.com/izscaryu/pauli-speaks/blob/main/CHANGELOG.md">CHANGELOG.md</a>, and every version can be downloaded from <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub Releases</a>.</p>
+
+  <h2 id="v1.6.0">Version 1.6.0</h2>
+  <ul>
+    <li>AI polish (off by default): give a mode a level on the Modes page and an AI model tidies what you said before it is pasted. Light fixes punctuation and obvious mis-hearings, Medium also takes out repetitions and false starts, High rewrites clearly, and Prompt turns rambling into clear instructions for ChatGPT, Claude or a terminal, with file names and code kept exactly as said. Each mode can add its own instructions (&quot;Use British spelling&quot;).</li>
+    <li>It runs on your PC: Settings → AI polish finds Ollama and LM Studio, or sets up Foundry Local for you (it lists the models with their size and downloads one only after you confirm). The cloud API or another server works too, and Settings says next to each choice whether your text leaves the PC.</li>
+    <li>Polish never holds a dictation up: if the model takes longer than 2.5 seconds (4 in the cloud), fails, or answers with something that isn't your text, your words are pasted as you said them. Dictations under four words aren't polished.</li>
+    <li>After a polished paste the pill shows &quot;Polished. Undo&quot; for 4 seconds: Undo takes the polished text back and pastes what you said. History keeps both versions.</li>
+    <li>A Windows 11 look: on Windows 11 the window uses Mica (the desktop's colour shows through softly), with Windows 11 corners and type. The sidebar now reads Home, Shortcuts, Modes, Dictionary &amp; snippets, History, Files and Settings: History has its own page, and Home shows your three most recent dictations.</li>
+    <li>Settings has links to each section and a search box that keeps only the settings that match.</li>
+    <li>A new icon: an ink tile with a coral voice line. The tray icon shows when Pauli Speaks is listening (coral) or working (amber).</li>
+    <li>The pill: with two or more languages, click the language chip while you speak to pick the language for that dictation. Drag the pill to the left, the centre or the right of the screen, and it stays there.</li>
+    <li>Easier to use with a keyboard, a screen reader or a Windows contrast theme: the current page is announced, contrast themes use your system colours, text in the light theme is easier to read, and &quot;Reduce motion&quot; stops the pill's pulsing and the page animations.</li>
+    <li>Your settings file is brought up to date (the old one is kept as settings.v7.json).</li>
+  </ul>
+
+  <h2 id="v1.5.1">Version 1.5.1</h2>
+  <ul>
+    <li>Fixed: since 1.3.0 the installed app stopped part-way through starting. The tray icon, the floating bar, your shortcuts and automatic updates were missing, while the window still opened. If your copy is 1.3.0 to 1.5.0, end Pauli Speaks in Task Manager, then install this version from the GitHub releases page: the old version can't update itself.</li>
+  </ul>
+
+  <h2 id="v1.5.0">Version 1.5.0</h2>
+  <ul>
+    <li>Modes: a mode bundles the language you speak, a language to translate into, a style and voice commands. Give a mode its own shortcut (&quot;F13 → Croatian chat&quot;), let it switch on by itself when an app is in front (&quot;Outlook → formal English&quot;, &quot;VS Code → code style&quot;), or start it with a link or flag (<code>pauli-speaks://dictate/toggle?mode=code</code>, <code>--mode=code</code>). Set them up on the new Modes page.</li>
+    <li>Each Dictate shortcut has a mode: Automatic (the app in front decides) or one you pick. Dictate takes up to eight shortcuts, so each mode can have one.</li>
+    <li>The Switch mode shortcut works: it steps through your modes and back to Automatic, also while you talk. The pill shows the mode's colour and name while you dictate.</li>
+    <li>Your settings come along: App styles become the Chat, Code and Formal modes with the same apps, &quot;Always translate&quot; becomes a translating mode, and the Talk &amp; translate shortcut opens the new &quot;Translate to …&quot; mode. Your old settings file is kept as settings.v6.json.</li>
+    <li>Command mode listens in the language of the mode you are in.</li>
+    <li>Backups now carry your modes instead of app styles; a backup from an older version brings its app styles in as modes.</li>
+    <li>Settings → Speech shows the downloaded speech and translation models with their size and when each was last used, and deletes them one at a time.</li>
+  </ul>
+
+  <h2 id="v1.4.0">Version 1.4.0</h2>
+  <ul>
+    <li>Pauli Speaks speaks your language: the app, the welcome setup, the bar and the tray menu are in Croatian (Hrvatski) as well as English. It follows the Windows language; Settings → Language changes it. Dates and numbers follow it too.</li>
+    <li>Picking your languages in the welcome setup adds voice commands in them: German, Spanish, Italian, Polish, Slovenian and Serbian join English and Croatian (&quot;neue Zeile&quot;, &quot;abschicken&quot;, &quot;lösch das&quot;…).</li>
+    <li>A new language is one file: CONTRIBUTING.md explains how to translate Pauli Speaks.</li>
+  </ul>
+
+  <h2 id="v1.3.0">Version 1.3.0</h2>
+  <ul>
+    <li>Silence detection: only the parts where you speak go to the speech engine. If you say nothing, nothing is typed and the pill says &quot;No speech detected&quot;; if the microphone gives no sound at all, it says &quot;No sound. Is your mic muted?&quot; and warns you after 2 seconds while you are still recording. Settings has a &quot;Silence detection&quot; switch if words ever get cut.</li>
+    <li>With Silence detection on, hands-free auto-stop waits for you to stop speaking instead of for the room to get quiet, so background noise no longer keeps it going.</li>
+    <li>If a dictation can't be transcribed, the pill and the entry in History offer &quot;Retry&quot;, and your recording is kept until you quit. Esc now shows &quot;Cancelled. Undo&quot; for 4 seconds.</li>
+    <li>If the offline speech engine stops responding, the dictation now ends with &quot;Couldn't transcribe.&quot; and a Retry button instead of staying on &quot;processing&quot;, and the engine restarts by itself.</li>
+    <li>Fixed: started from Firefox's download list, the offline speech engine stopped at once (&quot;Speech engine stopped unexpectedly&quot;), because Windows handed it the older ONNX Runtime that recent Windows 11 updates put in System32. Pauli Speaks now always uses its own.</li>
+    <li>About has &quot;Report a problem&quot;: it copies diagnostic info (versions, settings and recent log lines, never what you dictated or your API key) and opens a bug report on GitHub to paste it into.</li>
+    <li>If Pauli Speaks crashes while you dictate, Home offers &quot;Recover your last dictation?&quot; the next time you start it.</li>
+    <li>Dictating into a window that runs as administrator no longer fails silently: the text is left on the clipboard and the pill says &quot;Copied. Press Ctrl+V (this app runs as administrator)&quot;.</li>
+    <li>Dictated text is kept out of Windows clipboard history (Win+V) and cloud clipboard sync.</li>
+    <li>New Settings → Privacy section: keep your transcript history, delete it after 24 hours or don't keep it; optionally keep recordings for 24 hours to play them back or transcribe them again; switch crash recovery off; &quot;Delete all my data&quot; and &quot;Delete downloaded models&quot;.</li>
+    <li>With the cloud engine and several languages chosen, a result in a language that isn't one of yours (Croatian heard as Polish or Bosnian, for example) is transcribed again in each of your languages, and the one the speech model is surest of is kept. If you keep speaking a language that isn't on your list (and isn't a close relative of one on it), Home asks &quot;Sounds like &lt;language&gt;. Add it to your languages?&quot;.</li>
+  </ul>
+
+  <h2 id="v1.2.0">Version 1.2.0</h2>
+  <ul>
+    <li>A guided setup opens the first time you start the app: it asks for your languages and microphone, picks a speech engine and shows what will be downloaded, lets you set your shortcut, and ends with a first dictation.</li>
+    <li>Settings has a &quot;Run setup again&quot; button if you want to go through it again. People who already use the app get a card on Home that offers the setup.</li>
+    <li>Home now warns you when Pauli Speaks can't see your shortcut, and when another dictation app is running that may use the same shortcut.</li>
+    <li>If a speech model is downloaded but fails to load, the error on Home has a &quot;Download again&quot; button that fetches it fresh.</li>
+    <li>A portable version (Pauli-Speaks-Portable) keeps its data in a folder next to the .exe and leaves nothing in the registry.</li>
+    <li>Settings has a new Backup section: export your shortcuts, voice commands, dictionary, snippets and app styles to a file and import them on another PC. API keys are never included.</li>
+    <li>About has &quot;Get early versions&quot; for trying pre-releases before everyone else. You still get every regular release.</li>
+  </ul>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="More pages">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="shortcuts.html">Shortcuts & pedals</a>
+      <a href="voice-commands.html">Voice commands</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="compare.html">Compared with others</a>
+      <a href="faq.html">FAQ & troubleshooting</a>
+      <a href="code-signing.html">Code signing policy</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Source code on GitHub</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licence</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Open-source licences</a>
+    </nav>
+    <p>Pauli Speaks is made by Patrik Pauli and is not affiliated with OpenAI or Microsoft. This site has no cookies, no analytics and no trackers. The Download button asks GitHub for the latest version; nothing else connects anywhere.</p>
+  </div>
+</footer>
+</body>
+</html>

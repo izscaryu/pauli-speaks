@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pauli Speaks compared with other dictation apps</title>
+<meta name="description" content="A dated, sourced comparison of Pauli Speaks with Windows voice typing (Win+H), Wispr Flow, Dragon Professional and other free Whisper dictation apps for Windows.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="en" href="compare.html">
+<link rel="alternate" hreflang="hr" href="hr/compare.html">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Site"><a href="getting-started.html">Get started</a><a href="shortcuts.html">Shortcuts</a><a href="voice-commands.html">Voice commands</a><a href="privacy.html">Privacy</a><a href="compare.html" aria-current="page">Compare</a><a href="faq.html">FAQ</a></nav>
+    <a class="lang" href="hr/compare.html" hreflang="hr" lang="hr">Hrvatski</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Compared with other dictation apps</h1>
+  <p class="lead">There are good ways to type by voice on Windows. Here is how Pauli Speaks differs, where others do better, and the sources.</p>
+  <p class="meta">Checked on <time datetime="2026-10-21">21 October 2026</time>. Prices and features change: follow the sources for the current state, and <a href="https://github.com/izscaryu/pauli-speaks/issues">tell us</a> if something here is out of date.</p>
+
+  <div class="table compare"><table>
+    <thead><tr><th scope="col">App</th><th scope="col">Price</th><th scope="col">Where your speech becomes text</th><th scope="col">Without internet</th><th scope="col">AI clean-up</th><th scope="col">Systems</th><th scope="col">Source code</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Pauli Speaks</th><td>Free</td><td>On your PC (Whisper); a cloud service only if you choose one</td><td>Yes, after the model download</td><td>Optional, off by default: on your PC (Ollama, LM Studio, Foundry Local) or in the cloud</td><td>Windows 10, 11</td><td>Open (MIT)</td></tr>
+      <tr><th scope="row">Windows voice typing (<kbd>Win</kbd> + <kbd>H</kbd>)</th><td>Comes with Windows</td><td>Microsoft's online speech recognition (Azure Speech services) <a href="#s1">[1]</a></td><td>No <a href="#s1">[1]</a>. Voice access works offline, in English, Spanish, French and German <a href="#s2">[2]</a></td><td>Automatic punctuation; “fluid dictation” on Copilot+ PCs, in English, on the device <a href="#s1">[1]</a></td><td>Windows</td><td>Closed</td></tr>
+      <tr><th scope="row">Wispr Flow</th><td>Free up to 2,000 words a week on desktop; Pro $15 a month, or $12 a month billed yearly <a href="#s3">[3]</a> <a href="#s5">[5]</a></td><td>In the cloud: “Transcription always happens in the cloud” <a href="#s4">[4]</a></td><td>No <a href="#s4">[4]</a></td><td>Yes, part of the service</td><td>Mac, Windows, iOS, Android <a href="#s3">[3]</a></td><td>Closed</td></tr>
+      <tr><th scope="row">Dragon Professional v16</th><td>Paid licence: Nuance asks you to contact them <a href="#s6">[6]</a>; a UK reseller lists £599 + VAT <a href="#s7">[7]</a></td><td>Software installed on Windows <a href="#s6">[6]</a> <a href="#s7">[7]</a>; the pages we found don't say where recognition runs</td><td>Not stated</td><td>—</td><td>Windows 10, 11 <a href="#s6">[6]</a> <a href="#s7">[7]</a></td><td>Closed</td></tr>
+      <tr><th scope="row">Handy</th><td>Free</td><td>On your PC (Whisper or NVIDIA Parakeet) <a href="#s8">[8]</a></td><td>Yes <a href="#s8">[8]</a></td><td>—</td><td>Windows, Mac, Linux <a href="#s8">[8]</a></td><td>Open (MIT) <a href="#s8">[8]</a></td></tr>
+      <tr><th scope="row">OpenWhispr</th><td>Free app; cloud models with your own key <a href="#s9">[9]</a></td><td>On your PC (Whisper or Parakeet), or a cloud provider <a href="#s9">[9]</a></td><td>Yes, with local models <a href="#s9">[9]</a></td><td>Yes, local (llama.cpp) or with your own key <a href="#s9">[9]</a></td><td>Windows, Mac, Linux <a href="#s9">[9]</a></td><td>Open (MIT) <a href="#s9">[9]</a></td></tr>
+    </tbody>
+  </table></div>
+  <p class="meta">The table scrolls sideways on a small screen. “—” means we found no such feature in the project's own description; “Not stated” means its pages don't say.</p>
+
+  <h2 id="others-better">Where others do better</h2>
+  <ul>
+    <li><b>Windows voice typing</b> needs nothing installed and is on every Windows PC, in many languages (Croatian included). Voice access also lets you control the whole PC by voice.</li>
+    <li><b>Wispr Flow</b> also runs on Mac, iPhone and Android, needs no setup for its clean-up, and has plans for teams.</li>
+    <li><b>Dragon</b> has decades of work behind it: controlling the whole PC by voice, editions for specialised vocabulary (legal, for example), and support from a large company.</li>
+    <li><b>Handy</b> and <b>OpenWhispr</b> are also free and open, and run on Mac and Linux too. Handy offers NVIDIA's Parakeet models; OpenWhispr does more than dictation. <a href="#s10">WhisperWriter</a> (GPL-3.0) is another open option, for people comfortable with Python.</li>
+  </ul>
+
+  <h2 id="pauli-weaker">Where Pauli Speaks is weaker</h2>
+  <ul>
+    <li>Windows only.</li>
+    <li>The installer isn't code-signed yet, so Windows shows a SmartScreen warning.</li>
+    <li>A young project with one maintainer.</li>
+    <li>Local AI polish needs Ollama, LM Studio or Foundry Local and a PC that can run a model quickly; otherwise your words are pasted as said.</li>
+    <li>On an older PC without a graphics card, the larger Whisper models are slow.</li>
+  </ul>
+
+  <h2 id="pauli-different">What Pauli Speaks does its own way</h2>
+  <ul>
+    <li>Free, with the recognition on your PC by default, and no account.</li>
+    <li>Push-to-talk on any key, a pedal or a mouse button, plus links and command-line flags for Stream Deck and scripts.</li>
+    <li>Modes per app or per shortcut, translation while you speak, voice commands in eight languages, and an app in English and Croatian.</li>
+    <li>AI polish that runs on your PC first, never holds a dictation up, and can always be undone.</li>
+  </ul>
+
+  <h2 id="sources">Sources</h2>
+  <ol class="sources">
+    <li id="s1">Microsoft Support, <a href="https://support.microsoft.com/en-us/windows/use-voice-typing-to-talk-instead-of-type-on-your-pc-fec94565-c4bd-329d-e59a-af033fa5689f">Use voice typing to talk instead of type on your PC</a></li>
+    <li id="s2">Microsoft Support, <a href="https://support.microsoft.com/en-us/accessibility/windows/voice-access/voice-access-frequently-asked-questions-faqs">Voice access frequently asked questions</a></li>
+    <li id="s3">Wispr Flow, <a href="https://wisprflow.ai/pricing">Pricing</a></li>
+    <li id="s4">Wispr Flow, <a href="https://wisprflow.ai/privacy">Privacy</a></li>
+    <li id="s5">Wispr Flow Help Center, <a href="https://docs.wisprflow.ai/articles/4760791189">Free tier weekly word cap and bonus words</a></li>
+    <li id="s6">Nuance, <a href="https://dragon.nuance.com/en-us/dragon-professional">Dragon Professional (Windows)</a></li>
+    <li id="s7">Inclusive Technology, <a href="https://www.inclusive.com/products/dragon-professional-v16">Dragon Professional v16</a> (a reseller's listing)</li>
+    <li id="s8">Handy on GitHub, <a href="https://github.com/cjpais/Handy">cjpais/Handy</a></li>
+    <li id="s9">OpenWhispr on GitHub, <a href="https://github.com/OpenWhispr/openwhispr">OpenWhispr/openwhispr</a></li>
+    <li id="s10">WhisperWriter on GitHub, <a href="https://github.com/savbell/whisper-writer">savbell/whisper-writer</a></li>
+  </ol>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="More pages">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="shortcuts.html">Shortcuts & pedals</a>
+      <a href="voice-commands.html">Voice commands</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="compare.html">Compared with others</a>
+      <a href="faq.html">FAQ & troubleshooting</a>
+      <a href="code-signing.html">Code signing policy</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Source code on GitHub</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licence</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Open-source licences</a>
+    </nav>
+    <p>Pauli Speaks is made by Patrik Pauli and is not affiliated with OpenAI or Microsoft. This site has no cookies, no analytics and no trackers. The Download button asks GitHub for the latest version; nothing else connects anywhere.</p>
+  </div>
+</footer>
+</body>
+</html>

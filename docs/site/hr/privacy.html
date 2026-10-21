@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privatnost · Pauli Speaks</title>
+<meta name="description" content="Što Pauli Speaks čuva na tvom računalu, što ga napušta samo ako odabereš opciju u oblaku, koje veze uspostavlja sam i kako obrisati svoje podatke.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" hreflang="hr" href="privacy.html">
+<link rel="alternate" hreflang="en" href="../privacy.html">
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Preskoči na sadržaj</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="../assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Stranice"><a href="getting-started.html">Prvi koraci</a><a href="shortcuts.html">Prečaci</a><a href="voice-commands.html">Glasovne naredbe</a><a href="privacy.html" aria-current="page">Privatnost</a><a href="compare.html">Usporedba</a><a href="faq.html">Pitanja</a></nav>
+    <a class="lang" href="../privacy.html" hreflang="en" lang="en">English</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Privatnost</h1>
+  <p class="lead">Pauli Speaks pretvara tvoj govor u tekst na tvom računalu. Nema računa, analitike ni telemetrije. Ništa što kažeš ne napušta računalo, osim ako uključiš opciju u oblaku, a aplikacija to piše uz tu opciju.</p>
+  <p class="meta">Ovo je sažetak. Cijela izjava, sa svakom datotekom i vezom, je <a href="https://github.com/izscaryu/pauli-speaks/blob/main/PRIVACY.md" hreflang="en">PRIVACY.md</a> (na engleskom); njezina povijest na GitHubu pokazuje svaku promjenu.</p>
+
+  <h2 id="stays">Što ostaje na tvom računalu</h2>
+  <ul>
+    <li><b>Zvuk.</b> Mikrofon snima samo dok diktiraš, a prepoznavanje tišine radi na tvom računalu. Da rušenje ne izgubi ono što si rekao, snimka koja traje zapisuje se u mapu <code>recovery</code> (nešifrirano) i briše se kad diktat završi. Nakon rušenja Početna pita želiš li je spasiti ili odbaciti. To možeš isključiti: <i>Postavke → Privatnost → Spasi diktat nakon rušenja</i>.</li>
+    <li><b>Snimke, zadano isključeno.</b> Uz <i>Čuvaj snimke 24 sata</i> svaki se diktat čuva kao WAV datoteka (nešifrirano), pa ga možeš preslušati ili ponovno transkribirati iz Povijesti. Brišu se nakon 24 sata.</li>
+    <li><b>Ponovni pokušaj i Vrati.</b> Diktat koji se nije mogao transkribirati čuva se u memoriji (zadnjih 5, ili 10 minuta zvuka), pa ga možeš ponovno pokušati dok ne zatvoriš aplikaciju. Otkazani se čuva 4 sekunde, da možeš poništiti otkazivanje.</li>
+    <li><b>Transkripti.</b> Povijest čuva tvojih zadnjih 500 diktata. <i>Povijest transkripata</i> to mijenja u brisanje nakon 24 sata ili <i>Ne čuvaj</i>.</li>
+    <li><b>Povijest međuspremnika.</b> Za lijepljenje se tekst na trenutak stavi u međuspremnik, označen tako da ga povijest međuspremnika u Windowsima (Win+V) i sinkronizacija u oblaku ne čuvaju. Tvoj sadržaj međuspremnika zatim se vraća.</li>
+    <li><b>AI dotjerivanje na ovom računalu, zadano isključeno.</b> Uz Ollamu, LM Studio, Foundry Local ili drugi poslužitelj na <code>localhost</code>, tekst svakog diktata u načinu s razinom dotjerivanja ide tom programu na tvom računalu. Zbog toga ništa ne napušta računalo.</li>
+    <li><b>Tvoj rječnik, isječci, glasovne naredbe i postavke.</b></li>
+    <li><b>Zapisnici</b> s vremenima, prepoznatim jezikom, nazivom aplikacije u koju si diktirao i greškama. Nikad ono što si rekao.</li>
+  </ul>
+
+  <h2 id="leaves">Što napušta računalo, samo ako to odabereš</h2>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Uključiš</th><th scope="col">Što se šalje</th><th scope="col">Kome</th></tr></thead>
+    <tbody>
+      <tr><td>Prepoznavanje govora preko Cloud API-ja</td><td>Zvuk svakog diktata i datoteka koje transkribiraš, i riječi iz rječnika kao natuknica</td><td>Pružatelju kojeg postaviš (zadano Groq: <code>api.groq.com</code>)</td></tr>
+      <tr><td>Način naredbi</td><td>Označeni tekst i tvoja izgovorena uputa, kao tekst</td><td>Istom pružatelju</td></tr>
+      <tr><td>AI dotjerivanje s Cloud API-jem ili s drugim poslužiteljem koji nije ovo računalo</td><td>Tekst svakog diktata u tom načinu (ne zvuk) i upute tog načina za dotjerivanje</td><td>Tom pružatelju ili poslužitelju</td></tr>
+      <tr><td>Foundry Local: prikaz i preuzimanje modela</td><td>Koji se modeli nude i model koji preuzmeš. Nikad tvoj tekst</td><td>Microsoftovom katalogu Foundry Local i poslužiteljima za preuzimanje</td></tr>
+    </tbody>
+  </table></div>
+  <p>Za to treba API ključ koji sam dobiješ od pružatelja. Ključ šifrira Windows (DPAPI). Što pružatelj radi s tvojim podacima određuju njegova vlastita pravila privatnosti.</p>
+
+  <h2 id="connections">Veze koje aplikacija uspostavlja sama</h2>
+  <ul>
+    <li><b>Provjera ažuriranja</b> na GitHubu, 15 sekundi nakon pokretanja i svakih 6 sati. Preuzimaju se samo podaci o izdanju i, kad postoji ažuriranje, instalacijski program.</li>
+    <li><b>Preuzimanje modela</b> s Hugging Facea, prvi put kad koristiš model za govor ili prijevod.</li>
+    <li><b>Foundry Local, samo dok je odabran za AI dotjerivanje.</b> Pauli Speaks ga pokreće s isključenom neobaveznom telemetrijom. Microsoft navodi da i tada pri pokretanju može poslati minimalan događaj o procesu; on ne sadrži ništa što si diktirao. Ako to ne želiš, odaberi drugu opciju za AI dotjerivanje.</li>
+  </ul>
+  <p>Ništa drugo. <i>Čitaj naglas</i> koristi glasove ugrađene u Windows, a poveznice i zastavice naredbenog retka upravljaju samo aplikacijom na tvom računalu.</p>
+
+  <h2 id="delete">Gdje su tvoji podaci i kako ih obrisati</h2>
+  <p>Sve je u <code>%APPDATA%\Pauli Speaks</code> (<i>O programu → Mapa s podacima</i> je otvara). Prijenosna verzija sve čuva u <code>Pauli Speaks Data</code> pokraj svoje <code>.exe</code> datoteke.</p>
+  <ul>
+    <li><b>Obriši sve moje podatke</b> (<i>Postavke → Privatnost</i>) briše povijest, snimke, rječnik, isječke i postavke, uključujući API ključ. Modeli ostaju.</li>
+    <li><b>Obriši preuzete modele</b> uklanja modele za govor, prijevod i AI dotjerivanje; ponovno se preuzmu kad zatrebaju.</li>
+    <li>Za uklanjanje svega, i zapisnika: zatvori Pauli Speaks, deinstaliraj ga i odgovori s da kad te program za deinstalaciju pita želiš li obrisati podatke (ili sam obriši mapu).</li>
+  </ul>
+
+  <h2 id="site">Ova web-stranica</h2>
+  <p>Ova stranica nema kolačića, analitike ni praćenja i ne učitava ništa s drugih stranica. Gumb za preuzimanje jednom pita GitHubov API (<code>api.github.com</code>) koja je zadnja verzija; kao i svaki web-zahtjev, to GitHubu pokazuje tvoju IP adresu. Stranica je smještena na GitHub Pages; vidi <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" hreflang="en">GitHubovu izjavu o privatnosti</a>.</p>
+
+  <h2 id="questions">Pitanja</h2>
+  <p>Otvori prijavu na <a href="https://github.com/izscaryu/pauli-speaks/issues">github.com/izscaryu/pauli-speaks/issues</a>.</p>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="Ostale stranice">
+      <a href="index.html">Početna</a>
+      <a href="getting-started.html">Prvi koraci</a>
+      <a href="shortcuts.html">Prečaci i pedale</a>
+      <a href="voice-commands.html">Glasovne naredbe</a>
+      <a href="privacy.html">Privatnost</a>
+      <a href="compare.html">Usporedba s drugima</a>
+      <a href="faq.html">Pitanja i rješavanje problema</a>
+      <a href="code-signing.html">Pravila potpisivanja koda</a>
+      <a href="changelog.html">Što je novo</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Izvorni kôd na GitHubu</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licenca</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Licence otvorenog koda</a>
+    </nav>
+    <p>Pauli Speaks izrađuje Patrik Pauli i nije povezan s tvrtkama OpenAI ni Microsoft. Ova stranica nema kolačića, analitike ni praćenja. Gumb za preuzimanje pita GitHub koja je zadnja verzija; ništa se drugo nikamo ne spaja.</p>
+  </div>
+</footer>
+</body>
+</html>

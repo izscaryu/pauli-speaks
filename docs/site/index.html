@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pauli Speaks: free voice typing for Windows</title>
+<meta name="description" content="Hold a key, talk, let go: your words are typed into any app. Free push-to-talk voice typing for Windows, with speech recognition on your own PC, so it works offline.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="en" href="index.html">
+<link rel="alternate" hreflang="hr" href="hr/index.html">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Site"><a href="getting-started.html">Get started</a><a href="shortcuts.html">Shortcuts</a><a href="voice-commands.html">Voice commands</a><a href="privacy.html">Privacy</a><a href="compare.html">Compare</a><a href="faq.html">FAQ</a></nav>
+    <a class="lang" href="hr/index.html" hreflang="hr" lang="hr">Hrvatski</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-text">
+    <p class="kicker">Free voice typing for Windows</p>
+    <h1 id="hero-title">Hold a key, talk, let go. Your words are typed.</h1>
+    <p class="lead">Pauli Speaks types what you say into any app on your PC. The speech recognition runs on your own computer, so it is free, it works offline and what you say stays with you.</p>
+    
+<div class="download">
+  <a class="btn primary" href="https://github.com/izscaryu/pauli-speaks/releases/latest" data-download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download for Windows</a>
+  <p class="note" data-download-note data-template="Version {version} · {size} MB · Windows 10 and 11, 64-bit" data-template-nosize="Version {version} · Windows 10 and 11, 64-bit">The latest version from GitHub · Windows 10 and 11, 64-bit</p>
+</div>
+    <p class="meta">Can't install software on this PC? Use the <a href="getting-started.html#portable">portable copy</a>.</p>
+  </div>
+  
+<figure class="demo">
+  <div class="stage" aria-hidden="true">
+    <div class="app-win">
+      <div class="app-bar"><span>Team chat</span><span class="caps"><span>—</span><span>▢</span><span>✕</span></span></div>
+      <div class="app-body">
+        <div class="msg"><span class="avatar">A</span><div><b>Ana</b>Is the meeting still on Thursday?</div></div>
+        <div class="composer"><span class="caret"></span><span class="pasted">Yes, it moved to 3 pm on Thursday. Can you send the slides before then?</span></div>
+      </div>
+    </div>
+    <div class="said"><span>“yes so um it moved to three on thursday can you send the slides before then”</span></div>
+    <div class="held"><kbd>Ctrl</kbd>+<kbd>Win</kbd></div>
+    <div class="desk">
+      <div class="pill idle"></div>
+      <div class="pill listen"><span class="rec"></span><span class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="chip">EN</span></div>
+      <div class="pill proc"><span class="shimmer"></span><span>Polishing…</span></div>
+      <div class="pill done"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg><span>Polished.</span><span class="chip">Undo</span></div>
+    </div>
+  </div>
+  <ol class="story">
+    <li>Hold <b>Ctrl + Win</b> and talk.</li>
+    <li>Let go. Your PC turns it into text.</li>
+    <li>It's pasted where the cursor is. <b>Polished. Undo</b> puts back what you said.</li>
+  </ol>
+  <figcaption class="demo-foot"><span>An animation of one dictation, with AI polish on (it's off until you choose it).</span><button class="btn demo-toggle" type="button" data-demo-toggle data-pause="Pause animation" data-play="Play animation" hidden>Pause animation</button></figcaption>
+</figure>
+</section>
+
+<section class="section" aria-label="Windows SmartScreen">
+  
+<div class="callout warn" id="smartscreen">
+  <h2>“Windows protected your PC”?</h2>
+  <p>When you run the installer, Windows may show a blue screen that says <b>Windows protected your PC</b> and <i>Publisher: Unknown publisher</i>. To install anyway:</p>
+  <ol>
+    <li>Click <b>More info</b>.</li>
+    <li>Check that the file is <code>Pauli-Speaks-Setup-&lt;version&gt;.exe</code>.</li>
+    <li>Click <b>Run anyway</b>.</li>
+  </ol>
+  <p>This happens because the installer isn't code-signed yet. Microsoft Defender SmartScreen warns about any download that has no publisher signature or that few people have run. It doesn't mean a virus was found. Every installer is built from the public source code by GitHub Actions, so download it only from this site or from <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub Releases</a>. The <a href="code-signing.html">code signing policy</a> shows where signing stands.</p>
+</div>
+</section>
+
+<section class="section" aria-labelledby="different">
+  <h2 id="different">What makes it different</h2>
+  <div class="grid">
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg></span><h3>Free, with no catch</h3><p>No account, no subscription and no word limit. The source code is open, under the MIT licence.</p></div>
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 5-3M22 8.5A15 15 0 0 0 11 5M5 12a10 10 0 0 1 4-2.4M19 12a10 10 0 0 0-2.6-1.7M8.5 15.5a5 5 0 0 1 6-.8M12 19h.01M3 3l18 18"/></svg></span><h3>Works offline</h3><p>OpenAI's Whisper speech recognition runs on your PC, on the graphics card when there is one. The model downloads once; after that you don't need the internet.</p></div>
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><h3>Private</h3><p>No analytics and no telemetry. Nothing you say leaves your PC unless you turn on a cloud option, and the app says so next to it. <a href="privacy.html">Privacy</a></p></div>
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span><h3>Modes</h3><p>A mode bundles language, translation, style and voice commands. Give each its own shortcut, or let it switch on by itself: formal in Outlook, code style in VS Code.</p></div>
+    
+    <div class="panel card"><span class="ic coral"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></span><h3>AI polish, on your PC first</h3><p>Off by default. Light, Medium, High or Prompt for each mode, run on your PC with Ollama, LM Studio or Foundry Local. If it takes over 2.5 seconds, your words are pasted as you said them.</p></div>
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg></span><h3>Your keys, pedals, Stream Deck</h3><p>Hold to talk or double-tap for hands-free. Any key, an F13–F24 pedal or a mouse button, plus links and command-line flags. <a href="shortcuts.html">Shortcuts</a></p></div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="languages">
+  <h2 id="languages">Languages</h2>
+  <div class="two">
+    <div class="panel card">
+      <span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
+      <h3>Speak any of 99 languages</h3>
+      <p>Whisper recognises 99 languages. Pick the ones you speak in the setup, and Pauli Speaks detects which of them you used. How well it works depends on the language and the model: <i>Large v3 Turbo</i> is the most accurate, <i>Tiny</i> the fastest.</p>
+      <p>Speak one language and paste another: <i>Fast</i> translates into English with Whisper itself, <i>Best</i> into 30+ languages with Meta's NLLB-200, also offline (about 900 MB, downloaded once).</p>
+    </div>
+    <div class="panel card">
+      <span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+      <h3>The app in English and Croatian</h3>
+      <p>The window, the setup, the pill and the tray menu are in English and Croatian (Hrvatski). A new language is one file, and you don't need to write code: <a href="https://github.com/izscaryu/pauli-speaks/blob/main/CONTRIBUTING.md#translate-pauli-speaks">translate Pauli Speaks</a>.</p>
+      <p>Voice commands come ready in these languages, and you can add your own phrases in any language:</p>
+      <p class="langs"><span class="badge">English</span><span class="badge" lang="hr">Hrvatski</span><span class="badge" lang="de">Deutsch</span><span class="badge" lang="es">Español</span><span class="badge" lang="it">Italiano</span><span class="badge" lang="pl">Polski</span><span class="badge" lang="sl">Slovenščina</span><span class="badge" lang="sr">Srpski</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="next">
+  <h2 id="next">Next</h2>
+  <div class="grid">
+    <a class="panel card" href="getting-started.html"><h3>Getting started</h3><p>Install, the guided setup and your first dictation, in five minutes.</p></a>
+    <a class="panel card" href="compare.html"><h3>Compared with others</h3><p>Windows voice typing, Wispr Flow, Dragon and free Whisper apps, side by side.</p></a>
+    <a class="panel card" href="faq.html"><h3>FAQ &amp; troubleshooting</h3><p>Nothing happens, no sound, slow, or text missing in one app.</p></a>
+  </div>
+</section>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="More pages">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="shortcuts.html">Shortcuts & pedals</a>
+      <a href="voice-commands.html">Voice commands</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="compare.html">Compared with others</a>
+      <a href="faq.html">FAQ & troubleshooting</a>
+      <a href="code-signing.html">Code signing policy</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Source code on GitHub</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licence</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Open-source licences</a>
+    </nav>
+    <p>Pauli Speaks is made by Patrik Pauli and is not affiliated with OpenAI or Microsoft. This site has no cookies, no analytics and no trackers. The Download button asks GitHub for the latest version; nothing else connects anywhere.</p>
+  </div>
+</footer>
+</body>
+</html>

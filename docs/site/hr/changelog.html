@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Što je novo · Pauli Speaks</title>
+<meta name="description" content="Što se promijenilo u svakoj verziji aplikacije Pauli Speaks, besplatnog glasovnog tipkanja za Windows.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" hreflang="hr" href="changelog.html">
+<link rel="alternate" hreflang="en" href="../changelog.html">
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Preskoči na sadržaj</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="../assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Stranice"><a href="getting-started.html">Prvi koraci</a><a href="shortcuts.html">Prečaci</a><a href="voice-commands.html">Glasovne naredbe</a><a href="privacy.html">Privatnost</a><a href="compare.html">Usporedba</a><a href="faq.html">Pitanja</a></nav>
+    <a class="lang" href="../changelog.html" hreflang="en" lang="en">English</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page changelog">
+  <h1>Što je novo</h1>
+  <p class="lead">Što se promijenilo u svakoj verziji. Aplikacija nakon ažuriranja jednom prikaže najnoviji odjeljak.</p>
+  <p class="meta">Cijeli popis, na engleskom: <a href="https://github.com/izscaryu/pauli-speaks/blob/main/CHANGELOG.md" hreflang="en">CHANGELOG.md</a>. Preuzimanja svih verzija su na <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub Releases</a>.</p>
+
+  <h2 id="v1.6.0">Verzija 1.6.0</h2>
+  <ul>
+    <li>AI dotjerivanje (zadano isključeno): na stranici Načini daj načinu razinu i AI model dotjera ono što si rekao prije lijepljenja. Lagano ispravlja interpunkciju i očito krivo čute riječi, Srednje uklanja i ponavljanja i krive početke, Jako jasno preoblikuje, a Upit pretvara razvučen govor u jasne upute za ChatGPT, Claude ili terminal, s nazivima datoteka i kodom točno kako su izgovoreni. Svaki način može dodati vlastite upute („Koristi britanski pravopis”).</li>
+    <li>Radi na tvom računalu: Postavke → AI dotjerivanje pronalaze Ollamu i LM Studio ili za tebe postavljaju Foundry Local (navodi modele s veličinom i preuzima jedan tek kad potvrdiš). Rade i Cloud API ili drugi poslužitelj, a Postavke uz svaku mogućnost pišu napušta li tvoj tekst računalo.</li>
+    <li>Dotjerivanje nikad ne zadržava diktat: ako model treba više od 2,5 sekunde (4 u oblaku), ne uspije ili odgovori nečim što nije tvoj tekst, zalijepe se tvoje riječi kako si ih rekao. Diktati kraći od četiri riječi ne dotjeruju se.</li>
+    <li>Nakon dotjeranog lijepljenja traka 4 sekunde prikazuje „Dotjerano. Vrati”: Vrati uklanja dotjerani tekst i lijepi ono što si rekao. Povijest čuva obje verzije.</li>
+    <li>Izgled Windowsa 11: u Windowsima 11 prozor koristi Micu (boja radne površine blago se nazire), s uglovima i pismom Windowsa 11. Bočna traka sad glasi Početna, Prečaci, Načini, Rječnik i isječci, Povijest, Datoteke i Postavke: Povijest ima vlastitu stranicu, a Početna prikazuje tvoja tri zadnja diktata.</li>
+    <li>Postavke imaju poveznice na svaki odjeljak i okvir za pretraživanje koji ostavlja samo postavke koje odgovaraju.</li>
+    <li>Nova ikona: tamna pločica s koraljnom linijom glasa. Ikona u traci sustava pokazuje kad Pauli Speaks sluša (koraljno) ili radi (jantarno).</li>
+    <li>Traka: uz dva ili više jezika, dok govoriš klikni oznaku jezika i odaberi jezik za taj diktat. Povuci traku na lijevu stranu, sredinu ili desnu stranu zaslona i ostat će ondje.</li>
+    <li>Lakše uz tipkovnicu, čitač zaslona ili kontrastnu temu Windowsa: trenutačna stranica se najavljuje, kontrastne teme koriste boje sustava, tekst u svijetloj temi lakše se čita, a kad su u Windowsima isključeni efekti animacije, traka prestaje pulsirati i stranice se ne animiraju.</li>
+    <li>Tvoja datoteka s postavkama se ažurira (stara se čuva kao settings.v7.json).</li>
+  </ul>
+
+  <h2 id="v1.5.1">Verzija 1.5.1</h2>
+  <ul>
+    <li>Ispravljeno: od verzije 1.3.0 instalirana aplikacija zaustavljala se usred pokretanja. Nedostajali su ikona u traci sustava, plutajuća traka, tvoji prečaci i automatska ažuriranja, a prozor se ipak otvarao. Ako imaš verziju od 1.3.0 do 1.5.0, završi Pauli Speaks u Upravitelju zadataka, pa instaliraj ovu verziju sa stranice izdanja na GitHubu: stara verzija se ne može sama ažurirati.</li>
+  </ul>
+
+  <h2 id="v1.5.0">Verzija 1.5.0</h2>
+  <ul>
+    <li>Načini: način objedinjuje jezik kojim govoriš, jezik na koji prevodi, stil i glasovne naredbe. Daj načinu vlastiti prečac („F13 → hrvatsko dopisivanje”), neka se sam uključi kad je neka aplikacija ispred („Outlook → službeni engleski”, „VS Code → stil za kôd”) ili ga pokreni poveznicom ili zastavicom (<code>pauli-speaks://dictate/toggle?mode=code</code>, <code>--mode=code</code>). Postavljaju se na novoj stranici Načini.</li>
+    <li>Svaki prečac za diktiranje ima način: Automatski (odlučuje aplikacija ispred) ili onaj koji odabereš. Diktiraj prima do osam prečaca, pa svaki način može imati svoj.</li>
+    <li>Prečac Promijeni način radi: prolazi kroz tvoje načine i natrag na Automatski, i dok govoriš. Dok diktiraš, traka prikazuje boju i naziv načina.</li>
+    <li>Tvoje postavke idu s tobom: stilovi aplikacija postaju načini Dopisivanje, Kôd i Službeno s istim aplikacijama, „Uvijek prevodi” postaje način koji prevodi, a prečac za govor i prijevod otvara novi način „Prijevod: …”. Stara datoteka s postavkama čuva se kao settings.v6.json.</li>
+    <li>Način naredbi sluša na jeziku načina u kojem jesi.</li>
+    <li>Sigurnosne kopije sad nose tvoje načine umjesto stilova aplikacija; kopija iz starije verzije unosi svoje stilove aplikacija kao načine.</li>
+    <li>Postavke → Prepoznavanje govora prikazuje preuzete modele za govor i prijevod s veličinom i vremenom zadnje upotrebe, i briše ih jedan po jedan.</li>
+  </ul>
+
+  <h2 id="v1.4.0">Verzija 1.4.0</h2>
+  <ul>
+    <li>Pauli Speaks govori tvoj jezik: aplikacija, dobrodošlica, traka i izbornik ikone su osim na engleskom i na hrvatskom. Prati jezik Windowsa; Postavke → Jezik ga mijenjaju. Datumi i brojevi također ga prate.</li>
+    <li>Odabir jezika u dobrodošlici dodaje glasovne naredbe na tim jezicima: njemački, španjolski, talijanski, poljski, slovenski i srpski pridružuju se engleskom i hrvatskom („neue Zeile”, „abschicken”, „lösch das”…).</li>
+    <li>Novi jezik je jedna datoteka: CONTRIBUTING.md objašnjava kako prevesti Pauli Speaks.</li>
+  </ul>
+
+  <h2 id="v1.3.0">Verzija 1.3.0</h2>
+  <ul>
+    <li>Prepoznavanje tišine: samo dijelovi u kojima govoriš idu na prepoznavanje govora. Ako ništa ne kažeš, ništa se ne upiše i traka kaže „Nije prepoznat govor”; ako mikrofon ne daje nikakav zvuk, kaže „Nema zvuka. Je li mikrofon utišan?” i upozori te nakon 2 sekunde, dok još snimaš. Postavke imaju prekidač „Prepoznavanje tišine” ako se riječi ikad odrežu.</li>
+    <li>S uključenim prepoznavanjem tišine automatsko zaustavljanje bez ruku čeka da prestaneš govoriti, a ne da se prostorija utiša, pa ga buka u pozadini više ne drži uključenim.</li>
+    <li>Ako se diktat ne može transkribirati, traka i zapis u Povijesti nude ponovni pokušaj, a snimka se čuva dok ne zatvoriš aplikaciju. Esc sad 4 sekunde prikazuje „Otkazano. Vrati”.</li>
+    <li>Ako lokalno prepoznavanje govora prestane odgovarati, diktat sad završi porukom „Transkripcija nije uspjela.” i gumbom za ponovni pokušaj, umjesto da ostane na obradi, a prepoznavanje se samo ponovno pokrene.</li>
+    <li>Ispravljeno: pokrenuto s popisa preuzimanja u Firefoxu, lokalno prepoznavanje govora odmah se zaustavljalo („Speech engine stopped unexpectedly”), jer mu je Windows dao stariji ONNX Runtime koji nedavna ažuriranja Windowsa 11 stavljaju u System32. Pauli Speaks sad uvijek koristi svoj.</li>
+    <li>O programu ima „Prijavi problem”: kopira dijagnostičke podatke (verzije, postavke i nedavne retke zapisnika, nikad ono što si diktirao ni tvoj API ključ) i otvara prijavu greške na GitHubu u koju ih zalijepiš.</li>
+    <li>Ako se Pauli Speaks sruši dok diktiraš, Početna sljedeći put nudi „Spasiti zadnji diktat?”.</li>
+    <li>Diktiranje u prozor koji radi kao administrator više ne propada tiho: tekst ostaje u međuspremniku, a traka kaže „Kopirano. Pritisni Ctrl+V (ova aplikacija radi kao administrator)”.</li>
+    <li>Diktirani tekst ne ulazi u povijest međuspremnika u Windowsima (Win+V) ni u sinkronizaciju međuspremnika u oblaku.</li>
+    <li>Novi odjeljak Postavke → Privatnost: čuvaj povijest transkripata, briši je nakon 24 sata ili je ne čuvaj; po želji čuvaj snimke 24 sata da ih preslušaš ili ponovno transkribiraš; isključi spašavanje nakon rušenja; „Obriši sve moje podatke” i „Obriši preuzete modele”.</li>
+    <li>S prepoznavanjem u oblaku i više odabranih jezika, rezultat na jeziku koji nije tvoj (na primjer hrvatski prepoznat kao poljski ili bosanski) ponovno se transkribira na svakom tvom jeziku i zadržava se onaj u koji je model za govor najsigurniji. Ako stalno govoriš jezikom koji nije na tvom popisu (i nije blizak nekom s popisa), Početna pita želiš li ga dodati svojim jezicima.</li>
+  </ul>
+
+  <h2 id="v1.2.0">Verzija 1.2.0</h2>
+  <ul>
+    <li>Pri prvom pokretanju otvara se vođeno postavljanje: pita za tvoje jezike i mikrofon, bira prepoznavanje govora i pokazuje što će se preuzeti, daje ti da postaviš prečac i završava prvim diktatom.</li>
+    <li>Postavke imaju gumb „Ponovi postavljanje” ako ga želiš proći ponovno. Oni koji već koriste aplikaciju dobivaju na Početnoj karticu koja nudi postavljanje.</li>
+    <li>Početna sad upozorava kad Pauli Speaks ne vidi tvoj prečac i kad radi druga aplikacija za diktiranje koja možda koristi isti prečac.</li>
+    <li>Ako je model za govor preuzet, ali se ne može učitati, greška na Početnoj ima gumb „Preuzmi ponovno” koji ga preuzima iznova.</li>
+    <li>Prijenosna verzija (Pauli-Speaks-Portable) čuva podatke u mapi pokraj .exe datoteke i ne ostavlja ništa u registru.</li>
+    <li>Postavke imaju novi odjeljak Sigurnosna kopija: izvezi prečace, glasovne naredbe, rječnik, isječke i stilove aplikacija u datoteku i uvezi ih na drugom računalu. API ključevi nikad nisu uključeni.</li>
+    <li>O programu ima „Primaj rane verzije” za isprobavanje probnih izdanja prije svih ostalih. I dalje dobivaš svako redovno izdanje.</li>
+  </ul>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="Ostale stranice">
+      <a href="index.html">Početna</a>
+      <a href="getting-started.html">Prvi koraci</a>
+      <a href="shortcuts.html">Prečaci i pedale</a>
+      <a href="voice-commands.html">Glasovne naredbe</a>
+      <a href="privacy.html">Privatnost</a>
+      <a href="compare.html">Usporedba s drugima</a>
+      <a href="faq.html">Pitanja i rješavanje problema</a>
+      <a href="code-signing.html">Pravila potpisivanja koda</a>
+      <a href="changelog.html">Što je novo</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Izvorni kôd na GitHubu</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licenca</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Licence otvorenog koda</a>
+    </nav>
+    <p>Pauli Speaks izrađuje Patrik Pauli i nije povezan s tvrtkama OpenAI ni Microsoft. Ova stranica nema kolačića, analitike ni praćenja. Gumb za preuzimanje pita GitHub koja je zadnja verzija; ništa se drugo nikamo ne spaja.</p>
+  </div>
+</footer>
+</body>
+</html>

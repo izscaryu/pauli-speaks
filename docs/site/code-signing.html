@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code signing policy · Pauli Speaks</title>
+<meta name="description" content="How Pauli Speaks releases are built and published, why the installer is not code-signed yet, and who approves releases.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="en" href="code-signing.html">
+<link rel="alternate" hreflang="hr" href="hr/code-signing.html">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Site"><a href="getting-started.html">Get started</a><a href="shortcuts.html">Shortcuts</a><a href="voice-commands.html">Voice commands</a><a href="privacy.html">Privacy</a><a href="compare.html">Compare</a><a href="faq.html">FAQ</a></nav>
+    <a class="lang" href="hr/code-signing.html" hreflang="hr" lang="hr">Hrvatski</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Code signing policy</h1>
+  <div class="callout"><p><b>Status:</b> Pauli Speaks releases are not code-signed yet, so Windows shows a SmartScreen warning when you run the installer (<a href="index.html#smartscreen">what to do</a>). This page will name the signing service and certificate once releases are signed.</p></div>
+
+  <h2 id="built">How releases are built</h2>
+  <ol>
+    <li>A maintainer tags a commit on <code>main</code> in the public repository (<code>v1.2.3</code>).</li>
+    <li>GitHub Actions builds the installer <code>Pauli-Speaks-Setup-&lt;version&gt;.exe</code> from that commit, on GitHub's servers, and runs the tests. Nothing built on a personal computer is published.</li>
+    <li>The installer, its <code>.blockmap</code> and <code>latest.yml</code> are published as a <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub release</a>. The app's updater checks <code>latest.yml</code> before installing.</li>
+  </ol>
+  <p>Download Pauli Speaks only from GitHub Releases (the Download button on this site links there). The product name in the installer is “Pauli Speaks”, and the version is the version of the release. The <a href="https://github.com/izscaryu/pauli-speaks/blob/main/.github/workflows/release.yml">release workflow</a> is public.</p>
+
+  <h2 id="what">What will be signed</h2>
+  <p>Once signing is in place, only the installer built from this repository by the release workflow will be signed, after a maintainer approves each release, and <code>latest.yml</code> will be made again for the signed file. Nothing from another project will be signed.</p>
+
+  <h2 id="roles">Team roles</h2>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Role</th><th scope="col">Members</th></tr></thead>
+    <tbody>
+      <tr><td>Committers and reviewers</td><td><a href="https://github.com/izscaryu">Patrik Pauli (@izscaryu)</a></td></tr>
+      <tr><td>Release approvers</td><td><a href="https://github.com/izscaryu">Patrik Pauli (@izscaryu)</a></td></tr>
+    </tbody>
+  </table></div>
+  <p>Changes from contributors outside this list are reviewed by a committer before they are merged. All team members use multi-factor authentication for GitHub.</p>
+
+  <h2 id="privacy">Privacy</h2>
+  <p>Pauli Speaks turns speech into text on your PC. It connects to GitHub to check for updates and to Hugging Face to download speech and translation models, and it sends audio or text to a cloud provider only if you turn on a cloud option. See <a href="privacy.html">Privacy</a>.</p>
+
+  <h2 id="report">Reporting a problem</h2>
+  <p>If you think a Pauli Speaks release is malicious or was not built from this repository, open an issue at <a href="https://github.com/izscaryu/pauli-speaks/issues">github.com/izscaryu/pauli-speaks/issues</a>. We'll help investigate.</p>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="More pages">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="shortcuts.html">Shortcuts & pedals</a>
+      <a href="voice-commands.html">Voice commands</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="compare.html">Compared with others</a>
+      <a href="faq.html">FAQ & troubleshooting</a>
+      <a href="code-signing.html">Code signing policy</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Source code on GitHub</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licence</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Open-source licences</a>
+    </nav>
+    <p>Pauli Speaks is made by Patrik Pauli and is not affiliated with OpenAI or Microsoft. This site has no cookies, no analytics and no trackers. The Download button asks GitHub for the latest version; nothing else connects anywhere.</p>
+  </div>
+</footer>
+</body>
+</html>

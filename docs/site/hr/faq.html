@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pitanja i rješavanje problema · Pauli Speaks</title>
+<meta name="description" content="Odgovori o aplikaciji Pauli Speaks: je li besplatna, treba li internet, upozorenje SmartScreen i što učiniti kad se ništa ne događa, nema zvuka ili tekst nedostaje.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" hreflang="hr" href="faq.html">
+<link rel="alternate" hreflang="en" href="../faq.html">
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Preskoči na sadržaj</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="../assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Stranice"><a href="getting-started.html">Prvi koraci</a><a href="shortcuts.html">Prečaci</a><a href="voice-commands.html">Glasovne naredbe</a><a href="privacy.html">Privatnost</a><a href="compare.html">Usporedba</a><a href="faq.html" aria-current="page">Pitanja</a></nav>
+    <a class="lang" href="../faq.html" hreflang="en" lang="en">English</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page faq">
+  <h1>Pitanja i rješavanje problema</h1>
+  <p class="lead">Prvo kratki odgovori. Ako tvog pitanja nema, <i>O programu → Prijavi problem</i> u aplikaciji kopira dijagnostičke podatke (nikad ono što si diktirao) i otvara prijavu greške.</p>
+
+  <h2 id="questions">Pitanja</h2>
+  <details id="free"><summary>Je li stvarno besplatno?</summary><p>Da. Bez računa, bez pretplate, bez ograničenja riječi, bez oglasa. Izvorni kôd je otvoren pod licencom MIT. Samo neobavezne opcije u oblaku koriste API pružatelja, s tvojim vlastitim ključem (Groq ima besplatan paket).</p></details>
+  <details id="offline"><summary>Treba li internet?</summary><p>Samo da ga jednom preuzmeš, zajedno s modelom za govor. Nakon toga lokalni Whisper radi bez interneta. Za provjeru ažuriranja treba internet, ali aplikacija radi i bez nje.</p></details>
+  <details id="warning"><summary>Zašto me Windows upozorava kad ga instaliram?</summary><p>Instalacijski program još nije digitalno potpisan, pa SmartScreen javlja da je zaštitio računalo. Klikni <b>Više informacija</b>, pa <b>Ipak pokreni</b>. To ne znači da je pronađen virus. Vidi <a href="index.html#smartscreen">što učiniti</a> i <a href="code-signing.html">pravila potpisivanja koda</a>.</p></details>
+  <details id="antivirus"><summary>Antivirusni program ga označava. Je li siguran?</summary><p>Nove, nepotpisane aplikacije često označavaju heuristike, a još češće one koje prate tipkovnicu (tako vidi tvoj prečac). Svako izdanje gradi GitHub Actions iz javnog izvornog koda. Ako nisi siguran, provjeri datoteku na VirusTotalu i pogledaj koji je programi označavaju, pa nam javi u prijavi.</p></details>
+  <details id="voice"><summary>Ide li moj glas ikamo?</summary><p>Ne, osim ako uključiš opciju u oblaku (prepoznavanje govora u oblaku, Način naredbi ili AI dotjerivanje s uslugom u oblaku). Aplikacija uz svaku piše što napušta računalo. Vidi <a href="privacy.html">Privatnost</a>.</p></details>
+  <details id="model"><summary>Koji model za govor odabrati?</summary><p>Postavljanje predlaže jedan za tvoje računalo. Otprilike: <i>Base</i> za engleski na običnom prijenosniku, <i>Small</i> za druge jezike, uključujući hrvatski, <i>Large v3 Turbo</i> na računalu s dobrom grafičkom karticom. Mijenjaš ga u <i>Postavke → Prepoznavanje govora</i>.</p></details>
+  <details id="mac"><summary>Postoji li verzija za Mac ili Linux?</summary><p>Ne. Pauli Speaks je napravljen za Windows 10 i 11. <a href="compare.html">Usporedba</a> navodi aplikacije za druge sustave.</p></details>
+  <details id="work-pc"><summary>Mogu li ga koristiti na poslovnom računalu na kojem ne smijem instalirati programe?</summary><p>Probaj <a href="getting-started.html#portable">prijenosnu verziju</a>: radi bez instalacije i podatke čuva pokraj <code>.exe</code> datoteke. Ako nisi siguran smiješ li, prvo pitaj informatičku službu.</p></details>
+
+  <h2 id="troubleshooting">Rješavanje problema</h2>
+  <details id="nothing"><summary>Ništa se ne događa kad držim Ctrl + Win</summary><p>Možda druga aplikacija za diktiranje (na primjer Wispr Flow) koristi isti prečac. Zatvori je ili promijeni prečac na stranici Prečaci. Početna to javlja kad je vidi pokrenutu.</p></details>
+  <details id="cant-see"><summary>Pauli Speaks ne vidi tvoj prečac</summary><p>Praćenje tipkovnice koje čeka tvoj prečac nije se pokrenulo. Sigurnosni ili antivirusni programi to ponekad blokiraju: ondje dopusti Pauli Speaks, pa ga ponovno pokreni (ikona u traci sustava → <i>Zatvori Pauli Speaks</i>, pa ga pokreni opet). Ako obavijest ostane, ponovno pokreni računalo. Osim toga, dok je ispred aplikacija koja radi kao administrator, Windows skriva tvoje tipke od aplikacije Pauli Speaks, osim ako i ona radi kao administrator. <i>O programu → Zapisnici</i> otvara zapisnik, koji kaže zašto se praćenje nije pokrenulo.</p></details>
+  <details id="one-app"><summary>Tekst se ne pojavljuje u jednoj aplikaciji</summary><p>Windows ne dopušta simulirano tipkanje u aplikacije koje rade kao administrator. Tada Pauli Speaks ostavi tekst u međuspremniku, a traka kaže <i>Kopirano. Pritisni Ctrl+V</i>. Ako se to nije dogodilo, upotrijebi <i>Zalijepi zadnji transkript</i> (<kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd>) ili ga kopiraj iz Povijesti.</p></details>
+  <details id="no-sound"><summary>„Nema zvuka. Je li mikrofon utišan?”</summary><p>Mikrofon je dao samo tišinu. Provjeri da nije utišan (prekidač ili tipka na mikrofonu, ili u postavkama zvuka u Windowsima), da je u <i>Postavke → Mikrofon</i> odabran mikrofon koji koristiš i da Windows dopušta aplikacijama za radnu površinu da ga koriste (vidi „Mikrofon je blokiran”). <i>Postavke → Ponovi postavljanje</i> testira mikrofon.</p></details>
+  <details id="no-speech"><summary>„Nije prepoznat govor”, iako sam govorio</summary><p>Prepoznavanje tišine nije čulo govor, na primjer u vrlo tihoj snimci ili s udaljenim mikrofonom. Govori bliže mikrofonu ili isključi <i>Postavke → Diktiranje → Prepoznavanje tišine</i>.</p></details>
+  <details id="retry"><summary>„Transkripcija nije uspjela” i ponovni pokušaj</summary><p>Prepoznavanje govora nije uspjelo ili usluga u oblaku nije bila dostupna. Klikni ponovni pokušaj na traci ili na zapisu u Povijesti. Snimka se čuva u memoriji dok ne zatvoriš aplikaciju (zadnjih 5 snimki ili 10 minuta zvuka).</p></details>
+  <details id="blocked"><summary>„Mikrofon je blokiran”</summary><p>Uključi pristup mikrofonu za aplikacije za radnu površinu: <i>Postavke sustava Windows → Privatnost i sigurnost → Mikrofon</i>.</p></details>
+  <details id="slow"><summary>Sporo je</summary><p>Koristi Whisper <i>Base</i> ili <i>Tiny</i>, odaberi samo jedan jezik ili prijeđi na uslugu u oblaku s besplatnim Groq ključem (tvoj zvuk tada ide Groqu).</p></details>
+  <details id="setup-again"><summary>Nešto u postavljanju je preskočeno ili nije uspjelo</summary><p><i>Postavke → Ponovi postavljanje</i> još jednom prolazi kroz jezike, mikrofon, prepoznavanje govora i prečac.</p></details>
+  <details id="old-version"><summary>Imam verziju od 1.3.0 do 1.5.0 i ne ažurira se</summary><p>Te su se verzije zaustavljale usred pokretanja, pa se ne mogu same ažurirati. Završi Pauli Speaks u Upravitelju zadataka, pa instaliraj zadnju verziju s ove stranice.</p></details>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="Ostale stranice">
+      <a href="index.html">Početna</a>
+      <a href="getting-started.html">Prvi koraci</a>
+      <a href="shortcuts.html">Prečaci i pedale</a>
+      <a href="voice-commands.html">Glasovne naredbe</a>
+      <a href="privacy.html">Privatnost</a>
+      <a href="compare.html">Usporedba s drugima</a>
+      <a href="faq.html">Pitanja i rješavanje problema</a>
+      <a href="code-signing.html">Pravila potpisivanja koda</a>
+      <a href="changelog.html">Što je novo</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Izvorni kôd na GitHubu</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licenca</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Licence otvorenog koda</a>
+    </nav>
+    <p>Pauli Speaks izrađuje Patrik Pauli i nije povezan s tvrtkama OpenAI ni Microsoft. Ova stranica nema kolačića, analitike ni praćenja. Gumb za preuzimanje pita GitHub koja je zadnja verzija; ništa se drugo nikamo ne spaja.</p>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ and troubleshooting · Pauli Speaks</title>
+<meta name="description" content="Answers about Pauli Speaks: is it free, does it need the internet, the SmartScreen warning, and what to do when nothing happens, there is no sound or text is missing.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="en" href="faq.html">
+<link rel="alternate" hreflang="hr" href="hr/faq.html">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Site"><a href="getting-started.html">Get started</a><a href="shortcuts.html">Shortcuts</a><a href="voice-commands.html">Voice commands</a><a href="privacy.html">Privacy</a><a href="compare.html">Compare</a><a href="faq.html" aria-current="page">FAQ</a></nav>
+    <a class="lang" href="hr/faq.html" hreflang="hr" lang="hr">Hrvatski</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page faq">
+  <h1>FAQ &amp; troubleshooting</h1>
+  <p class="lead">Short answers first. If yours isn't here, <i>About → Report a problem</i> in the app copies diagnostic info (never what you dictated) and opens a bug report.</p>
+
+  <h2 id="questions">Questions</h2>
+  <details id="free"><summary>Is it really free?</summary><p>Yes. No account, no subscription, no word limit, no ads. The source code is open under the MIT licence. Only the optional cloud options use a provider's API, with your own key (Groq has a free tier).</p></details>
+  <details id="offline"><summary>Does it need the internet?</summary><p>Only to download it and a speech model once. After that, local Whisper works offline. Update checks need the internet, but the app works without them.</p></details>
+  <details id="warning"><summary>Why does Windows warn me when I install it?</summary><p>The installer isn't code-signed yet, so SmartScreen says “Windows protected your PC”. Click <b>More info</b>, then <b>Run anyway</b>. It doesn't mean a virus was found. See <a href="index.html#smartscreen">what to do</a> and the <a href="code-signing.html">code signing policy</a>.</p></details>
+  <details id="antivirus"><summary>My antivirus flags it. Is it safe?</summary><p>New, unsigned apps are often flagged by heuristics, more so one with a keyboard hook (that is how it sees your shortcut). Every release is built by GitHub Actions from the public source code. If you are unsure, check the file on VirusTotal to see which engines flag it, and tell us in an issue.</p></details>
+  <details id="voice"><summary>Does my voice go anywhere?</summary><p>No, unless you turn on a cloud option (cloud speech recognition, Command mode, or AI polish with a cloud service). The app says next to each one what leaves the PC. See <a href="privacy.html">Privacy</a>.</p></details>
+  <details id="model"><summary>Which speech model should I pick?</summary><p>The setup suggests one for your PC. Roughly: <i>Base</i> for English on an ordinary laptop, <i>Small</i> for other languages, <i>Large v3 Turbo</i> on a PC with a good graphics card. Change it in <i>Settings → Speech recognition</i>.</p></details>
+  <details id="mac"><summary>Is there a Mac or Linux version?</summary><p>No. Pauli Speaks is made for Windows 10 and 11. The <a href="compare.html">comparison</a> lists apps for other systems.</p></details>
+  <details id="work-pc"><summary>Can I use it on a work PC where I can't install software?</summary><p>Try the <a href="getting-started.html#portable">portable copy</a>: it runs without installing and keeps its data next to the <code>.exe</code>. Ask your IT department first if you aren't sure it's allowed.</p></details>
+
+  <h2 id="troubleshooting">Troubleshooting</h2>
+  <details id="nothing"><summary>Nothing happens when I hold Ctrl + Win</summary><p>Another dictation app (Wispr Flow, for example) might use the same shortcut. Quit it, or change the shortcut on the Shortcuts page. Home says so when it sees one running.</p></details>
+  <details id="cant-see"><summary>“Pauli Speaks can't see your shortcut”</summary><p>The keyboard hook that watches for your shortcut didn't start. Security or antivirus software sometimes blocks it: allow Pauli Speaks there, then restart it (tray icon → <i>Quit Pauli Speaks</i>, then start it again). If the banner stays, restart the PC. Separately, while an app running as administrator is in front, Windows hides your keys from Pauli Speaks unless it also runs as administrator. <i>About → Logs</i> opens the log, which says why the hook failed.</p></details>
+  <details id="one-app"><summary>Text doesn't appear in one app</summary><p>Windows blocks simulated typing into apps running as administrator. Then Pauli Speaks leaves the text on the clipboard and the pill says <i>Copied. Press Ctrl+V</i>. If that didn't happen, use <i>Paste last transcript</i> (<kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd>) or copy it from History.</p></details>
+  <details id="no-sound"><summary>“No sound. Is your mic muted?”</summary><p>The microphone delivered only silence. Check that it isn't muted (a switch or key on the microphone, or in Windows sound settings), that <i>Settings → Microphone</i> is the one you use, and that Windows lets desktop apps use it (see “Microphone blocked”). <i>Settings → Run setup again</i> tests the microphone.</p></details>
+  <details id="no-speech"><summary>“No speech detected”, although I spoke</summary><p>Silence detection thought it heard no speech, for example in a very quiet recording or with a distant microphone. Speak closer to the microphone, or turn off <i>Settings → Dictation → Silence detection</i>.</p></details>
+  <details id="retry"><summary>“Couldn't transcribe. Retry”</summary><p>The speech engine failed or the cloud service couldn't be reached. Click <b>Retry</b> on the pill or on the entry in History. The recording is kept in memory until you quit (the last 5 recordings or 10 minutes of audio).</p></details>
+  <details id="blocked"><summary>“Microphone blocked”</summary><p>Turn on <i>Windows Settings → Privacy &amp; security → Microphone → Let desktop apps access your microphone</i>.</p></details>
+  <details id="slow"><summary>It's slow</summary><p>Use Whisper <i>Base</i> or <i>Tiny</i>, pick a single language, or switch to a cloud service with a free Groq key (your audio then goes to Groq).</p></details>
+  <details id="setup-again"><summary>Something in the setup was skipped or went wrong</summary><p><i>Settings → Run setup again</i> goes through languages, microphone, speech engine and shortcut once more.</p></details>
+  <details id="old-version"><summary>I have version 1.3.0 to 1.5.0 and it doesn't update</summary><p>Those versions stopped part-way through starting, so they can't update themselves. End Pauli Speaks in Task Manager, then install the latest version from this site.</p></details>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="More pages">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="shortcuts.html">Shortcuts & pedals</a>
+      <a href="voice-commands.html">Voice commands</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="compare.html">Compared with others</a>
+      <a href="faq.html">FAQ & troubleshooting</a>
+      <a href="code-signing.html">Code signing policy</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Source code on GitHub</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licence</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Open-source licences</a>
+    </nav>
+    <p>Pauli Speaks is made by Patrik Pauli and is not affiliated with OpenAI or Microsoft. This site has no cookies, no analytics and no trackers. The Download button asks GitHub for the latest version; nothing else connects anywhere.</p>
+  </div>
+</footer>
+</body>
+</html>

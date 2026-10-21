@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice commands · Pauli Speaks</title>
+<meta name="description" content="Say “new line”, “send it” or “scratch that” while you dictate. The voice commands of Pauli Speaks in eight languages, and how to add your own.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="en" href="voice-commands.html">
+<link rel="alternate" hreflang="hr" href="hr/voice-commands.html">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Site"><a href="getting-started.html">Get started</a><a href="shortcuts.html">Shortcuts</a><a href="voice-commands.html" aria-current="page">Voice commands</a><a href="privacy.html">Privacy</a><a href="compare.html">Compare</a><a href="faq.html">FAQ</a></nav>
+    <a class="lang" href="hr/voice-commands.html" hreflang="hr" lang="hr">Hrvatski</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Voice commands</h1>
+  <p class="lead">Say a command while you dictate, in any language, and Pauli Speaks does it instead of typing it.</p>
+
+  <h2 id="built-in">Ready to use</h2>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Say</th><th scope="col">What happens</th><th scope="col">Where</th></tr></thead>
+    <tbody>
+      <tr><td>“new line” · <span lang="hr">“novi red”</span></td><td>A line break</td><td>Anywhere</td></tr>
+      <tr><td>“new paragraph” · <span lang="hr">“novi odlomak”</span></td><td>An empty line</td><td>Anywhere</td></tr>
+      <tr><td>“press enter”, “send it” · <span lang="hr">“pošalji”</span></td><td>Presses Enter, for example to send a chat message</td><td>At the start or end</td></tr>
+      <tr><td>“scratch that” · <span lang="hr">“obriši to”</span></td><td>Removes the last dictation</td><td>At the start or end</td></tr>
+    </tbody>
+  </table></div>
+  <p>Enter and “scratch that” only count at the start or end of what you say, so “I'll send it tomorrow” stays text. Commands work in any case and without diacritics (“posalji”), and “new line”, “newline” and “new-line” are the same.</p>
+
+  <h2 id="languages">More languages</h2>
+  <p>When you pick your languages in the setup, their commands are added:</p>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Language</th><th scope="col">New line</th><th scope="col">New paragraph</th><th scope="col">Enter</th><th scope="col">Scratch that</th></tr></thead>
+    <tbody>
+      <tr lang="de"><th scope="row">Deutsch</th><td>neue Zeile</td><td>neuer Absatz</td><td>abschicken</td><td>lösch das</td></tr>
+      <tr lang="es"><th scope="row">Español</th><td>nueva línea</td><td>nuevo párrafo</td><td>envíalo</td><td>borra eso</td></tr>
+      <tr lang="it"><th scope="row">Italiano</th><td>nuova riga</td><td>nuovo paragrafo</td><td>invialo</td><td>cancella questo</td></tr>
+      <tr lang="pl"><th scope="row">Polski</th><td>nowa linia</td><td>nowy akapit</td><td>wyślij</td><td>usuń to</td></tr>
+      <tr lang="sl"><th scope="row">Slovenščina</th><td>nova vrstica</td><td>nov odstavek</td><td>pošlji</td><td>izbriši to</td></tr>
+      <tr lang="sr"><th scope="row">Srpski</th><td>novi red</td><td>novi pasus</td><td>pošalji</td><td>obriši to</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="your-own">Your own commands</h2>
+  <p>Edit them under <b>Voice commands</b> on the Shortcuts page. Each command takes up to 12 phrases, in any language, and does one of these:</p>
+  <ul>
+    <li><b>type text</b> in place of the phrase (anywhere in a sentence),</li>
+    <li><b>type a snippet</b> (anywhere in a sentence),</li>
+    <li><b>press a key</b>: Enter, Tab, Escape or Backspace (at the start or end),</li>
+    <li><b>undo</b> the last dictation (at the start or end).</li>
+  </ul>
+  <p>A mode can switch voice commands off, for example for dictating code.</p>
+
+  <h2 id="snippets">Snippets and the dictionary</h2>
+  <p>On the <b>Dictionary &amp; snippets</b> page: say “my email” and your address is typed. The dictionary holds names and words Whisper should spell your way; they are also given to Whisper as a hint, so it hears them right the first time.</p>
+
+  <h2 id="command-mode">Command mode is something else</h2>
+  <p>Hold <kbd>Ctrl</kbd> + <kbd>Win</kbd> + <kbd>Alt</kbd>, select text and say “make this more formal” or “translate to German”, or say what to write with nothing selected. That uses an AI model through a free Groq key, so the selected text and your instruction go to Groq.</p>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="More pages">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="shortcuts.html">Shortcuts & pedals</a>
+      <a href="voice-commands.html">Voice commands</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="compare.html">Compared with others</a>
+      <a href="faq.html">FAQ & troubleshooting</a>
+      <a href="code-signing.html">Code signing policy</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Source code on GitHub</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licence</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Open-source licences</a>
+    </nav>
+    <p>Pauli Speaks is made by Patrik Pauli and is not affiliated with OpenAI or Microsoft. This site has no cookies, no analytics and no trackers. The Download button asks GitHub for the latest version; nothing else connects anywhere.</p>
+  </div>
+</footer>
+</body>
+</html>

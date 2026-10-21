@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pravila potpisivanja koda · Pauli Speaks</title>
+<meta name="description" content="Kako se izdanja aplikacije Pauli Speaks grade i objavljuju, zašto instalacijski program još nije digitalno potpisan i tko odobrava izdanja.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" hreflang="hr" href="code-signing.html">
+<link rel="alternate" hreflang="en" href="../code-signing.html">
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Preskoči na sadržaj</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="../assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Stranice"><a href="getting-started.html">Prvi koraci</a><a href="shortcuts.html">Prečaci</a><a href="voice-commands.html">Glasovne naredbe</a><a href="privacy.html">Privatnost</a><a href="compare.html">Usporedba</a><a href="faq.html">Pitanja</a></nav>
+    <a class="lang" href="../code-signing.html" hreflang="en" lang="en">English</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Pravila potpisivanja koda</h1>
+  <div class="callout"><p><b>Stanje:</b> izdanja aplikacije Pauli Speaks još nisu digitalno potpisana, pa Windows pri pokretanju instalacijskog programa prikazuje upozorenje SmartScreen (<a href="index.html#smartscreen">što učiniti</a>). Ova stranica navest će uslugu za potpisivanje i certifikat kad izdanja budu potpisana.</p></div>
+
+  <h2 id="built">Kako se izdanja grade</h2>
+  <ol>
+    <li>Održavatelj označi commit na grani <code>main</code> u javnom repozitoriju (<code>v1.2.3</code>).</li>
+    <li>GitHub Actions iz tog commita, na GitHubovim poslužiteljima, gradi instalacijski program <code>Pauli-Speaks-Setup-&lt;verzija&gt;.exe</code> i pokreće testove. Ništa izgrađeno na osobnom računalu ne objavljuje se.</li>
+    <li>Instalacijski program, njegov <code>.blockmap</code> i <code>latest.yml</code> objavljuju se kao <a href="https://github.com/izscaryu/pauli-speaks/releases">izdanje na GitHubu</a>. Ažuriranje u aplikaciji provjerava <code>latest.yml</code> prije instalacije.</li>
+  </ol>
+  <p>Pauli Speaks preuzimaj samo s GitHub Releases (gumb za preuzimanje na ovoj stranici vodi onamo). Naziv proizvoda u instalacijskom programu je „Pauli Speaks”, a verzija je verzija izdanja. <a href="https://github.com/izscaryu/pauli-speaks/blob/main/.github/workflows/release.yml">Tijek rada za izdanja</a> je javan.</p>
+
+  <h2 id="what">Što će biti potpisano</h2>
+  <p>Kad potpisivanje bude uvedeno, potpisivat će se samo instalacijski program koji iz ovog repozitorija izgradi tijek rada za izdanja, nakon što održavatelj odobri svako izdanje, a <code>latest.yml</code> će se ponovno izraditi za potpisanu datoteku. Ništa iz drugih projekata neće biti potpisano.</p>
+
+  <h2 id="roles">Uloge u timu</h2>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Uloga</th><th scope="col">Članovi</th></tr></thead>
+    <tbody>
+      <tr><td>Autori izmjena i recenzenti</td><td><a href="https://github.com/izscaryu">Patrik Pauli (@izscaryu)</a></td></tr>
+      <tr><td>Odobravaju izdanja</td><td><a href="https://github.com/izscaryu">Patrik Pauli (@izscaryu)</a></td></tr>
+    </tbody>
+  </table></div>
+  <p>Izmjene suradnika izvan ovog popisa pregledava autor izmjena prije spajanja. Svi članovi tima za GitHub koriste višefaktorsku autentifikaciju.</p>
+
+  <h2 id="privacy">Privatnost</h2>
+  <p>Pauli Speaks pretvara govor u tekst na tvom računalu. Spaja se na GitHub radi provjere ažuriranja i na Hugging Face radi preuzimanja modela za govor i prijevod, a zvuk ili tekst šalje pružatelju u oblaku samo ako uključiš opciju u oblaku. Vidi <a href="privacy.html">Privatnost</a>.</p>
+
+  <h2 id="report">Prijava problema</h2>
+  <p>Ako misliš da je neko izdanje aplikacije Pauli Speaks zlonamjerno ili da nije izgrađeno iz ovog repozitorija, otvori prijavu na <a href="https://github.com/izscaryu/pauli-speaks/issues">github.com/izscaryu/pauli-speaks/issues</a>. Pomoći ćemo da se to istraži.</p>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="Ostale stranice">
+      <a href="index.html">Početna</a>
+      <a href="getting-started.html">Prvi koraci</a>
+      <a href="shortcuts.html">Prečaci i pedale</a>
+      <a href="voice-commands.html">Glasovne naredbe</a>
+      <a href="privacy.html">Privatnost</a>
+      <a href="compare.html">Usporedba s drugima</a>
+      <a href="faq.html">Pitanja i rješavanje problema</a>
+      <a href="code-signing.html">Pravila potpisivanja koda</a>
+      <a href="changelog.html">Što je novo</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Izvorni kôd na GitHubu</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licenca</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Licence otvorenog koda</a>
+    </nav>
+    <p>Pauli Speaks izrađuje Patrik Pauli i nije povezan s tvrtkama OpenAI ni Microsoft. Ova stranica nema kolačića, analitike ni praćenja. Gumb za preuzimanje pita GitHub koja je zadnja verzija; ništa se drugo nikamo ne spaja.</p>
+  </div>
+</footer>
+</body>
+</html>

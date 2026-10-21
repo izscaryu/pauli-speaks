@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shortcuts, Stream Deck and pedals · Pauli Speaks</title>
+<meta name="description" content="The default shortcuts of Pauli Speaks, your own keys, pedals and mouse buttons, and recipes for Stream Deck and AutoHotkey with pauli-speaks:// links and command-line flags.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="en" href="shortcuts.html">
+<link rel="alternate" hreflang="hr" href="hr/shortcuts.html">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Site"><a href="getting-started.html">Get started</a><a href="shortcuts.html" aria-current="page">Shortcuts</a><a href="voice-commands.html">Voice commands</a><a href="privacy.html">Privacy</a><a href="compare.html">Compare</a><a href="faq.html">FAQ</a></nav>
+    <a class="lang" href="hr/shortcuts.html" hreflang="hr" lang="hr">Hrvatski</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Shortcuts, Stream Deck and pedals</h1>
+  <p class="lead">Dictate with the keys you like, a foot pedal, a mouse button or a Stream Deck button.</p>
+
+  <h2 id="defaults">The default shortcuts</h2>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Press</th><th scope="col">What it does</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Win</kbd>, hold</td><td>Dictate: talk while you hold, let go to paste</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Win</kbd> twice, or <kbd>Ctrl</kbd> + <kbd>Win</kbd> + <kbd>Space</kbd></td><td>Hands-free: keeps listening until you press it again</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Cancel the dictation</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Win</kbd> + <kbd>Shift</kbd>, hold</td><td>Speak your language, paste English (the <i>Translate to English</i> mode)</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Win</kbd> + <kbd>Alt</kbd>, hold</td><td>Command mode: select text and say “make this more formal”, or say what to write (needs a free Groq key)</td></tr>
+      <tr><td><kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd></td><td>Paste the last transcript again</td></tr>
+      <tr><td><kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>S</kbd></td><td>Read the selected text aloud</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="your-own">Your own shortcuts</h2>
+  <p>On the <b>Shortcuts</b> page, each action takes up to four shortcuts (Dictate up to eight, one per mode). Each one is <i>Hold</i>, <i>Toggle</i> or <i>Both</i> (hold, or double-tap to lock). A shortcut can be:</p>
+  <ul>
+    <li>1–3 keys, or a single F-key (F13–F24 are free for pedals and Stream Deck),</li>
+    <li>a right-side modifier such as the right Ctrl,</li>
+    <li>a mouse button (the side buttons, for example),</li>
+    <li>a double-tap of Ctrl, Alt or Shift.</li>
+  </ul>
+  <p>Combinations Windows keeps for itself are refused, and app shortcuts like Ctrl+C ask first. The <i>Test a key, pedal or mouse button</i> box shows exactly what Pauli Speaks sees. Extra actions: <i>Copy last transcript</i>, <i>Undo last dictation</i>, <i>Press Enter</i> and <i>Switch mode</i>.</p>
+
+  <h2 id="pedals">Foot pedals and macro keypads</h2>
+  <p>Most pedals and keypads come with software that can send a key. Let yours send a key no app uses, such as <kbd>F20</kbd>, then add <kbd>F20</kbd> on the Shortcuts page with <i>Hold</i>: press the pedal to talk, let go to paste. That is real push-to-talk, with no extra program.</p>
+
+  <h2 id="links">Links and command line</h2>
+  <p>Other programs can control Pauli Speaks with a link or a command-line flag. The Shortcuts page in the app lists them, with the exact path of your copy and a Copy button.</p>
+  <h3>Links (installed app only)</h3>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Link</th><th scope="col">What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>pauli-speaks://dictate/toggle</code></td><td>Start or stop</td></tr>
+      <tr><td><code>pauli-speaks://dictate/start</code></td><td>Start hands-free</td></tr>
+      <tr><td><code>pauli-speaks://dictate/stop</code></td><td>Finish and paste</td></tr>
+      <tr><td><code>pauli-speaks://dictate/cancel</code></td><td>Cancel</td></tr>
+      <tr><td><code>pauli-speaks://dictate/toggle?mode=code</code></td><td>Any link can name a mode</td></tr>
+    </tbody>
+  </table></div>
+  <p>Any web page can open a link, so links only control dictation. They can't paste or press keys.</p>
+  <h3>Command-line flags</h3>
+  <p>The installed app is <code>"%LOCALAPPDATA%\Programs\Pauli Speaks\Pauli Speaks.exe"</code>, unless you chose another folder when installing.</p>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Flag</th><th scope="col">What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>--toggle</code></td><td>Start or stop</td></tr>
+      <tr><td><code>--start</code></td><td>Start hands-free</td></tr>
+      <tr><td><code>--stop</code></td><td>Finish and paste</td></tr>
+      <tr><td><code>--cancel</code></td><td>Cancel</td></tr>
+      <tr><td><code>--paste-last</code></td><td>Paste the last transcript again</td></tr>
+      <tr><td><code>--copy-last</code></td><td>Copy the last transcript</td></tr>
+      <tr><td><code>--undo-last</code></td><td>Undo the last dictation</td></tr>
+      <tr><td><code>--press-enter</code></td><td>Press Enter</td></tr>
+      <tr><td><code>--mode=&lt;id&gt;</code></td><td>With <code>--toggle</code> or <code>--start</code>: dictate in that mode</td></tr>
+    </tbody>
+  </table></div>
+  <p>A mode's id is shown on the Modes page. The built-in ones are <code>default</code>, <code>chat</code>, <code>code</code>, <code>formal</code> and <code>translate</code>. Each call starts <code>Pauli Speaks.exe</code> for a moment, which hands the command to the copy that is already running.</p>
+
+  <h2 id="stream-deck">Stream Deck</h2>
+  <h3 id="stream-deck-plugin">The Pauli Speaks plugin</h3>
+  <p>The plugin adds five buttons: <b>Toggle dictation</b>, <b>Start</b>, <b>Stop</b>, <b>Cancel</b> and <b>Paste last</b>. Toggle and Start can name a mode in the key's settings. The buttons only send commands to the app; the plugin makes no network calls. It needs Windows 10 or 11, Stream Deck 7.1 or newer, and the installed app (the portable copy has no links).</p>
+  <p>Get <code>com.pauli.speaks.streamdeck.streamDeckPlugin</code>, double-click it and drag the buttons from the <b>Pauli Speaks</b> group onto your keys. How to get or build the file, and what each button sends: <a href="https://github.com/izscaryu/pauli-speaks/tree/main/integrations/streamdeck">the plugin on GitHub</a>.</p>
+  <h3 id="stream-deck-without">Without the plugin</h3>
+  <p>A Stream Deck button sends one press, so use toggle: press to start, press again to paste.</p>
+  <ul>
+    <li><b>Dictate:</b> add the <i>Website</i> action (under System) with the URL <code>pauli-speaks://dictate/toggle</code>, or <code>pauli-speaks://dictate/toggle?mode=chat</code> for a mode. Leave its background (GET request) option off, so that Windows opens the link.</li>
+    <li><b>Paste last, Undo last, Press Enter:</b> make a Windows shortcut (right-click the desktop → <i>New → Shortcut</i>) with the target <code>"%LOCALAPPDATA%\Programs\Pauli Speaks\Pauli Speaks.exe" --paste-last</code>, then point the <i>Open</i> action (under System) at that shortcut.</li>
+    <li><b>Or a key:</b> the <i>Hotkey</i> action can send <kbd>F13</kbd>; add <kbd>F13</kbd> on the Shortcuts page with <i>Toggle</i>.</li>
+  </ul>
+
+  <h2 id="autohotkey">AutoHotkey</h2>
+  <p>For AutoHotkey v2. Save it as a <code>.ahk</code> file and run it.</p>
+  <pre><code>#Requires AutoHotkey v2.0
+PauliSpeaks := EnvGet("LOCALAPPDATA") "\Programs\Pauli Speaks\Pauli Speaks.exe"
+
+; Ctrl+Alt+D: start or finish a dictation in the Chat mode
+^!d::Run('"' PauliSpeaks '" --toggle --mode=chat')
+
+; Hold F20 to talk, let go to paste (KeyWait ignores the key repeating)
+F20:: {
+    Run('"' PauliSpeaks '" --start')
+    KeyWait("F20")
+    Run('"' PauliSpeaks '" --stop')
+}
+
+; Ctrl+Alt+Z: take the last dictation back
+^!z::Run('"' PauliSpeaks '" --undo-last')
+
+; Ctrl+Alt+E: press Enter, for example to send a chat message
+^!e::Run('"' PauliSpeaks '" --press-enter')
+
+; A link works too
+^!t::Run("pauli-speaks://dictate/toggle")</code></pre>
+  <p>If all you need is push-to-talk on one key, set that key on the Shortcuts page instead: it reacts faster than a script, because nothing has to start.</p>
+
+  <h2 id="agent-skill">AI agents</h2>
+  <p>A skill for AI coding agents, such as Claude Code, lets the agent start and stop dictation through the links when you ask it to (“let me talk”, “stop listening”), so you can say your next message instead of typing it. It installs nothing and sends nothing anywhere. See <a href="https://github.com/izscaryu/pauli-speaks/tree/main/integrations/agent-skill/pauli-speaks">the skill on GitHub</a>; all integrations are in <a href="https://github.com/izscaryu/pauli-speaks/tree/main/integrations">integrations</a>.</p>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="More pages">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="shortcuts.html">Shortcuts & pedals</a>
+      <a href="voice-commands.html">Voice commands</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="compare.html">Compared with others</a>
+      <a href="faq.html">FAQ & troubleshooting</a>
+      <a href="code-signing.html">Code signing policy</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Source code on GitHub</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licence</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Open-source licences</a>
+    </nav>
+    <p>Pauli Speaks is made by Patrik Pauli and is not affiliated with OpenAI or Microsoft. This site has no cookies, no analytics and no trackers. The Download button asks GitHub for the latest version; nothing else connects anywhere.</p>
+  </div>
+</footer>
+</body>
+</html>

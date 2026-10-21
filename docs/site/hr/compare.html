@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pauli Speaks u usporedbi s drugim aplikacijama za diktiranje</title>
+<meta name="description" content="Datirana usporedba s izvorima: Pauli Speaks uz glasovno tipkanje u Windowsima (Win+H), Wispr Flow, Dragon Professional i druge besplatne aplikacije za diktiranje s Whisperom.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" hreflang="hr" href="compare.html">
+<link rel="alternate" hreflang="en" href="../compare.html">
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Preskoči na sadržaj</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="../assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Stranice"><a href="getting-started.html">Prvi koraci</a><a href="shortcuts.html">Prečaci</a><a href="voice-commands.html">Glasovne naredbe</a><a href="privacy.html">Privatnost</a><a href="compare.html" aria-current="page">Usporedba</a><a href="faq.html">Pitanja</a></nav>
+    <a class="lang" href="../compare.html" hreflang="en" lang="en">English</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Usporedba s drugim aplikacijama za diktiranje</h1>
+  <p class="lead">U Windowsima postoje dobri načini za glasovno tipkanje. Ovdje piše po čemu se Pauli Speaks razlikuje, u čemu su drugi bolji i odakle su podaci.</p>
+  <p class="meta">Provjereno <time datetime="2026-10-21">21. listopada 2026.</time> Cijene i mogućnosti se mijenjaju: za trenutačno stanje prati izvore, i <a href="https://github.com/izscaryu/pauli-speaks/issues">javi nam</a> ako je nešto zastarjelo.</p>
+
+  <div class="table compare"><table>
+    <thead><tr><th scope="col">Aplikacija</th><th scope="col">Cijena</th><th scope="col">Gdje govor postaje tekst</th><th scope="col">Bez interneta</th><th scope="col">AI dotjerivanje</th><th scope="col">Sustavi</th><th scope="col">Izvorni kôd</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Pauli Speaks</th><td>Besplatno</td><td>Na tvom računalu (Whisper); usluga u oblaku samo ako je odabereš</td><td>Da, nakon preuzimanja modela</td><td>Neobavezno, zadano isključeno: na tvom računalu (Ollama, LM Studio, Foundry Local) ili u oblaku</td><td>Windows 10, 11</td><td>Otvoren (MIT)</td></tr>
+      <tr><th scope="row">Glasovno tipkanje u Windowsima (<kbd>Win</kbd> + <kbd>H</kbd>)</th><td>Dolazi s Windowsima</td><td>Microsoftovo mrežno prepoznavanje govora (Azure Speech services) <a href="#s1">[1]</a></td><td>Ne <a href="#s1">[1]</a>. Glasovni pristup (Voice access) radi bez interneta, na engleskom, španjolskom, francuskom i njemačkom <a href="#s2">[2]</a></td><td>Automatska interpunkcija; <i lang="en">fluid dictation</i> na računalima Copilot+, na engleskom, na samom uređaju <a href="#s1">[1]</a></td><td>Windows</td><td>Zatvoren</td></tr>
+      <tr><th scope="row">Wispr Flow</th><td>Besplatno do 2000 riječi tjedno na računalu; Pro 15 USD mjesečno ili 12 USD mjesečno uz godišnje plaćanje <a href="#s3">[3]</a> <a href="#s5">[5]</a></td><td>U oblaku: <span lang="en">“Transcription always happens in the cloud”</span> <a href="#s4">[4]</a></td><td>Ne <a href="#s4">[4]</a></td><td>Da, dio usluge</td><td>Mac, Windows, iOS, Android <a href="#s3">[3]</a></td><td>Zatvoren</td></tr>
+      <tr><th scope="row">Dragon Professional v16</th><td>Plaćena licenca: Nuance traži da ih kontaktiraš <a href="#s6">[6]</a>; jedan britanski prodavač navodi 599 GBP + PDV <a href="#s7">[7]</a></td><td>Program koji se instalira u Windows <a href="#s6">[6]</a> <a href="#s7">[7]</a>; stranice koje smo našli ne kažu gdje radi prepoznavanje</td><td>Nije navedeno</td><td>—</td><td>Windows 10, 11 <a href="#s6">[6]</a> <a href="#s7">[7]</a></td><td>Zatvoren</td></tr>
+      <tr><th scope="row">Handy</th><td>Besplatno</td><td>Na tvom računalu (Whisper ili NVIDIA Parakeet) <a href="#s8">[8]</a></td><td>Da <a href="#s8">[8]</a></td><td>—</td><td>Windows, Mac, Linux <a href="#s8">[8]</a></td><td>Otvoren (MIT) <a href="#s8">[8]</a></td></tr>
+      <tr><th scope="row">OpenWhispr</th><td>Besplatna aplikacija; modeli u oblaku s vlastitim ključem <a href="#s9">[9]</a></td><td>Na tvom računalu (Whisper ili Parakeet) ili kod pružatelja u oblaku <a href="#s9">[9]</a></td><td>Da, s lokalnim modelima <a href="#s9">[9]</a></td><td>Da, lokalno (llama.cpp) ili s vlastitim ključem <a href="#s9">[9]</a></td><td>Windows, Mac, Linux <a href="#s9">[9]</a></td><td>Otvoren (MIT) <a href="#s9">[9]</a></td></tr>
+    </tbody>
+  </table></div>
+  <p class="meta">Na malom zaslonu tablica se pomiče u stranu. „—” znači da takvu mogućnost nismo našli u opisu samog projekta, a „Nije navedeno” da njegove stranice to ne kažu.</p>
+
+  <h2 id="others-better">U čemu su drugi bolji</h2>
+  <ul>
+    <li><b>Glasovno tipkanje u Windowsima</b> ne treba ništa instalirati i postoji na svakom računalu s Windowsima, na mnogo jezika (i na hrvatskom). Glasovni pristup omogućuje i upravljanje cijelim računalom glasom.</li>
+    <li><b>Wispr Flow</b> radi i na Macu, iPhoneu i Androidu, dotjerivanje ne traži nikakvo postavljanje, a ima i pakete za timove.</li>
+    <li><b>Dragon</b> iza sebe ima desetljeća rada: upravljanje cijelim računalom glasom, izdanja za stručni rječnik (na primjer pravni) i podršku velike tvrtke.</li>
+    <li><b>Handy</b> i <b>OpenWhispr</b> su također besplatni i otvoreni, a rade i na Macu i Linuxu. Handy nudi NVIDIA-ine modele Parakeet; OpenWhispr radi više od diktiranja. <a href="#s10">WhisperWriter</a> (GPL-3.0) je još jedna otvorena mogućnost, za one kojima Python ne smeta.</li>
+  </ul>
+
+  <h2 id="pauli-weaker">U čemu je Pauli Speaks slabiji</h2>
+  <ul>
+    <li>Samo za Windows.</li>
+    <li>Instalacijski program još nije digitalno potpisan, pa Windows prikazuje upozorenje SmartScreen.</li>
+    <li>Mlad projekt s jednim održavateljem.</li>
+    <li>Lokalno AI dotjerivanje treba Ollamu, LM Studio ili Foundry Local i računalo koje brzo pokreće model; inače se zalijepi ono što si rekao.</li>
+    <li>Na starijem računalu bez grafičke kartice veći modeli Whispera su spori.</li>
+  </ul>
+
+  <h2 id="pauli-different">Što Pauli Speaks radi na svoj način</h2>
+  <ul>
+    <li>Besplatno, s prepoznavanjem na tvom računalu kao zadanim, i bez računa.</li>
+    <li>„Drži i govori” na bilo kojoj tipki, pedali ili tipki miša, uz poveznice i zastavice naredbenog retka za Stream Deck i skripte.</li>
+    <li>Načini po aplikaciji ili prečacu, prijevod dok govoriš, glasovne naredbe na osam jezika i aplikacija na hrvatskom i engleskom.</li>
+    <li>AI dotjerivanje koje prvo radi na tvom računalu, nikad ne zadržava diktat i uvijek se može vratiti.</li>
+  </ul>
+
+  <h2 id="sources">Izvori</h2>
+  <ol class="sources">
+    <li id="s1">Microsoftova podrška, <a href="https://support.microsoft.com/en-us/windows/use-voice-typing-to-talk-instead-of-type-on-your-pc-fec94565-c4bd-329d-e59a-af033fa5689f" hreflang="en">Use voice typing to talk instead of type on your PC</a></li>
+    <li id="s2">Microsoftova podrška, <a href="https://support.microsoft.com/en-us/accessibility/windows/voice-access/voice-access-frequently-asked-questions-faqs" hreflang="en">Voice access frequently asked questions</a></li>
+    <li id="s3">Wispr Flow, <a href="https://wisprflow.ai/pricing" hreflang="en">Pricing</a></li>
+    <li id="s4">Wispr Flow, <a href="https://wisprflow.ai/privacy" hreflang="en">Privacy</a></li>
+    <li id="s5">Wispr Flow Help Center, <a href="https://docs.wisprflow.ai/articles/4760791189" hreflang="en">Free tier weekly word cap and bonus words</a></li>
+    <li id="s6">Nuance, <a href="https://dragon.nuance.com/en-us/dragon-professional" hreflang="en">Dragon Professional (Windows)</a></li>
+    <li id="s7">Inclusive Technology, <a href="https://www.inclusive.com/products/dragon-professional-v16" hreflang="en">Dragon Professional v16</a> (ponuda jednog prodavača)</li>
+    <li id="s8">Handy na GitHubu, <a href="https://github.com/cjpais/Handy">cjpais/Handy</a></li>
+    <li id="s9">OpenWhispr na GitHubu, <a href="https://github.com/OpenWhispr/openwhispr">OpenWhispr/openwhispr</a></li>
+    <li id="s10">WhisperWriter na GitHubu, <a href="https://github.com/savbell/whisper-writer">savbell/whisper-writer</a></li>
+  </ol>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="Ostale stranice">
+      <a href="index.html">Početna</a>
+      <a href="getting-started.html">Prvi koraci</a>
+      <a href="shortcuts.html">Prečaci i pedale</a>
+      <a href="voice-commands.html">Glasovne naredbe</a>
+      <a href="privacy.html">Privatnost</a>
+      <a href="compare.html">Usporedba s drugima</a>
+      <a href="faq.html">Pitanja i rješavanje problema</a>
+      <a href="code-signing.html">Pravila potpisivanja koda</a>
+      <a href="changelog.html">Što je novo</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Izvorni kôd na GitHubu</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licenca</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Licence otvorenog koda</a>
+    </nav>
+    <p>Pauli Speaks izrađuje Patrik Pauli i nije povezan s tvrtkama OpenAI ni Microsoft. Ova stranica nema kolačića, analitike ni praćenja. Gumb za preuzimanje pita GitHub koja je zadnja verzija; ništa se drugo nikamo ne spaja.</p>
+  </div>
+</footer>
+</body>
+</html>

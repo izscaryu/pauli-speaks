@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prečaci, Stream Deck i pedale · Pauli Speaks</title>
+<meta name="description" content="Zadani prečaci aplikacije Pauli Speaks, vlastite tipke, pedale i tipke miša, i recepti za Stream Deck i AutoHotkey s poveznicama pauli-speaks:// i zastavicama naredbenog retka.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" hreflang="hr" href="shortcuts.html">
+<link rel="alternate" hreflang="en" href="../shortcuts.html">
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Preskoči na sadržaj</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="../assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Stranice"><a href="getting-started.html">Prvi koraci</a><a href="shortcuts.html" aria-current="page">Prečaci</a><a href="voice-commands.html">Glasovne naredbe</a><a href="privacy.html">Privatnost</a><a href="compare.html">Usporedba</a><a href="faq.html">Pitanja</a></nav>
+    <a class="lang" href="../shortcuts.html" hreflang="en" lang="en">English</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Prečaci, Stream Deck i pedale</h1>
+  <p class="lead">Diktiraj tipkama koje voliš, nožnom pedalom, tipkom miša ili tipkom na Stream Decku.</p>
+
+  <h2 id="defaults">Zadani prečaci</h2>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Pritisni</th><th scope="col">Što radi</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Win</kbd>, drži</td><td>Diktiraj: govori dok držiš, pusti za lijepljenje</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Win</kbd> dvaput, ili <kbd>Ctrl</kbd> + <kbd>Win</kbd> + <kbd>Razmak</kbd></td><td>Bez ruku: sluša dok ga ponovno ne pritisneš</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Odustani od diktata</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Win</kbd> + <kbd>Shift</kbd>, drži</td><td>Govori svojim jezikom, zalijepi na engleskom (način <i>Prijevod: engleski</i>)</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Win</kbd> + <kbd>Alt</kbd>, drži</td><td>Način naredbi: označi tekst i reci „napiši ovo službenije” ili reci što treba napisati (treba besplatni Groq ključ)</td></tr>
+      <tr><td><kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd></td><td>Ponovno zalijepi zadnji transkript</td></tr>
+      <tr><td><kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>S</kbd></td><td>Čitaj označeni tekst naglas</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="your-own">Vlastiti prečaci</h2>
+  <p>Na stranici <b>Prečaci</b> svaka radnja prima do četiri prečaca (Diktiraj do osam, po jedan za svaki način). Svaki je <i>Drži</i>, <i>Uključi/isključi</i> ili <i>Oboje</i> (drži ili dvaput kucni za zaključavanje). Prečac može biti:</p>
+  <ul>
+    <li>1–3 tipke ili jedna F-tipka (F13–F24 su slobodne za pedale i Stream Deck),</li>
+    <li>desna modifikacijska tipka, na primjer desni Ctrl,</li>
+    <li>tipka miša (na primjer bočne tipke),</li>
+    <li>dvostruki pritisak tipke Ctrl, Alt ili Shift.</li>
+  </ul>
+  <p>Kombinacije koje Windows čuva za sebe odbijaju se, a za prečace aplikacija poput Ctrl+C prvo te pita. Okvir <i>Isprobaj tipku, pedalu ili tipku miša</i> pokazuje točno što Pauli Speaks vidi. Dodatne radnje: <i>Kopiraj zadnji transkript</i>, <i>Poništi zadnji diktat</i>, <i>Pritisni Enter</i> i <i>Promijeni način</i>.</p>
+
+  <h2 id="pedals">Nožne pedale i makro tipkovnice</h2>
+  <p>Većina pedala i makro tipkovnica dolazi s programom koji može poslati tipku. Neka tvoja šalje tipku koju nijedna aplikacija ne koristi, na primjer <kbd>F20</kbd>, pa dodaj <kbd>F20</kbd> na stranici Prečaci s postavkom <i>Drži</i>: pritisni pedalu i govori, pusti za lijepljenje. To je pravo „drži i govori”, bez dodatnog programa.</p>
+
+  <h2 id="links">Poveznice i naredbeni redak</h2>
+  <p>Drugi programi mogu upravljati aplikacijom Pauli Speaks poveznicom ili zastavicom naredbenog retka. Stranica Prečaci u aplikaciji ih navodi, s točnom putanjom tvoje kopije i gumbom za kopiranje.</p>
+  <h3>Poveznice (samo instalirana aplikacija)</h3>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Poveznica</th><th scope="col">Što radi</th></tr></thead>
+    <tbody>
+      <tr><td><code>pauli-speaks://dictate/toggle</code></td><td>Pokreni ili zaustavi</td></tr>
+      <tr><td><code>pauli-speaks://dictate/start</code></td><td>Pokreni bez ruku</td></tr>
+      <tr><td><code>pauli-speaks://dictate/stop</code></td><td>Završi i zalijepi</td></tr>
+      <tr><td><code>pauli-speaks://dictate/cancel</code></td><td>Odustani</td></tr>
+      <tr><td><code>pauli-speaks://dictate/toggle?mode=code</code></td><td>Svaka poveznica može navesti način</td></tr>
+    </tbody>
+  </table></div>
+  <p>Poveznicu može otvoriti bilo koja web-stranica, zato poveznice upravljaju samo diktiranjem. Ne mogu lijepiti ni pritiskati tipke.</p>
+  <h3>Zastavice naredbenog retka</h3>
+  <p>Instalirana aplikacija je <code>"%LOCALAPPDATA%\Programs\Pauli Speaks\Pauli Speaks.exe"</code>, osim ako si pri instalaciji odabrao drugu mapu.</p>
+  <div class="table"><table>
+    <thead><tr><th scope="col">Zastavica</th><th scope="col">Što radi</th></tr></thead>
+    <tbody>
+      <tr><td><code>--toggle</code></td><td>Pokreni ili zaustavi</td></tr>
+      <tr><td><code>--start</code></td><td>Pokreni bez ruku</td></tr>
+      <tr><td><code>--stop</code></td><td>Završi i zalijepi</td></tr>
+      <tr><td><code>--cancel</code></td><td>Odustani</td></tr>
+      <tr><td><code>--paste-last</code></td><td>Ponovno zalijepi zadnji transkript</td></tr>
+      <tr><td><code>--copy-last</code></td><td>Kopiraj zadnji transkript</td></tr>
+      <tr><td><code>--undo-last</code></td><td>Poništi zadnji diktat</td></tr>
+      <tr><td><code>--press-enter</code></td><td>Pritisni Enter</td></tr>
+      <tr><td><code>--mode=&lt;id&gt;</code></td><td>Uz <code>--toggle</code> ili <code>--start</code>: diktiraj u tom načinu</td></tr>
+    </tbody>
+  </table></div>
+  <p>Id načina prikazan je na stranici Načini. Ugrađeni su <code>default</code>, <code>chat</code>, <code>code</code>, <code>formal</code> i <code>translate</code>. Svaki poziv na trenutak pokrene <code>Pauli Speaks.exe</code>, koji naredbu preda kopiji koja već radi.</p>
+
+  <h2 id="stream-deck">Stream Deck</h2>
+  <h3 id="stream-deck-plugin">Dodatak Pauli Speaks</h3>
+  <p>Dodatak daje pet tipki: <b>Toggle dictation</b> (pokreni ili zaustavi), <b>Start</b>, <b>Stop</b>, <b>Cancel</b> (odustani) i <b>Paste last</b> (zalijepi zadnji). Toggle i Start u postavkama tipke mogu navesti način. Tipke samo šalju naredbe aplikaciji; dodatak se ne spaja nikamo na mrežu. Treba Windows 10 ili 11, Stream Deck 7.1 ili noviji i instaliranu aplikaciju (prijenosna verzija nema poveznice).</p>
+  <p>Nabavi <code>com.pauli.speaks.streamdeck.streamDeckPlugin</code>, dvaput ga klikni i povuci tipke iz skupine <b>Pauli Speaks</b> na svoje tipke. Kako nabaviti ili izgraditi tu datoteku i što svaka tipka šalje: <a href="https://github.com/izscaryu/pauli-speaks/tree/main/integrations/streamdeck" hreflang="en">dodatak na GitHubu</a> (na engleskom).</p>
+  <h3 id="stream-deck-without">Bez dodatka</h3>
+  <p>Tipka na Stream Decku šalje jedan pritisak, zato koristi uključi/isključi: pritisni za početak, pritisni ponovno za lijepljenje.</p>
+  <ul>
+    <li><b>Diktiranje:</b> dodaj radnju <i>Website</i> (pod System) s adresom <code>pauli-speaks://dictate/toggle</code>, ili <code>pauli-speaks://dictate/toggle?mode=chat</code> za neki način. Njezinu opciju za pozadinu (GET request) ostavi isključenu, da poveznicu otvori Windows.</li>
+    <li><b>Zalijepi zadnji, poništi zadnji, pritisni Enter:</b> napravi Windows prečac (desni klik na radnu površinu → <i>Novo → Prečac</i>) s ciljem <code>"%LOCALAPPDATA%\Programs\Pauli Speaks\Pauli Speaks.exe" --paste-last</code>, pa radnju <i>Open</i> (pod System) usmjeri na taj prečac.</li>
+    <li><b>Ili tipka:</b> radnja <i>Hotkey</i> može poslati <kbd>F13</kbd>; dodaj <kbd>F13</kbd> na stranici Prečaci s postavkom <i>Uključi/isključi</i>.</li>
+  </ul>
+
+  <h2 id="autohotkey">AutoHotkey</h2>
+  <p>Za AutoHotkey v2. Spremi kao datoteku <code>.ahk</code> i pokreni je.</p>
+  <pre><code>#Requires AutoHotkey v2.0
+PauliSpeaks := EnvGet("LOCALAPPDATA") "\Programs\Pauli Speaks\Pauli Speaks.exe"
+
+; Ctrl+Alt+D: pokreni ili završi diktat u načinu Dopisivanje
+^!d::Run('"' PauliSpeaks '" --toggle --mode=chat')
+
+; Drži F20 i govori, pusti za lijepljenje (KeyWait zanemaruje ponavljanje tipke)
+F20:: {
+    Run('"' PauliSpeaks '" --start')
+    KeyWait("F20")
+    Run('"' PauliSpeaks '" --stop')
+}
+
+; Ctrl+Alt+Z: vrati zadnji diktat
+^!z::Run('"' PauliSpeaks '" --undo-last')
+
+; Ctrl+Alt+E: pritisni Enter, na primjer za slanje poruke
+^!e::Run('"' PauliSpeaks '" --press-enter')
+
+; Radi i poveznica
+^!t::Run("pauli-speaks://dictate/toggle")</code></pre>
+  <p>Ako ti treba samo „drži i govori” na jednoj tipki, postavi tu tipku na stranici Prečaci: reagira brže od skripte, jer se ništa ne mora pokretati.</p>
+
+  <h2 id="agent-skill">AI agenti</h2>
+  <p>Vještina (skill) za AI agente za programiranje, poput Claude Codea, omogućuje agentu da preko poveznica pokrene i zaustavi diktiranje kad ga zamoliš („pusti me da govorim”, „prestani slušati”), pa sljedeću poruku možeš izgovoriti umjesto da je tipkaš. Ništa ne instalira i ništa nikamo ne šalje. Vidi <a href="https://github.com/izscaryu/pauli-speaks/tree/main/integrations/agent-skill/pauli-speaks" hreflang="en">vještinu na GitHubu</a> (na engleskom); sve integracije su u <a href="https://github.com/izscaryu/pauli-speaks/tree/main/integrations" hreflang="en">integrations</a>.</p>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="Ostale stranice">
+      <a href="index.html">Početna</a>
+      <a href="getting-started.html">Prvi koraci</a>
+      <a href="shortcuts.html">Prečaci i pedale</a>
+      <a href="voice-commands.html">Glasovne naredbe</a>
+      <a href="privacy.html">Privatnost</a>
+      <a href="compare.html">Usporedba s drugima</a>
+      <a href="faq.html">Pitanja i rješavanje problema</a>
+      <a href="code-signing.html">Pravila potpisivanja koda</a>
+      <a href="changelog.html">Što je novo</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Izvorni kôd na GitHubu</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licenca</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Licence otvorenog koda</a>
+    </nav>
+    <p>Pauli Speaks izrađuje Patrik Pauli i nije povezan s tvrtkama OpenAI ni Microsoft. Ova stranica nema kolačića, analitike ni praćenja. Gumb za preuzimanje pita GitHub koja je zadnja verzija; ništa se drugo nikamo ne spaja.</p>
+  </div>
+</footer>
+</body>
+</html>

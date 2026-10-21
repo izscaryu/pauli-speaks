@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prvi koraci · Pauli Speaks</title>
+<meta name="description" content="Preuzmi i instaliraj Pauli Speaks, prođi vođeno postavljanje i napravi prvi diktat. Uz to: prepoznavanje govora, ažuriranja, prijenosna verzija i deinstalacija.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" hreflang="hr" href="getting-started.html">
+<link rel="alternate" hreflang="en" href="../getting-started.html">
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Preskoči na sadržaj</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="../assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Stranice"><a href="getting-started.html" aria-current="page">Prvi koraci</a><a href="shortcuts.html">Prečaci</a><a href="voice-commands.html">Glasovne naredbe</a><a href="privacy.html">Privatnost</a><a href="compare.html">Usporedba</a><a href="faq.html">Pitanja</a></nav>
+    <a class="lang" href="../getting-started.html" hreflang="en" lang="en">English</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Prvi koraci</h1>
+  <p class="lead">Od preuzimanja do prvog diktata za otprilike pet minuta.</p>
+  <p><b>Trebaš</b> Windows 10 ili 11 (64-bitni), mikrofon i jednom internet za preuzimanje modela za govor (Whisper Base ima oko 150 MB). Nakon toga radi bez interneta.</p>
+
+  <ol class="steps">
+    <li>
+      <h2 id="download">Preuzmi</h2>
+      
+<div class="download">
+  <a class="btn primary" href="https://github.com/izscaryu/pauli-speaks/releases/latest" data-download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Preuzmi za Windows</a>
+  <p class="note" data-download-note data-template="Verzija {version} · {size} MB · Windows 10 i 11, 64-bitni" data-template-nosize="Verzija {version} · Windows 10 i 11, 64-bitni">Zadnja verzija s GitHuba · Windows 10 i 11, 64-bitni</p>
+</div>
+    </li>
+    <li>
+      <h2 id="install">Instaliraj</h2>
+      <p>Pokreni <code>Pauli-Speaks-Setup-&lt;verzija&gt;.exe</code>. Instalira se za tvog korisnika u Windowsima, bez administratorskih prava, i stavlja prečac na radnu površinu.</p>
+      
+<div class="callout warn" id="smartscreen">
+  <h3>„Windows je zaštitio tvoje računalo”?</h3>
+  <p>Kad pokreneš instalacijski program, Windows može prikazati plavi zaslon s porukom da je zaštitio računalo (na engleskom <i lang="en">Windows protected your PC</i>) i s nepoznatim izdavačem (<i lang="en">Unknown publisher</i>). Za instalaciju:</p>
+  <ol>
+    <li>Klikni <b>Više informacija</b> (<i lang="en">More info</i>).</li>
+    <li>Provjeri da je datoteka <code>Pauli-Speaks-Setup-&lt;verzija&gt;.exe</code>.</li>
+    <li>Klikni <b>Ipak pokreni</b> (<i lang="en">Run anyway</i>).</li>
+  </ol>
+  <p>To se događa jer instalacijski program još nije digitalno potpisan. Microsoft Defender SmartScreen upozorava na svako preuzimanje koje nema potpis izdavača ili koje je pokrenulo malo ljudi. To ne znači da je pronađen virus. Svaki instalacijski program gradi GitHub Actions iz javnog izvornog koda, zato ga preuzimaj samo s ove stranice ili s <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub Releases</a>. <a href="code-signing.html">Pravila potpisivanja koda</a> pokazuju dokle je potpisivanje stiglo.</p>
+</div>
+    </li>
+    <li>
+      <h2 id="setup">Vođeno postavljanje</h2>
+      <p>Pri prvom pokretanju kratko postavljanje pita koje jezike govoriš, provjerava mikrofon, predlaže prepoznavanje govora za tvoje računalo (pokazuje što će preuzeti i ne preuzima ništa dok ne potvrdiš), provjerava prečac i daje ti da isprobaš prvi diktat. <i>Postavke → Ponovi postavljanje</i> ga kasnije ponovno otvara.</p>
+    </li>
+    <li>
+      <h2 id="dictate">Diktiraj</h2>
+      <p>Klikni gdje želiš tekst, drži <kbd>Ctrl</kbd> + <kbd>Win</kbd>, govori i pusti. Tvoje riječi zalijepe se gdje je kursor. Mala traka pri dnu zaslona pokazuje da sluša.</p>
+      <ul>
+        <li><b>Bez ruku:</b> dvaput kucni <kbd>Ctrl</kbd> + <kbd>Win</kbd> (ili pritisni <kbd>Ctrl</kbd> + <kbd>Win</kbd> + <kbd>Razmak</kbd>) da nastavi slušati, pa pritisni ponovno za kraj. Do 20 minuta po diktatu.</li>
+        <li><b>Odustani:</b> <kbd>Esc</kbd>. Traka 4 sekunde prikazuje <i>Otkazano. Vrati</i>, ako si ga pritisnuo slučajno.</li>
+        <li><b>Zalijepi ponovno:</b> <kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd> lijepi zadnji transkript.</li>
+      </ul>
+    </li>
+    <li>
+      <h2 id="make-it-yours">Prilagodi ga sebi</h2>
+      <ul>
+        <li><b>Prečaci</b>: tvoje tipke, pedala ili tipka miša. Vidi <a href="shortcuts.html">Prečaci i pedale</a>.</li>
+        <li><b>Načini</b>: jezik, prijevod, stil i glasovne naredbe po prečacu ili po aplikaciji.</li>
+        <li><b>Rječnik i isječci</b>: imena i riječi koje treba pisati na tvoj način, i izrazi poput „moj email” koji upisuju tvoju adresu.</li>
+        <li><b>Postavke → AI dotjerivanje</b>: dotjeraj ono što si rekao modelom na svom računalu (Ollama, LM Studio ili Foundry Local) ili u oblaku. Isključeno dok ga ne odabereš.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2 id="engines">Prepoznavanje govora</h2>
+  <p>Lokalni Whisper dolazi u četiri veličine: <i>Tiny</i>, <i>Base</i>, <i>Small</i> i <i>Large v3 Turbo</i>. Veći je točniji i sporiji. Na računalu s grafičkom karticom za DirectX 12 radi na grafičkoj kartici, 2–3 puta brže, a sam se vraća na procesor kad treba. Možeš koristiti i uslugu u oblaku s API-jem kompatibilnim s OpenAI-jem (zadan je Groqov besplatni paket) i vlastitim ključem, koji Windows šifrira; tvoj zvuk tada ide toj usluzi.</p>
+
+  <h2 id="updates">Ažuriranja</h2>
+  <p>Instalirana aplikacija provjerava novu verziju na GitHubu 15 sekundi nakon pokretanja, a zatim svakih 6 sati. Ažuriranje preuzima u pozadini i nudi <b>Ponovno pokreni i ažuriraj</b> u izborniku ikone, u prozoru i u O programu. Ako to zanemariš, ažuriranje se instalira kad sljedeći put zatvoriš aplikaciju. Uključi <i>O programu → Primaj rane verzije</i> za probne verzije prije svih ostalih.</p>
+
+  <h2 id="portable">Prijenosna verzija</h2>
+  <p><code>Pauli-Speaks-Portable-&lt;verzija&gt;.exe</code>, na istoj <a href="https://github.com/izscaryu/pauli-speaks/releases/latest">stranici izdanja</a>, radi bez instalacije, na primjer s USB stick-a ili na poslovnom računalu. Stavi je u vlastitu mapu i pokreni. Sve čuva u mapi <code>Pauli Speaks Data</code> pokraj <code>.exe</code> datoteke.</p>
+  <ul>
+    <li>Nema automatskih ažuriranja: O programu pokazuje poveznicu kad izađe nova verzija. Zamijeni <code>.exe</code> datoteku, a mapu s podacima zadrži.</li>
+    <li>Nema poveznica <code>pauli-speaks://</code> ni pokretanja s Windowsima, pa ne ostavlja ništa u registru. Zastavice naredbenog retka rade, ali sporo.</li>
+    <li>Pokreće se nekoliko sekundi sporije, jer se svaki put raspakira.</li>
+  </ul>
+
+  <h2 id="uninstall">Deinstalacija</h2>
+  <p>Zatvori Pauli Speaks (ikona u traci sustava → <i>Zatvori Pauli Speaks</i>), pa ga deinstaliraj u <i>Postavke sustava Windows → Aplikacije</i>. Program za deinstalaciju pita želiš li obrisati i svoje podatke (povijest, postavke, modele); zadano ih čuva. Uklanja i poveznice <code>pauli-speaks://</code> i pokretanje s Windowsima. Ažuriranja nikad ne diraju tvoje podatke.</p>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="Ostale stranice">
+      <a href="index.html">Početna</a>
+      <a href="getting-started.html">Prvi koraci</a>
+      <a href="shortcuts.html">Prečaci i pedale</a>
+      <a href="voice-commands.html">Glasovne naredbe</a>
+      <a href="privacy.html">Privatnost</a>
+      <a href="compare.html">Usporedba s drugima</a>
+      <a href="faq.html">Pitanja i rješavanje problema</a>
+      <a href="code-signing.html">Pravila potpisivanja koda</a>
+      <a href="changelog.html">Što je novo</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Izvorni kôd na GitHubu</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licenca</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Licence otvorenog koda</a>
+    </nav>
+    <p>Pauli Speaks izrađuje Patrik Pauli i nije povezan s tvrtkama OpenAI ni Microsoft. Ova stranica nema kolačića, analitike ni praćenja. Gumb za preuzimanje pita GitHub koja je zadnja verzija; ništa se drugo nikamo ne spaja.</p>
+  </div>
+</footer>
+</body>
+</html>

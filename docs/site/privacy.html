@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy · Pauli Speaks</title>
+<meta name="description" content="What Pauli Speaks keeps on your PC, what leaves it only if you choose a cloud option, the connections it makes by itself, and how to delete your data.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="en" href="privacy.html">
+<link rel="alternate" hreflang="hr" href="hr/privacy.html">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Site"><a href="getting-started.html">Get started</a><a href="shortcuts.html">Shortcuts</a><a href="voice-commands.html">Voice commands</a><a href="privacy.html" aria-current="page">Privacy</a><a href="compare.html">Compare</a><a href="faq.html">FAQ</a></nav>
+    <a class="lang" href="hr/privacy.html" hreflang="hr" lang="hr">Hrvatski</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<article class="page">
+  <h1>Privacy</h1>
+  <p class="lead">Pauli Speaks turns your speech into text on your own PC. There is no account, no analytics and no telemetry. Nothing you say leaves your computer unless you turn on a cloud option, and the app says so next to that option.</p>
+  <p class="meta">This is a summary. The full statement, with every file and connection, is <a href="https://github.com/izscaryu/pauli-speaks/blob/main/PRIVACY.md">PRIVACY.md</a>; its history on GitHub shows every change.</p>
+
+  <h2 id="stays">What stays on your PC</h2>
+  <ul>
+    <li><b>Audio.</b> The microphone records only while you dictate, and silence detection runs on your PC. So that a crash doesn't lose what you said, the recording in progress is written to the <code>recovery</code> folder (not encrypted) and deleted when the dictation ends. After a crash, Home asks whether to recover it or discard it. You can turn this off: <i>Settings → Privacy → Recover dictation after a crash</i>.</li>
+    <li><b>Recordings, off by default.</b> With <i>Keep recordings for 24 hours</i> on, each dictation is kept as a WAV file (not encrypted), so you can play it or transcribe it again from History. They are deleted after 24 hours.</li>
+    <li><b>Retry and Undo.</b> A dictation that couldn't be transcribed is kept in memory (the last 5, or 10 minutes of audio), so you can retry it until you quit. A cancelled one is kept for 4 seconds, so you can undo the cancel.</li>
+    <li><b>Transcripts.</b> History keeps your last 500 dictations. <i>Transcript history</i> changes that to <i>Delete after 24 hours</i> or <i>Don't keep</i>.</li>
+    <li><b>Clipboard history.</b> To paste, the text is put on the clipboard for a moment, marked so that Windows clipboard history (Win+V) and cloud clipboard don't keep it. Your own clipboard content is put back afterwards.</li>
+    <li><b>AI polish on this PC, off by default.</b> With Ollama, LM Studio, Foundry Local or another server at <code>localhost</code>, the text of each dictation in a mode with a polish level goes to that program on your PC. Nothing leaves the PC for it.</li>
+    <li><b>Your dictionary, snippets, voice commands and settings.</b></li>
+    <li><b>Logs</b> with timings, the detected language, the name of the app you dictated into and errors. Never what you said.</li>
+  </ul>
+
+  <h2 id="leaves">What leaves your PC, only if you choose it</h2>
+  <div class="table"><table>
+    <thead><tr><th scope="col">You turn on</th><th scope="col">What is sent</th><th scope="col">To</th></tr></thead>
+    <tbody>
+      <tr><td>Cloud API speech recognition</td><td>The audio of each dictation and of files you transcribe, and your dictionary words as a hint</td><td>The provider you set up (Groq by default: <code>api.groq.com</code>)</td></tr>
+      <tr><td>Command mode</td><td>The selected text and your spoken instruction, as text</td><td>The same provider</td></tr>
+      <tr><td>AI polish with the Cloud API, or another server that isn't this PC</td><td>The text of each dictation in that mode (not the audio) and the mode's polish instructions</td><td>That provider or server</td></tr>
+      <tr><td>Foundry Local: <i>Show models</i> and <i>Download</i></td><td>Which models are offered, and the model you download. Never your text</td><td>Microsoft's Foundry Local catalogue and download servers</td></tr>
+    </tbody>
+  </table></div>
+  <p>These need an API key that you get from the provider yourself. The key is encrypted with Windows (DPAPI). What a provider does with your data is up to its own privacy policy.</p>
+
+  <h2 id="connections">Connections the app makes by itself</h2>
+  <ul>
+    <li><b>Update checks</b> to GitHub, 15 seconds after start and every 6 hours. Only the release information and, when there is an update, the installer are downloaded.</li>
+    <li><b>Model downloads</b> from Hugging Face, the first time you use a speech or translation model.</li>
+    <li><b>Foundry Local, only while it is chosen for AI polish.</b> Pauli Speaks starts it with its optional telemetry off. Microsoft documents that it may still send a minimal event about the process when it starts; it contains nothing you dictated. Choose another AI polish option to avoid it.</li>
+  </ul>
+  <p>Nothing else. <i>Read aloud</i> uses the voices built into Windows, and the links and command-line flags only control the app on your PC.</p>
+
+  <h2 id="delete">Where your data is, and how to delete it</h2>
+  <p>Everything is in <code>%APPDATA%\Pauli Speaks</code> (<i>About → Data folder</i> opens it). The portable copy keeps it in <code>Pauli Speaks Data</code> next to its <code>.exe</code>.</p>
+  <ul>
+    <li><b>Delete all my data</b> (<i>Settings → Privacy</i>) deletes your history, recordings, dictionary, snippets and settings, including the API key. Models are kept.</li>
+    <li><b>Delete downloaded models</b> removes the speech, translation and AI polish models; they download again when needed.</li>
+    <li>To remove everything, logs included: quit Pauli Speaks, uninstall it, and say yes when the uninstaller asks whether to delete your data (or delete the folder yourself).</li>
+  </ul>
+
+  <h2 id="site">This website</h2>
+  <p>This site has no cookies, no analytics and no trackers, and loads nothing from other sites. The Download button asks GitHub's API (<code>api.github.com</code>) once for the latest version; like any web request, that shows GitHub your IP address. The site is hosted on GitHub Pages; see <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</p>
+
+  <h2 id="questions">Questions</h2>
+  <p>Open an issue at <a href="https://github.com/izscaryu/pauli-speaks/issues">github.com/izscaryu/pauli-speaks/issues</a>.</p>
+</article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="More pages">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="shortcuts.html">Shortcuts & pedals</a>
+      <a href="voice-commands.html">Voice commands</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="compare.html">Compared with others</a>
+      <a href="faq.html">FAQ & troubleshooting</a>
+      <a href="code-signing.html">Code signing policy</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Source code on GitHub</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licence</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Open-source licences</a>
+    </nav>
+    <p>Pauli Speaks is made by Patrik Pauli and is not affiliated with OpenAI or Microsoft. This site has no cookies, no analytics and no trackers. The Download button asks GitHub for the latest version; nothing else connects anywhere.</p>
+  </div>
+</footer>
+</body>
+</html>

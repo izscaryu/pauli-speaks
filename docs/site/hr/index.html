@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pauli Speaks: besplatno glasovno tipkanje za Windows</title>
+<meta name="description" content="Drži tipku, govori, pusti: tvoje riječi upišu se u bilo koju aplikaciju. Besplatno glasovno tipkanje za Windows, s prepoznavanjem govora na tvom računalu, pa radi i bez interneta.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" hreflang="hr" href="index.html">
+<link rel="alternate" hreflang="en" href="../index.html">
+<script src="../assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Preskoči na sadržaj</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="../assets/mark.svg" alt="" width="28" height="28">Pauli Speaks</a>
+    <nav class="nav" aria-label="Stranice"><a href="getting-started.html">Prvi koraci</a><a href="shortcuts.html">Prečaci</a><a href="voice-commands.html">Glasovne naredbe</a><a href="privacy.html">Privatnost</a><a href="compare.html">Usporedba</a><a href="faq.html">Pitanja</a></nav>
+    <a class="lang" href="../index.html" hreflang="en" lang="en">English</a>
+  </div>
+</header>
+<main id="main">
+  <div class="wrap">
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-text">
+    <p class="kicker">Besplatno glasovno tipkanje za Windows</p>
+    <h1 id="hero-title">Drži tipku, govori, pusti. Tvoje riječi su upisane.</h1>
+    <p class="lead">Pauli Speaks upisuje ono što kažeš u bilo koju aplikaciju na računalu. Prepoznavanje govora radi na tvom računalu, pa je besplatno, radi bez interneta i ono što kažeš ostaje kod tebe.</p>
+    
+<div class="download">
+  <a class="btn primary" href="https://github.com/izscaryu/pauli-speaks/releases/latest" data-download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Preuzmi za Windows</a>
+  <p class="note" data-download-note data-template="Verzija {version} · {size} MB · Windows 10 i 11, 64-bitni" data-template-nosize="Verzija {version} · Windows 10 i 11, 64-bitni">Zadnja verzija s GitHuba · Windows 10 i 11, 64-bitni</p>
+</div>
+    <p class="meta">Ne možeš instalirati programe na ovom računalu? Koristi <a href="getting-started.html#portable">prijenosnu verziju</a>.</p>
+  </div>
+  
+<figure class="demo">
+  <div class="stage" aria-hidden="true">
+    <div class="app-win">
+      <div class="app-bar"><span>Timski chat</span><span class="caps"><span>—</span><span>▢</span><span>✕</span></span></div>
+      <div class="app-body">
+        <div class="msg"><span class="avatar">A</span><div><b>Ana</b>Je li sastanak i dalje u četvrtak?</div></div>
+        <div class="composer"><span class="caret"></span><span class="pasted">Da, pomaknut je na četvrtak u 15 sati. Možeš li poslati prezentaciju prije toga?</span></div>
+      </div>
+    </div>
+    <div class="said"><span>„da ovaj pomaknut je na četvrtak u tri možeš li poslati prezentaciju prije toga”</span></div>
+    <div class="held"><kbd>Ctrl</kbd>+<kbd>Win</kbd></div>
+    <div class="desk">
+      <div class="pill idle"></div>
+      <div class="pill listen"><span class="rec"></span><span class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="chip">HR</span></div>
+      <div class="pill proc"><span class="shimmer"></span><span>Dotjerujem…</span></div>
+      <div class="pill done"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg><span>Dotjerano.</span><span class="chip">Vrati</span></div>
+    </div>
+  </div>
+  <ol class="story">
+    <li>Drži <b>Ctrl + Win</b> i govori.</li>
+    <li>Pusti. Računalo to pretvara u tekst.</li>
+    <li>Tekst se zalijepi gdje je kursor. <b>Dotjerano. Vrati</b> vraća ono što si rekao.</li>
+  </ol>
+  <figcaption class="demo-foot"><span>Animacija jednog diktata s uključenim AI dotjerivanjem (isključeno je dok ga sam ne odabereš).</span><button class="btn demo-toggle" type="button" data-demo-toggle data-pause="Zaustavi animaciju" data-play="Pokreni animaciju" hidden>Zaustavi animaciju</button></figcaption>
+</figure>
+</section>
+
+<section class="section" aria-label="Windows SmartScreen">
+  
+<div class="callout warn" id="smartscreen">
+  <h2>„Windows je zaštitio tvoje računalo”?</h2>
+  <p>Kad pokreneš instalacijski program, Windows može prikazati plavi zaslon s porukom da je zaštitio računalo (na engleskom <i lang="en">Windows protected your PC</i>) i s nepoznatim izdavačem (<i lang="en">Unknown publisher</i>). Za instalaciju:</p>
+  <ol>
+    <li>Klikni <b>Više informacija</b> (<i lang="en">More info</i>).</li>
+    <li>Provjeri da je datoteka <code>Pauli-Speaks-Setup-&lt;verzija&gt;.exe</code>.</li>
+    <li>Klikni <b>Ipak pokreni</b> (<i lang="en">Run anyway</i>).</li>
+  </ol>
+  <p>To se događa jer instalacijski program još nije digitalno potpisan. Microsoft Defender SmartScreen upozorava na svako preuzimanje koje nema potpis izdavača ili koje je pokrenulo malo ljudi. To ne znači da je pronađen virus. Svaki instalacijski program gradi GitHub Actions iz javnog izvornog koda, zato ga preuzimaj samo s ove stranice ili s <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub Releases</a>. <a href="code-signing.html">Pravila potpisivanja koda</a> pokazuju dokle je potpisivanje stiglo.</p>
+</div>
+</section>
+
+<section class="section" aria-labelledby="different">
+  <h2 id="different">Po čemu se razlikuje</h2>
+  <div class="grid">
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg></span><h3>Besplatno, bez kvake</h3><p>Bez računa, bez pretplate i bez ograničenja broja riječi. Izvorni kôd je otvoren, pod licencom MIT.</p></div>
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 5-3M22 8.5A15 15 0 0 0 11 5M5 12a10 10 0 0 1 4-2.4M19 12a10 10 0 0 0-2.6-1.7M8.5 15.5a5 5 0 0 1 6-.8M12 19h.01M3 3l18 18"/></svg></span><h3>Radi bez interneta</h3><p>OpenAI-jevo prepoznavanje govora Whisper radi na tvom računalu, na grafičkoj kartici kad je ima. Model se preuzima jednom; nakon toga internet ti ne treba.</p></div>
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><h3>Privatno</h3><p>Bez analitike i bez telemetrije. Ništa što kažeš ne napušta računalo, osim ako uključiš opciju u oblaku, a aplikacija to piše uz nju. <a href="privacy.html">Privatnost</a></p></div>
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span><h3>Načini</h3><p>Način objedinjuje jezik, prijevod, stil i glasovne naredbe. Svakom daj vlastiti prečac ili neka se sam uključi: službeno u Outlooku, stil za kôd u VS Codeu.</p></div>
+    
+    <div class="panel card"><span class="ic coral"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></span><h3>AI dotjerivanje, prvo na tvom računalu</h3><p>Isključeno dok ga ne odabereš. Lagano, Srednje, Jako ili Upit za svaki način, na tvom računalu s Ollamom, LM Studijom ili Foundry Localom. Ako potraje dulje od 2,5 sekunde, zalijepi se točno ono što si rekao.</p></div>
+    
+    <div class="panel card"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg></span><h3>Tvoje tipke, pedale, Stream Deck</h3><p>Drži i govori ili dvaput kucni za diktiranje bez ruku. Bilo koja tipka, pedala na F13–F24 ili tipka miša, uz poveznice i zastavice naredbenog retka. <a href="shortcuts.html">Prečaci</a></p></div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="languages">
+  <h2 id="languages">Jezici</h2>
+  <div class="two">
+    <div class="panel card">
+      <span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
+      <h3>Govori na bilo kojem od 99 jezika</h3>
+      <p>Whisper prepoznaje 99 jezika. U postavljanju odaberi one koje govoriš, a Pauli Speaks prepozna kojim si od njih govorio. Koliko dobro radi ovisi o jeziku i modelu: <i>Large v3 Turbo</i> je najtočniji, <i>Tiny</i> najbrži.</p>
+      <p>Govori na jednom jeziku, zalijepi na drugom: <i>Brzo</i> prevodi na engleski samim Whisperom, <i>Najbolje</i> na više od 30 jezika Metinim modelom NLLB-200, također bez interneta (oko 900 MB, preuzima se jednom).</p>
+    </div>
+    <div class="panel card">
+      <span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+      <h3>Aplikacija na hrvatskom i engleskom</h3>
+      <p>Prozor, postavljanje, traka i izbornik ikone su na hrvatskom i engleskom. Novi jezik je jedna datoteka i ne trebaš znati programirati: <a href="https://github.com/izscaryu/pauli-speaks/blob/main/CONTRIBUTING.md#translate-pauli-speaks">prevedi Pauli Speaks</a>.</p>
+      <p>Glasovne naredbe spremne su na ovim jezicima, a vlastite izraze možeš dodati na bilo kojem jeziku:</p>
+      <p class="langs"><span class="badge">Hrvatski</span><span class="badge" lang="en">English</span><span class="badge" lang="de">Deutsch</span><span class="badge" lang="es">Español</span><span class="badge" lang="it">Italiano</span><span class="badge" lang="pl">Polski</span><span class="badge" lang="sl">Slovenščina</span><span class="badge" lang="sr">Srpski</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="next">
+  <h2 id="next">Dalje</h2>
+  <div class="grid">
+    <a class="panel card" href="getting-started.html"><h3>Prvi koraci</h3><p>Instalacija, vođeno postavljanje i prvi diktat, za pet minuta.</p></a>
+    <a class="panel card" href="compare.html"><h3>Usporedba s drugima</h3><p>Glasovno tipkanje u Windowsima, Wispr Flow, Dragon i besplatne aplikacije s Whisperom, jedno uz drugo.</p></a>
+    <a class="panel card" href="faq.html"><h3>Pitanja i rješavanje problema</h3><p>Ništa se ne događa, nema zvuka, sporo je ili tekst ne stiže u jednu aplikaciju.</p></a>
+  </div>
+</section>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="Ostale stranice">
+      <a href="index.html">Početna</a>
+      <a href="getting-started.html">Prvi koraci</a>
+      <a href="shortcuts.html">Prečaci i pedale</a>
+      <a href="voice-commands.html">Glasovne naredbe</a>
+      <a href="privacy.html">Privatnost</a>
+      <a href="compare.html">Usporedba s drugima</a>
+      <a href="faq.html">Pitanja i rješavanje problema</a>
+      <a href="code-signing.html">Pravila potpisivanja koda</a>
+      <a href="changelog.html">Što je novo</a>
+    </nav>
+    <nav aria-label="GitHub">
+      <a href="https://github.com/izscaryu/pauli-speaks">Izvorni kôd na GitHubu</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/LICENSE">MIT licenca</a>
+      <a href="https://github.com/izscaryu/pauli-speaks/blob/main/THIRD_PARTY_NOTICES.md">Licence otvorenog koda</a>
+    </nav>
+    <p>Pauli Speaks izrađuje Patrik Pauli i nije povezan s tvrtkama OpenAI ni Microsoft. Ova stranica nema kolačića, analitike ni praćenja. Gumb za preuzimanje pita GitHub koja je zadnja verzija; ništa se drugo nikamo ne spaja.</p>
+  </div>
+</footer>
+</body>
+</html>
