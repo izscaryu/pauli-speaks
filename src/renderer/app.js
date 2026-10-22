@@ -1323,7 +1323,10 @@ function renderToggles() {
   document.querySelectorAll('[data-setting]').forEach((input) => {
     input.checked = !!settings[input.dataset.setting];
   });
+  markChoice('#theme button', (b) => b.dataset.theme === (settings.theme || 'system'));
 }
+// Settings › General › Theme: System (Windows decides), Light or Dark; the main process switches every window.
+document.querySelectorAll('#theme button').forEach((b) => b.addEventListener('click', () => save({ theme: b.dataset.theme })));
 document.querySelectorAll('[data-setting]').forEach((input) =>
   input.addEventListener('change', () => save({ [input.dataset.setting]: input.checked })));
 

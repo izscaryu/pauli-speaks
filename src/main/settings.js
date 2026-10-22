@@ -12,6 +12,8 @@ const { EventEmitter } = require('node:events');
 const { DEFAULT_MODES, normalizeModes, v6to7 } = require('./modes');
 const { normalizePolish } = require('./polish');
 const { POSITIONS } = require('./pill');
+
+const THEMES = ['system', 'light', 'dark'];
 const { normalizeBindings } = require('./shortcut-rules');
 const { DEFAULT_VOICE_COMMANDS, normalizeVoiceCommands } = require('./voice-commands');
 
@@ -62,6 +64,7 @@ const DEFAULTS = Object.freeze({
   sounds: true,
   showIdlePill: true,
   pillPosition: 'center', // pill.js: left | center | right, where it was dragged to
+  theme: 'system', // system (follow Windows) | light | dark: the window, Mica and the pill
   launchAtLogin: false,
   betaUpdates: false,
   dictionary: [{ from: 'polyspeaks', to: 'Pauli Speaks' }],
@@ -207,6 +210,7 @@ function migrateSettings(saved) {
   if ('modes' in out) out.modes = normalizeModes(out.modes);
   if ('polish' in out) out.polish = normalizePolish(out.polish);
   if ('pillPosition' in out && !POSITIONS.includes(out.pillPosition)) out.pillPosition = 'center';
+  if ('theme' in out && !THEMES.includes(out.theme)) out.theme = 'system';
   return out;
 }
 
@@ -301,6 +305,8 @@ class Settings extends EventEmitter {
         if (isUiLanguage(v)) next.uiLanguage = v;
       } else if (k === 'pillPosition') {
         if (POSITIONS.includes(v)) next.pillPosition = v;
+      } else if (k === 'theme') {
+        if (THEMES.includes(v)) next.theme = v;
       } else if (NESTED.includes(k)) {
         next[k] = { ...next[k], ...v };
       } else {

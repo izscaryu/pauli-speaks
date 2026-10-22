@@ -943,6 +943,14 @@ function applySettings(data, patch) {
     app.setLoginItemSettings({ openAtLogin: !!data.launchAtLogin, args: ['--hidden'] });
   }
   if ('betaUpdates' in patch) updater?.setPrerelease(data.betaUpdates);
+  if ('theme' in patch) {
+    // Settings › General: the windows and the pill follow nativeTheme; Mica takes its tint when it is set, so again.
+    nativeTheme.themeSource = data.theme;
+    if (mainWindow && /look=mica/.test(mainWindow.webContents.getURL())) {
+      mainWindow.setBackgroundMaterial('none');
+      mainWindow.setBackgroundMaterial('mica');
+    }
+  }
   if (patch.polish && data.polish.provider !== 'foundry') foundry.dispose(); // its model no longer needs the memory
   privacy.apply(patch);
   if ('crashRecovery' in patch) recoveryIpc.crashRecoveryChanged(); // before the window hears about it
@@ -972,6 +980,7 @@ function init() {
     encrypt: (s) => (canEncrypt ? safeStorage.encryptString(s).toString('base64') : `plain:${s}`),
     decrypt: (s) => (s.startsWith('plain:') ? s.slice(6) : safeStorage.decryptString(Buffer.from(s, 'base64'))),
   });
+  nativeTheme.themeSource = settings.get().theme; // before any window: System, Light or Dark (Settings › General)
   history = new History(path.join(app.getPath('userData'), 'history.json'));
   audioHistory = createAudioHistory(path.join(app.getPath('userData'), 'audio'));
   privacy = createPrivacy({ history, audioHistory, getSettings: () => settings.get(), log });

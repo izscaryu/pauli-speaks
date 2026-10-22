@@ -846,5 +846,11 @@
   "modes.group.identity": "Identity",
   "modes.group.when": "When it's used",
   "modes.group.what": "What it does",
-  "modes.link.summary": "Start from a link"
+  "modes.link.summary": "Start from a link",
+  "settings.appearance.title": "Appearance",
+  "settings.theme.title": "Theme",
+  "settings.theme.desc": "System follows Windows: Settings › Personalization › Colors. The window and the bar follow it.",
+  "settings.theme.system": "System",
+  "settings.theme.light": "Light",
+  "settings.theme.dark": "Dark"
 }

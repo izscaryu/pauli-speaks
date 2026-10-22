@@ -858,5 +858,11 @@
   "modes.group.identity": "Identitet",
   "modes.group.when": "Kada se koristi",
   "modes.group.what": "Što radi",
-  "modes.link.summary": "Pokreni poveznicom"
+  "modes.link.summary": "Pokreni poveznicom",
+  "settings.appearance.title": "Izgled",
+  "settings.theme.title": "Tema",
+  "settings.theme.desc": "Sustav prati Windows: Postavke › Personalizacija › Boje. Prozor i traka prate temu.",
+  "settings.theme.system": "Sustav",
+  "settings.theme.light": "Svijetla",
+  "settings.theme.dark": "Tamna"
 }

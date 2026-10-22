@@ -26,6 +26,7 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 - Shortcuts: "Test a key" opens a small tester under the title, an action without a shortcut is one short line with "Add shortcut", each Hold / Toggle / Both says what it does under it, the voice commands are a "You say / It does" table, and the pedal and link help is folded away.
 - Modes: the editor is in groups (Identity, When it's used, What it does, AI polish), the style says what the chosen style does, the link is folded away, and Delete is at the bottom.
 - Files says when the speech model is missing, shows how far a file has got ("12:04 of 42:10"), translating is a switch, and the files from this session are listed to open again.
+- Choose the theme in Settings › General: System (follows Windows), Light or Dark. The window, its Windows 11 backdrop and the bar follow it, and the bar is light in the light theme.
 
 ## 1.6.0
 

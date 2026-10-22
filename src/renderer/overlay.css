@@ -1,5 +1,5 @@
 /* The pill: the same "quiet instrument" language as the main window, an ink pill where coral = live. Its colours
-   are the --pill-* tokens in tokens.css (loaded first): always dark, on any desktop. */
+   are the --pill-* tokens in tokens.css (loaded first): light or dark, following the theme (Settings › General). */
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }

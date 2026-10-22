@@ -114,7 +114,7 @@ const BOTH = [
 const LIGHT_ONLY = [
   ['--key-edge', '--card', EDGE, 'a keycap edge'], // in dark the keycap is lighter than the card, which shows it
 ];
-// The pill is dark in both themes and floats over any desktop.
+// The pill follows the theme (light or dark) and floats over any desktop.
 const PILL = [
   ['--pill-ink', '--pill-bg', TEXT, 'pill text'],
   ['--pill-muted', '--pill-bg', TEXT, 'pill secondary text'],
@@ -133,18 +133,26 @@ for (const [name, theme] of Object.entries(themes())) {
   });
 }
 
-test('tokens.css pill: text 4.5:1 or more over a white and a black desktop, on the pill and on a chip', () => {
-  const { light } = themes();
+test('tokens.css pill: text 4.5:1 or more over a white and a black desktop, on the pill and on a chip, in both themes', () => {
   const low = [];
-  for (const desktop of ['#ffffff', '#000000']) {
-    for (const [fg, bg, min, what] of PILL) {
-      for (const [back, where] of [[[bg, desktop], 'the pill'], [['--pill-chip', [bg, desktop]], 'a chip']]) {
-        const r = measure(light, fg, back);
-        if (r < min) low.push(`${what} on ${where} over ${desktop}: ${r.toFixed(2)}:1`);
+  for (const [name, theme] of Object.entries(themes())) {
+    for (const desktop of ['#ffffff', '#000000']) {
+      for (const [fg, bg, min, what] of PILL) {
+        for (const [back, where] of [[[bg, desktop], 'the pill'], [['--pill-chip', [bg, desktop]], 'a chip']]) {
+          const r = measure(theme, fg, back);
+          if (r < min) low.push(`${name}: ${what} on ${where} over ${desktop}: ${r.toFixed(2)}:1`);
+        }
       }
     }
   }
   assert.deepEqual(low, []);
+});
+
+test('tokens.css pill: it follows the theme, light in the light theme and dark in the dark one', () => {
+  const { light, dark } = themes();
+  const bg = (theme) => luminance(over(rgba(resolve(theme, theme['--pill-bg'])), [128, 128, 128, 1]));
+  assert.ok(bg(light) > 0.6, 'a light pill');
+  assert.ok(bg(dark) < 0.1, 'a dark pill');
 });
 
 test('the measuring itself: black on white is 21:1, a colour on itself 1:1', () => {

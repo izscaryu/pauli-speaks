@@ -16,7 +16,7 @@ test('Settings search looks through every section and the other pages, and Esc b
   await page.click('.nav[data-page="settings"]');
   assert.equal(await page.locator('.settings-nav a[data-section]').count(), 8, 'eight sections');
   const general = await visiblePanels(page);
-  assert.deepEqual(general, ['Language', 'Behavior'], 'one section at a time: General first');
+  assert.deepEqual(general, ['Appearance', 'Language', 'Behavior'], 'one section at a time: General first');
 
   await page.fill('#settings-search', 'filler');
   assert.deepEqual(await visiblePanels(page), ['Text clean-up'], 'found in Speech & microphone, and unfolded');
@@ -156,4 +156,25 @@ test('accessibility: keyboard navigation names the current page, contrast themes
   await page.emulateMedia({ forcedColors: 'active' });
   const border = await page.evaluate(() => getComputedStyle(document.querySelector('.nav[data-page="history"]')).outlineStyle);
   assert.notEqual(border, 'none', 'the current page is outlined in a contrast theme');
+});
+
+test('Settings › General › Theme: Dark and Light switch the window and the pill, and are kept', async (t) => {
+  const run = await launch();
+  t.after(run.close);
+  const { page } = run;
+  await new Promise((r) => setTimeout(r, 1500)); // the pill window is up
+  const pill = await waitFor(() => run.app.windows().find((w) => w.url().endsWith('overlay.html')), { what: 'the pill' });
+  const dark = (w) => w.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches);
+  // Playwright pins prefers-color-scheme to light on the windows it drives: let them follow the app again.
+  for (const w of [page, pill]) await w.emulateMedia({ colorScheme: null });
+  await page.click('.nav[data-page="settings"]'); // General opens first
+  assert.equal(await page.getAttribute('#theme button[data-theme="system"]', 'aria-checked'), 'true', 'System until you choose');
+
+  await page.click('#theme button[data-theme="dark"]');
+  await waitFor(async () => (await dark(page)) && (await dark(pill)), { what: 'the window and the pill dark' });
+  assert.equal((await page.evaluate(() => window.pauli.getSettings())).theme, 'dark');
+
+  await page.click('#theme button[data-theme="light"]');
+  await waitFor(async () => !(await dark(page)) && !(await dark(pill)), { what: 'the window and the pill light' });
+  assert.equal(await page.getAttribute('#theme button[data-theme="light"]', 'aria-checked'), 'true');
 });

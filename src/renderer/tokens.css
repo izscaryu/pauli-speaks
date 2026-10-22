@@ -52,20 +52,21 @@
   --key-edge: #8a857b;
   --key-pressed: var(--live);
 
-  /* ---- the pill: dark on any desktop, in both themes */
-  --pill-bg: rgba(24, 23, 21, 0.94);
-  --pill-stroke: rgba(255, 255, 255, 0.22);
-  --pill-ink: #f1efe9;
-  --pill-muted: rgba(241, 239, 233, 0.72);
-  --pill-live: #ff6a52;
-  --pill-live-hover: #ff8670;
-  --pill-warn: #e0a347;
-  --pill-warn-stroke: rgba(224, 163, 71, 0.65);
-  --pill-danger: #ff8a75;
-  --pill-danger-stroke: rgba(255, 138, 117, 0.6);
-  --pill-chip: rgba(255, 255, 255, 0.10);
-  --pill-chip-hover: rgba(255, 255, 255, 0.20);
-  --pill-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  /* ---- the pill: it follows the theme (Settings › General); light here, dark in the dark block. It floats over any
+     desktop, so its text is measured over white and black (test/tokens-contrast.test.js). */
+  --pill-bg: rgba(249, 248, 245, 0.96);
+  --pill-stroke: rgba(29, 28, 26, 0.18);
+  --pill-ink: #1d1c1a;
+  --pill-muted: rgba(29, 28, 26, 0.72);
+  --pill-live: #e4533b;
+  --pill-live-hover: #c8452f;
+  --pill-warn: #8a560f;
+  --pill-warn-stroke: rgba(138, 86, 15, 0.55);
+  --pill-danger: #a82f1c; /* a little darker than --danger: it also has to read on a chip over a black desktop */
+  --pill-danger-stroke: rgba(185, 53, 32, 0.5);
+  --pill-chip: rgba(29, 28, 26, 0.06);
+  --pill-chip-hover: rgba(29, 28, 26, 0.12);
+  --pill-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
 
   /* ---- type: six sizes (Segoe UI Variable) */
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
@@ -155,6 +156,19 @@
     --shadow-flyout: 0 8px 16px rgba(0, 0, 0, 0.26);
     --shadow-dialog: 0 32px 64px rgba(0, 0, 0, 0.37), 0 2px 21px rgba(0, 0, 0, 0.37);
     --scrim: rgba(0, 0, 0, 0.45);
+    --pill-bg: rgba(24, 23, 21, 0.94);
+    --pill-stroke: rgba(255, 255, 255, 0.22);
+    --pill-ink: #f1efe9;
+    --pill-muted: rgba(241, 239, 233, 0.72);
+    --pill-live: #ff6a52;
+    --pill-live-hover: #ff8670;
+    --pill-warn: #e0a347;
+    --pill-warn-stroke: rgba(224, 163, 71, 0.65);
+    --pill-danger: #ff8a75;
+    --pill-danger-stroke: rgba(255, 138, 117, 0.6);
+    --pill-chip: rgba(255, 255, 255, 0.10);
+    --pill-chip-hover: rgba(255, 255, 255, 0.20);
+    --pill-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
 }
