@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { launch, setUpSettings, waitFor } = require('./helpers');
+const { launch, setUpSettings, waitFor, openSettings } = require('./helpers');
 
 test('Settings → App language → Hrvatski: the window and the pill switch to Croatian', async (t) => {
   const settings = setUpSettings();
@@ -14,7 +14,7 @@ test('Settings → App language → Hrvatski: the window and the pill switch to 
   t.after(run.close);
   const { page } = run;
 
-  await page.locator('button.nav[data-page="settings"]').click();
+  await openSettings(page, 'general');
   assert.equal(await page.locator('button.nav[data-page="settings"]').textContent(), 'Settings');
   await page.evaluate(() => { window.beforeReload = true; });
   await page.locator('#ui-language').selectOption('hr');

@@ -3,7 +3,7 @@
 // Settings search that keeps only the rows that match.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { launch, setUpSettings, waitFor } = require('./helpers');
+const { launch, setUpSettings, waitFor, openSettings } = require('./helpers');
 
 /** The Settings cards on screen, by their titles. */
 const visiblePanels = (page) => page.evaluate(() => [...document.querySelectorAll('#page-settings .settings-section > .panel')]
@@ -13,10 +13,13 @@ test('Settings search looks through every section and the other pages, and Esc b
   const run = await launch();
   t.after(run.close);
   const { page } = run;
-  await page.click('.nav[data-page="settings"]');
+  await openSettings(page, 'general');
   assert.equal(await page.locator('.settings-nav a[data-section]').count(), 8, 'eight sections');
   const general = await visiblePanels(page);
   assert.deepEqual(general, ['Appearance', 'Language', 'Behavior'], 'one section at a time: General first');
+  // On a narrow window the search box is on the list of sections: back to it first.
+  const narrow = await page.isVisible('#settings-back');
+  if (narrow) await page.click('#settings-back');
 
   await page.fill('#settings-search', 'filler');
   assert.deepEqual(await visiblePanels(page), ['Text clean-up'], 'found in Speech & microphone, and unfolded');
@@ -32,7 +35,7 @@ test('Settings search looks through every section and the other pages, and Esc b
   const ownHidden = () => page.evaluate(() => [document.getElementById('cloud-settings').hidden, document.getElementById('tr-model-row').hidden]);
   const before = await ownHidden();
   await page.press('#settings-search', 'Escape');
-  assert.deepEqual(await visiblePanels(page), general);
+  assert.deepEqual(await visiblePanels(page), narrow ? [] : general, 'the section again (on a narrow window, the list)');
   assert.deepEqual(await ownHidden(), before, 'rows hidden by their own code stay hidden after a search');
 });
 
@@ -45,7 +48,7 @@ test('each Settings section opens on its own and takes the focus; a jump to a ca
   const sections = await page.$$eval('.settings-nav a[data-section]', (as) => as.map((a) => a.dataset.section));
   const wrong = [];
   for (const name of sections) {
-    await page.click(`.settings-nav a[data-section="${name}"]`);
+    await openSettings(page, name);
     const seen = await page.evaluate(() => ({
       shown: [...document.querySelectorAll('.settings-section')].filter((s) => s.getClientRects().length).map((s) => s.dataset.section),
       focused: document.activeElement.classList.contains('section-title') ? document.activeElement.closest('.settings-section').dataset.section : null,
@@ -167,7 +170,7 @@ test('Settings › General › Theme: Dark and Light switch the window and the p
   const dark = (w) => w.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches);
   // Playwright pins prefers-color-scheme to light on the windows it drives: let them follow the app again.
   for (const w of [page, pill]) await w.emulateMedia({ colorScheme: null });
-  await page.click('.nav[data-page="settings"]'); // General opens first
+  await openSettings(page, 'general');
   assert.equal(await page.getAttribute('#theme button[data-theme="system"]', 'aria-checked'), 'true', 'System until you choose');
 
   await page.click('#theme button[data-theme="dark"]');

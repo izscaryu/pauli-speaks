@@ -6,7 +6,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { launch, waitFor } = require('./helpers');
+const { launch, waitFor, openSettings } = require('./helpers');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const settingsOf = (page) => page.evaluate(() => window.pauli.getSettings());
@@ -111,8 +111,7 @@ test('Shortcuts, Modes and Privacy: reset, delete a mode, a history setting that
   await waitFor(async () => (await settingsOf(page)).modes.length === modes - 1, { what: 'the mode deleted' });
 
   // Privacy: switching to "Don't keep" asks; Esc puts the choice back.
-  await page.click('.nav[data-page="settings"]');
-  await page.click('.settings-nav a[data-section="privacy"]'); // Privacy & data
+  await openSettings(page, 'privacy'); // Privacy & data
   await page.focus('#history-retention'); // selectOption alone changes it without focus, which a person can't
   await page.selectOption('#history-retention', 'off');
   await waitFor(() => openDialog(page), { what: 'the retention dialog' });
@@ -141,8 +140,7 @@ test('Settings: deleting one downloaded model or all of them asks first', async 
     fs.writeFileSync(path.join(dir, '.pauli-ready'), 'x');
     fs.writeFileSync(path.join(dir, 'model.onnx'), Buffer.alloc(4096));
   }
-  await page.click('.nav[data-page="settings"]');
-  await page.click('.settings-nav a[data-section="speech"]'); // one list of models, Delete in each downloaded one's row
+  await openSettings(page, 'speech'); // one list of models, Delete in each downloaded one's row
   await waitFor(async () => (await page.$$('#models .model-action .icon-btn')).length === 1, { what: 'Delete on the downloaded model' });
   const whisper = path.join(run.dir, 'models', 'onnx-community', 'whisper-base');
 
@@ -150,7 +148,7 @@ test('Settings: deleting one downloaded model or all of them asks first', async 
   assert.equal(one.title, 'Delete Whisper Base?');
   assert.ok(fs.existsSync(whisper), 'kept on Esc');
 
-  await page.click('.settings-nav a[data-section="privacy"]');
+  await openSettings(page, 'privacy');
   const all = await openAndEscape(page, '#delete-models');
   assert.equal(all.title, 'Delete downloaded models?');
   assert.ok(fs.existsSync(whisper), 'kept on Esc');

@@ -68,6 +68,14 @@ async function launch({ settings = setUpSettings(), rawSettings, args = [] } = {
     page = await waitFor(() => app.windows().find((w) => /\/app\.html(\?|$)/.test(w.url())), { what: 'the main window' }); // ?look=mica on Windows 11
     await page.waitForLoadState('domcontentloaded');
     await waitFor(() => app.evaluate(() => !!global.__pauliE2E), { what: 'e2e mode' });
+    // PAULI_E2E_WINDOW=1000x740: the main window at that size, as on a smaller screen (CI's is), where Settings starts
+    // at its list of sections and the sidebar can be a rail.
+    const size = /^(\d+)x(\d+)$/.exec(process.env.PAULI_E2E_WINDOW || '');
+    if (size) {
+      await app.evaluate(({ BrowserWindow }, [w, h]) => {
+        BrowserWindow.getAllWindows().find((x) => /\/app\.html(\?|$)/.test(x.webContents.getURL())).setContentSize(w, h);
+      }, [Number(size[1]), Number(size[2])]);
+    }
   } catch (err) {
     await app.close().catch(() => {});
     removeDir();
@@ -104,4 +112,14 @@ async function launch({ settings = setUpSettings(), rawSettings, args = [] } = {
   };
 }
 
-module.exports = { launch, setUpSettings, waitFor, ROOT, version, SETTINGS_VERSION };
+/**
+ * Opens Settings at one of its sections ('general', 'speech', … 'about'), on a wide window (the list beside the
+ * section) or a narrow one (the list is a page of its own: "‹ Settings" goes back to it first).
+ */
+async function openSettings(page, section = 'general') {
+  await page.click('.nav[data-page="settings"]');
+  if (await page.isVisible('#settings-back')) await page.click('#settings-back');
+  await page.click(`.settings-nav a[data-section="${section}"]`);
+}
+
+module.exports = { launch, setUpSettings, waitFor, openSettings, ROOT, version, SETTINGS_VERSION };

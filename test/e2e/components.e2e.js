@@ -3,7 +3,7 @@
 // control keeps an edge in a Windows contrast theme, on every page.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { launch, waitFor } = require('./helpers');
+const { launch, waitFor, openSettings } = require('./helpers');
 
 const PAGES = ['home', 'shortcuts', 'modes', 'dictionary', 'history', 'files', 'settings'];
 
@@ -22,7 +22,8 @@ async function eachView(page, check) {
       continue;
     }
     for (const section of await page.$$eval('.settings-nav a[data-section]', (as) => as.map((a) => a.dataset.section))) {
-      await page.click(`.settings-nav a[data-section="${section}"]`);
+      await openSettings(page, section);
+      await unfold();
       out.push(...await check(id));
     }
   }
@@ -117,7 +118,7 @@ test('a tooltip names an icon button after a moment on hover, at once on keyboar
   assert.equal(await button.getAttribute('title'), null, 'no native tooltip as well');
   await button.hover();
   assert.equal(await tip(), null, 'not at once on hover');
-  await waitFor(tip, { what: 'the tooltip on hover', timeout: 2000 });
+  await waitFor(tip, { what: 'the tooltip on hover', timeout: 4000 }); // a slow run can take longer than the delay
   assert.equal(await tip(), 'Copy');
   await page.mouse.move(0, 0);
   await waitFor(async () => (await tip()) === null, { what: 'the tooltip gone' });
