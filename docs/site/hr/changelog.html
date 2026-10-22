@@ -29,6 +29,22 @@
   <p class="lead">Što se promijenilo u svakoj verziji. Aplikacija nakon ažuriranja jednom prikaže najnoviji odjeljak.</p>
   <p class="meta">Cijeli popis, na engleskom: <a href="https://github.com/izscaryu/pauli-speaks/blob/main/CHANGELOG.md" hreflang="en">CHANGELOG.md</a>. Preuzimanja svih verzija su na <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub Releases</a>.</p>
 
+  <h2 id="v1.7.0">Verzija 1.7.0</h2>
+  <ul>
+    <li>Novi izgled, bliži Windowsima 11: mirnije boje s više kontrasta (prije svega u tamnoj temi), jedan niz veličina teksta, gumbi, polja, prekidači i skupine izbora kao u Windowsima, ikone samih Windowsa i tanka traka za pomicanje.</li>
+    <li>Odaberi temu u Postavke › Općenito: Sustav (prati Windows), Svijetla ili Tamna. Prozor, njegova pozadina iz Windowsa 11 i traka je prate; u svijetloj temi traka je svijetla.</li>
+    <li>Urednija bočna traka: najprije Početna, Povijest i Datoteke, zatim Prečaci, Načini i Rječnik i isječci pod „Prilagodi”, a na dnu Postavke s retkom stanja koji kaže je li diktiranje spremno, koji mikrofon koristi i prevodi li. U prozoru užem od 1000 px traka se smanji na ikone i svaka stranica stane.</li>
+    <li>Početna počinje tvojim prečacem („Drži F13 i govori u bilo kojoj aplikaciji”; tipka se spusti dok govoriš), piše „Potreban je model” s gumbom za preuzimanje dok model za govor nije tu, a ima i brzi izbor jezika, načina i mikrofona te polje za isprobavanje. Obavijesti se prikazuju jedna po jedna, zatim Nedavno i Ovaj tjedan kao četiri broja i mali grafikon.</li>
+    <li>Postavke su podijeljene na odjeljke (Općenito, Govor i mikrofon, Prijevod, AI, Usluge u oblaku, Čitanje naglas, Privatnost i podaci, O programu i ažuriranja): odaberi jedan lijevo i prikazuje se samo on. Pretraživanje gleda sve odjeljke i pronalazi stvari i na drugim stranicama. O programu je sad jedan od odjeljaka, Groq ključ ima svoje mjesto (Usluge u oblaku, gdje piše što ga koristi), a modeli za govor su jedan popis s veličinom i gumbom Preuzmi ili Obriši.</li>
+    <li>Povijest: filtri po aplikaciji, jeziku i načinu, nazivi aplikacija koje poznaješ („Word”, a ne WINWORD), vrijeme poput 21:44 i Očisti povijest u izborniku ⋯.</li>
+    <li>Prečaci: „Isprobaj tipku” otvara mali isprobavač, radnja bez prečaca je jedan kratki redak s „Dodaj prečac”, uz Drži / Uključi i isključi / Oboje piše što radi, glasovne naredbe su tablica „Kažeš / Učini”, a pomoć za pedale i poveznice je sklopljena.</li>
+    <li>Načini: svi tvoji načini na vidiku, uređivač u skupinama (Identitet, Kada se koristi, Što radi, AI dotjerivanje), stil kaže što radi, a Obriši je na dnu.</li>
+    <li>Datoteke: gumb „Odaberi datoteku…” (pa datoteku možeš otvoriti i tipkovnicom), napomena kad nema modela za govor, dokle je datoteka stigla („12:04 od 42:10”) i datoteke iz ove sesije za ponovno otvaranje.</li>
+    <li>Traka: blokiran ili nepronađen mikrofon dobiva kratku poruku i gumb koji to rješava („Otvori postavke” otvara postavke privatnosti mikrofona u Windowsima, „Odaberi mikrofon” otvara Postavke › Mikrofon). Kad odustaneš od diktata, nudi „Ipak prepiši”.</li>
+    <li>Sve što briše ili vraća na zadano najprije pita u vlastitom prozoru aplikacije, koji kaže što nestaje, počinje na Odustani i zatvara se tipkom Esc.</li>
+    <li>Lakše uz tipkovnicu i čitač zaslona: gumbi samo s ikonom kažu što rade, skupine izbora rade sa strelicama, a kontrastna tema Windowsa zadržava rub svake kontrole. Nema više skočnog „Spremljeno” nakon svake promjene, a tekst je jasniji na engleskom i hrvatskom.</li>
+  </ul>
+
   <h2 id="v1.6.0">Verzija 1.6.0</h2>
   <ul>
     <li>AI dotjerivanje (zadano isključeno): na stranici Načini daj načinu razinu i AI model dotjera ono što si rekao prije lijepljenja. Lagano ispravlja interpunkciju i očito krivo čute riječi, Srednje uklanja i ponavljanja i krive početke, Jako jasno preoblikuje, a Upit pretvara razvučen govor u jasne upute za ChatGPT, Claude ili terminal, s nazivima datoteka i kodom točno kako su izgovoreni. Svaki način može dodati vlastite upute („Koristi britanski pravopis”).</li>

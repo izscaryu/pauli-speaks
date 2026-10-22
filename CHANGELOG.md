@@ -2,31 +2,20 @@
 
 What changed in each version of Pauli Speaks. The app shows the newest section once after an update.
 
-## 1.6.1
+## 1.7.0
 
-- The Modes page fits a narrow window: below about 1,000 px the list of modes moves above the editor and every field stays in view. On the Shortcuts page a shortcut's remove button stays on its own line, and Home's 7-day chart moves under the numbers.
-- Home's status says "Model needed" until the speech model is downloaded (and "Downloading 42%", "Loading model…" or "Model didn't load" while that happens), instead of "Ready".
-- A blocked or missing microphone gets a short message on the bar with a button that fixes it: "Open settings" opens the microphone privacy page in Windows, and "Choose mic" opens Settings → Microphone. What to do is shown above the bar.
-- After you cancel a dictation the bar offers "Transcribe anyway" (it said "Undo").
-- Easier to see, in the dark theme above all: grey text, switches, selected options and the delete buttons have more contrast, a switch that is off is an outline, the chosen option in a group has a coloured line under it, fields have a darker bottom edge that turns blue while you type, and links are a darker blue.
-- Settings: a section link brings that section to the top and starts a screen reader there.
-- Files: a "Choose file…" button, so you can pick a file with the keyboard.
-- History and Modes show app names you know ("Word", "Outlook"), times without a leading zero (9:44 PM, with seconds when you point at them), and no typewriter font. "Clear" in History is now "Clear history…" and can't be pressed when there is nothing to clear.
-- No more "Saved" pop-up after each change (Settings saves by itself), and a pop-up no longer follows you to another page.
-- Clearer wording in places, in English and Croatian; the bar's "Auto" chip reads "Automatski" in Croatian.
-- A calmer Windows 11 look: the sidebar sits on the window and the page on a lighter layer, one set of text sizes with headings in normal letters instead of capitals, Windows-style buttons, fields, switches and option groups, and Windows' own icons (a house for Home, and Modes and Settings no longer look the same).
-- Anything that deletes or resets asks first in the app's own window, which says what goes ("Deletes all 213 transcripts"), starts on Cancel and closes with Esc. The plain OK/Cancel boxes and the pink box in Settings → Privacy are gone.
-- Home shows one notice at a time, the most important first, with ‹ › for the others and ✕ for those you can dismiss. What's new is one line that opens the notes.
-- Buttons with only an icon say what they do when you point at them or reach them with Tab; option groups such as GPU / CPU only can be changed with the arrow keys; the keys on Home press down while you talk; and in a Windows contrast theme every switch, button and field keeps an edge.
-- A tidier sidebar: Home, History and Files first, then Shortcuts, Modes and Dictionary & snippets under "Customize", and Settings at the bottom with a status line that says whether dictation is ready, which microphone it uses and whether it translates. In a window under 1,000 px wide the sidebar shrinks to icons.
-- Home starts with your key: "Hold F13 to talk anywhere", with a large key that presses down while you talk, the Download button when the speech model is missing, quick choices for the language, the mode and the microphone, and a one-line field to try it. Below it: Recent, and This week as four numbers and a small chart (or one line until your first dictation).
-- Settings is in sections (General, Speech & microphone, Translation, AI, Cloud services, Read aloud, Privacy & data, About & updates): pick one on the left and only that one shows. The search looks through all of them, and finds things on other pages too ("Shortcuts › Read aloud"). About is one of these sections now, and the Groq key has its own place, Cloud services, which says what uses it.
-- One list of speech models in Settings, each saying whether it is downloaded and how big it is, with Download or Delete beside it.
-- History has filters for the app, the language and the mode, and a ⋯ menu with Clear history. Under each transcript: "Word · 9 words", with the time it took in the tooltip.
-- Shortcuts: "Test a key" opens a small tester under the title, an action without a shortcut is one short line with "Add shortcut", each Hold / Toggle / Both says what it does under it, the voice commands are a "You say / It does" table, and the pedal and link help is folded away.
-- Modes: the editor is in groups (Identity, When it's used, What it does, AI polish), the style says what the chosen style does, the link is folded away, and Delete is at the bottom.
-- Files says when the speech model is missing, shows how far a file has got ("12:04 of 42:10"), translating is a switch, and the files from this session are listed to open again.
-- Choose the theme in Settings › General: System (follows Windows), Light or Dark. The window, its Windows 11 backdrop and the bar follow it, and the bar is light in the light theme.
+- A new look, closer to Windows 11: calmer colours with more contrast (in the dark theme above all), one set of text sizes, Windows-style buttons, fields, switches and option groups, Windows' own icons and a thin scrollbar.
+- Choose the theme in Settings › General: System (follows Windows), Light or Dark. The window, its Windows 11 backdrop and the bar follow it; the bar is light in the light theme.
+- A tidier sidebar: Home, History and Files first, then Shortcuts, Modes and Dictionary & snippets under "Customize", and Settings at the bottom with a status line that says whether dictation is ready, which microphone it uses and whether it translates. In a window under 1,000 px wide it shrinks to icons, and every page fits.
+- Home starts with your shortcut ("Hold F13 to talk anywhere"; the key presses down while you talk), says "Model needed" with a Download button until the speech model is there, and has quick choices for the language, the mode and the microphone, and a field to try it. Notices show one at a time, then Recent, then This week as four numbers and a small chart.
+- Settings is in sections (General, Speech & microphone, Translation, AI, Cloud services, Read aloud, Privacy & data, About & updates): pick one on the left and only that one shows. The search looks through all of them and finds things on other pages too. About is one of the sections now, the Groq key has its own place (Cloud services, which says what uses it), and the speech models are one list with their size and Download or Delete.
+- History: filters for the app, the language and the mode, app names you know ("Word", not WINWORD), times like 9:44 PM, and Clear history in a ⋯ menu.
+- Shortcuts: "Test a key" opens a small tester, an action without a shortcut is one short line with "Add shortcut", each Hold / Toggle / Both says what it does, the voice commands are a "You say / It does" table, and the pedal and link help is folded away.
+- Modes: all your modes in view, the editor in groups (Identity, When it's used, What it does, AI polish), the style says what it does, and Delete is at the bottom.
+- Files: a "Choose file…" button (so the keyboard can open a file), a note when the speech model is missing, how far a file has got ("12:04 of 42:10"), and this session's files to open again.
+- The bar: a blocked or missing microphone gets a short message and a button that fixes it ("Open settings" opens the microphone privacy page in Windows, "Choose mic" opens Settings › Microphone). After you cancel a dictation it offers "Transcribe anyway".
+- Anything that deletes or resets asks first in the app's own window, which says what goes, starts on Cancel and closes with Esc.
+- Easier with a keyboard and a screen reader: buttons with only an icon say what they do, option groups work with the arrow keys, and a Windows contrast theme keeps every control's edge. No more "Saved" pop-up after each change, and clearer wording in English and Croatian.
 
 ## 1.6.0
 

@@ -29,6 +29,22 @@
   <p class="lead">What changed in each version. The app shows the newest section once after an update.</p>
   <p class="meta">The full list is <a href="https://github.com/izscaryu/pauli-speaks/blob/main/CHANGELOG.md">CHANGELOG.md</a>, and every version can be downloaded from <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub Releases</a>.</p>
 
+  <h2 id="v1.7.0">Version 1.7.0</h2>
+  <ul>
+    <li>A new look, closer to Windows 11: calmer colours with more contrast (in the dark theme above all), one set of text sizes, Windows-style buttons, fields, switches and option groups, Windows' own icons and a thin scrollbar.</li>
+    <li>Choose the theme in Settings › General: System (follows Windows), Light or Dark. The window, its Windows 11 backdrop and the bar follow it; the bar is light in the light theme.</li>
+    <li>A tidier sidebar: Home, History and Files first, then Shortcuts, Modes and Dictionary &amp; snippets under &quot;Customize&quot;, and Settings at the bottom with a status line that says whether dictation is ready, which microphone it uses and whether it translates. In a window under 1,000 px wide it shrinks to icons, and every page fits.</li>
+    <li>Home starts with your shortcut (&quot;Hold F13 to talk anywhere&quot;; the key presses down while you talk), says &quot;Model needed&quot; with a Download button until the speech model is there, and has quick choices for the language, the mode and the microphone, and a field to try it. Notices show one at a time, then Recent, then This week as four numbers and a small chart.</li>
+    <li>Settings is in sections (General, Speech &amp; microphone, Translation, AI, Cloud services, Read aloud, Privacy &amp; data, About &amp; updates): pick one on the left and only that one shows. The search looks through all of them and finds things on other pages too. About is one of the sections now, the Groq key has its own place (Cloud services, which says what uses it), and the speech models are one list with their size and Download or Delete.</li>
+    <li>History: filters for the app, the language and the mode, app names you know (&quot;Word&quot;, not WINWORD), times like 9:44 PM, and Clear history in a ⋯ menu.</li>
+    <li>Shortcuts: &quot;Test a key&quot; opens a small tester, an action without a shortcut is one short line with &quot;Add shortcut&quot;, each Hold / Toggle / Both says what it does, the voice commands are a &quot;You say / It does&quot; table, and the pedal and link help is folded away.</li>
+    <li>Modes: all your modes in view, the editor in groups (Identity, When it's used, What it does, AI polish), the style says what it does, and Delete is at the bottom.</li>
+    <li>Files: a &quot;Choose file…&quot; button (so the keyboard can open a file), a note when the speech model is missing, how far a file has got (&quot;12:04 of 42:10&quot;), and this session's files to open again.</li>
+    <li>The bar: a blocked or missing microphone gets a short message and a button that fixes it (&quot;Open settings&quot; opens the microphone privacy page in Windows, &quot;Choose mic&quot; opens Settings › Microphone). After you cancel a dictation it offers &quot;Transcribe anyway&quot;.</li>
+    <li>Anything that deletes or resets asks first in the app's own window, which says what goes, starts on Cancel and closes with Esc.</li>
+    <li>Easier with a keyboard and a screen reader: buttons with only an icon say what they do, option groups work with the arrow keys, and a Windows contrast theme keeps every control's edge. No more &quot;Saved&quot; pop-up after each change, and clearer wording in English and Croatian.</li>
+  </ul>
+
   <h2 id="v1.6.0">Version 1.6.0</h2>
   <ul>
     <li>AI polish (off by default): give a mode a level on the Modes page and an AI model tidies what you said before it is pasted. Light fixes punctuation and obvious mis-hearings, Medium also takes out repetitions and false starts, High rewrites clearly, and Prompt turns rambling into clear instructions for ChatGPT, Claude or a terminal, with file names and code kept exactly as said. Each mode can add its own instructions (&quot;Use British spelling&quot;).</li>
