@@ -23,7 +23,7 @@ const overflow = (page) => page.evaluate(() => {
   const main = document.querySelector('main');
   const box = main.getBoundingClientRect();
   const right = box.left + main.clientLeft + main.clientWidth; // the content's edge, not counting the scrollbar
-  // A control inside a strip that scrolls sideways on purpose (the mode list on a narrow window) may be out of view.
+  // A control inside something that scrolls sideways on purpose may be out of view.
   const scrolls = (node) => {
     for (let p = node.parentElement; p && p !== main; p = p.parentElement) if (/auto|scroll/.test(getComputedStyle(p).overflowX)) return true;
     return false;

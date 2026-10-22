@@ -291,7 +291,7 @@ function renderStrip() {
   if (handsFree) parts.push(I18n.nodes('home.caption.handsFree', { keys: chips('hf-chips', handsFree) }));
   else if (!talk || talk.behaviour !== 'both') parts.push(I18n.nodes('home.caption.handsFree', { keys: goShortcuts('home.caption.setKey') }));
   const tb = translateBinding();
-  if (tb) parts.push(I18n.nodes('home.caption.translate', { keys: chips('tr-chips', tb.b), language: LANG_NAME[tb.m.translateTo] || code(tb.m.translateTo) }));
+  if (tb) parts.push(I18n.nodes('home.caption.translate', { keys: chips('tr-chips', tb.b), language: languageInText(tb.m.translateTo) }));
   $('#hero-caption').replaceChildren(...parts.flatMap((p, i) => (i ? [' · ', ...p] : p)));
 
   const tryBox = $('#try-box');
@@ -299,6 +299,18 @@ function renderStrip() {
   renderQuick();
   renderSideStatus();
   pressKeys();
+}
+
+/**
+ * A language's name inside a sentence, as the UI language writes it there: "English" in English, "engleski" in
+ * Croatian (LANG_NAME starts each with a capital, for lists and menus).
+ */
+function languageInText(c) {
+  try {
+    return new Intl.DisplayNames([document.documentElement.lang || 'en'], { type: 'language' }).of(c) || code(c);
+  } catch {
+    return LANG_NAME[c] || code(c);
+  }
 }
 
 /** The quick controls on Home: the language you speak, the talk shortcut's mode, the microphone. */
