@@ -25,10 +25,11 @@ const openDialog = (page) => page.evaluate(() => {
 });
 
 /**
- * Opens a dialog from `trigger`, checks it, presses Esc and checks that focus went back to the trigger.
- * Returns what the dialog showed.
+ * Opens a dialog from `trigger` (after clicking `opener`, a ⋯ menu, when there is one), checks it, presses Esc and
+ * checks that focus went back to `focusBack` (the trigger, or the ⋯ button of a menu). Returns what the dialog showed.
  */
-async function openAndEscape(page, trigger) {
+async function openAndEscape(page, trigger, { opener = null, focusBack = trigger } = {}) {
+  if (opener) await page.click(opener);
   await page.click(trigger);
   const shown = await waitFor(() => openDialog(page), { what: `a dialog from ${trigger}` });
   assert.equal(await page.getByRole('dialog').count(), 1, 'one dialog, with the dialog role');
@@ -37,7 +38,7 @@ async function openAndEscape(page, trigger) {
   assert.equal(shown.described, true, 'the text is tied to the dialog');
   await page.keyboard.press('Escape');
   await waitFor(async () => (await openDialog(page)) === null, { what: 'Esc to close it' });
-  await waitFor(() => page.evaluate((sel) => document.activeElement === document.querySelector(sel), trigger), { what: `focus back on ${trigger}`, timeout: 2000 });
+  await waitFor(() => page.evaluate((sel) => document.activeElement === document.querySelector(sel), focusBack), { what: `focus back on ${focusBack}`, timeout: 2000 });
   return shown;
 }
 
@@ -55,17 +56,21 @@ test('History: Clear history asks, Esc and Cancel keep every transcript, the red
   await page.click('.nav[data-page="history"]');
   await waitFor(() => page.evaluate(() => !document.querySelector('#clear-history').disabled), { what: 'Clear history enabled' });
 
-  const shown = await openAndEscape(page, '#clear-history');
+  // Clear history is in History's ⋯ menu; after the dialog the focus is back on ⋯.
+  const menu = { opener: '#history-more', focusBack: '#history-more' };
+  const shown = await openAndEscape(page, '#clear-history', menu);
   assert.deepEqual(shown.buttons, ['Clear history', 'Cancel'], 'the red button first, Windows order');
   assert.equal(shown.title, 'Clear your history?');
   assert.equal((await page.evaluate(() => window.pauli.listHistory())).length, 1, 'nothing deleted on Esc');
 
+  await page.click('#history-more');
   await page.click('#clear-history');
   await waitFor(() => openDialog(page), { what: 'the dialog again' });
   await page.click('dialog[open] [data-dialog="cancel"]');
   await waitFor(async () => (await openDialog(page)) === null, { what: 'Cancel to close it' });
   assert.equal((await page.evaluate(() => window.pauli.listHistory())).length, 1, 'nothing deleted on Cancel');
 
+  await page.click('#history-more');
   await page.click('#clear-history');
   await waitFor(() => openDialog(page), { what: 'the dialog a third time' });
   await confirmOpen(page);
@@ -97,16 +102,17 @@ test('Shortcuts, Modes and Privacy: reset, delete a mode, a history setting that
   await page.click('.nav[data-page="modes"]');
   const modes = (await settingsOf(page)).modes.length;
   await page.click('#mode-list li:nth-child(2) .mode-item');
-  const shown = await openAndEscape(page, '#mode-detail .mode-head .btn.danger');
+  const shown = await openAndEscape(page, '#mode-detail .mode-foot .btn.danger'); // at the bottom of the editor
   assert.match(shown.title, /^Delete the mode ".+"\?$/);
   assert.equal((await settingsOf(page)).modes.length, modes);
-  await page.click('#mode-detail .mode-head .btn.danger');
+  await page.click('#mode-detail .mode-foot .btn.danger');
   await waitFor(() => openDialog(page), { what: 'the mode dialog' });
   await confirmOpen(page);
   await waitFor(async () => (await settingsOf(page)).modes.length === modes - 1, { what: 'the mode deleted' });
 
   // Privacy: switching to "Don't keep" asks; Esc puts the choice back.
   await page.click('.nav[data-page="settings"]');
+  await page.click('.settings-nav a[data-section="privacy"]'); // Privacy & data
   await page.focus('#history-retention'); // selectOption alone changes it without focus, which a person can't
   await page.selectOption('#history-retention', 'off');
   await waitFor(() => openDialog(page), { what: 'the retention dialog' });
@@ -136,13 +142,15 @@ test('Settings: deleting one downloaded model or all of them asks first', async 
     fs.writeFileSync(path.join(dir, 'model.onnx'), Buffer.alloc(4096));
   }
   await page.click('.nav[data-page="settings"]');
-  await waitFor(async () => (await page.$$('#model-disk .disk-item')).length === 2, { what: 'the two models' });
+  await page.click('.settings-nav a[data-section="speech"]'); // one list of models, Delete in each downloaded one's row
+  await waitFor(async () => (await page.$$('#models .model-action .icon-btn')).length === 1, { what: 'Delete on the downloaded model' });
   const whisper = path.join(run.dir, 'models', 'onnx-community', 'whisper-base');
 
-  const one = await openAndEscape(page, '#model-disk .disk-item:first-child .icon-btn');
+  const one = await openAndEscape(page, '#models .model-action .icon-btn');
   assert.equal(one.title, 'Delete Whisper Base?');
   assert.ok(fs.existsSync(whisper), 'kept on Esc');
 
+  await page.click('.settings-nav a[data-section="privacy"]');
   const all = await openAndEscape(page, '#delete-models');
   assert.equal(all.title, 'Delete downloaded models?');
   assert.ok(fs.existsSync(whisper), 'kept on Esc');

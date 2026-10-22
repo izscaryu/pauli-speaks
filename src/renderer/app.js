@@ -16,11 +16,11 @@ const ACTION_INFO = [
   { action: 'dictate', group: 'start', talk: true, min: 1, max: 8 }, // one per mode (Talk & translate is one of them since 1.5)
   { action: 'command', group: 'start', talk: true },
   { action: 'cancel', group: 'during', min: 1, max: 1 },
-  { action: 'cycleMode', group: 'during', badge: 'new' },
+  { action: 'cycleMode', group: 'during' },
   { action: 'pasteLast', group: 'after' },
-  { action: 'copyLast', group: 'after', badge: 'new' },
-  { action: 'undoLast', group: 'after', badge: 'new' },
-  { action: 'pressEnter', group: 'after', badge: 'new' },
+  { action: 'copyLast', group: 'after' },
+  { action: 'undoLast', group: 'after' },
+  { action: 'pressEnter', group: 'after' },
   { action: 'readAloud', group: 'after' },
 ];
 const actionTitle = (action) => t(`action.${action}.title`);
@@ -216,28 +216,151 @@ document.querySelectorAll('.nav').forEach((b) =>
     rec = null;
     hideToast();
     Tooltip.hide();
+    closeMenus();
     renderShortcuts();
     if (b.dataset.page === 'settings') renderMics();
   }),
 );
 document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => showPage(b.dataset.go)));
 
+// Under a 1000 px window the sidebar is a 48 px rail: the labels go (screen readers still hear them) and each icon
+// is named by a tooltip (tooltip.js). The status block is then one dot, named the same way.
+const rail = matchMedia('(max-width: 999px)');
+function nameRail() {
+  document.querySelectorAll('.sidebar .nav').forEach((n) => {
+    if (rail.matches) n.dataset.tooltip = n.querySelector('.nav-label').textContent;
+    else delete n.dataset.tooltip;
+  });
+  const status = $('#side-status');
+  if (rail.matches) status.dataset.tooltip = status.getAttribute('aria-label') || '';
+  else delete status.dataset.tooltip;
+}
+rail.addEventListener('change', nameRail);
+
+// ----- menus (⋯): a button that opens a short list of commands; Esc, a click elsewhere or a choice closes it
+
+function closeMenus(except = null) {
+  document.querySelectorAll('.menu:not([hidden])').forEach((menu) => {
+    if (menu === except) return;
+    menu.hidden = true;
+    document.querySelector(`[aria-controls="${menu.id}"]`)?.setAttribute('aria-expanded', 'false');
+  });
+}
+document.querySelectorAll('[aria-haspopup="menu"]').forEach((button) => {
+  const menu = document.getElementById(button.getAttribute('aria-controls'));
+  button.addEventListener('click', () => {
+    const open = menu.hidden;
+    closeMenus(menu);
+    menu.hidden = !open;
+    button.setAttribute('aria-expanded', String(open));
+    if (open) menu.querySelector('.menu-item:not(:disabled)')?.focus();
+  });
+  // Before the command runs (capture): the menu closes and the focus is back on ⋯, so a dialog the command opens
+  // gives the focus back there, not to a hidden menu item.
+  menu.addEventListener('click', (e) => { if (e.target.closest('.menu-item')) { closeMenus(); button.focus(); } }, true);
+  menu.addEventListener('keydown', (e) => {
+    const items = [...menu.querySelectorAll('.menu-item:not(:disabled)')];
+    const at = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); closeMenus(); button.focus(); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[(at + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus();
+    }
+  });
+});
+document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.menu-wrap')) closeMenus(); });
+
 // ------------------------------------------------------------------ transcripts page
 
+/**
+ * Home's hero: "Hold [F13] to talk anywhere." with a large keycap that presses down while you talk, a caption with
+ * the other keys (cancel, hands-free, translate), the quick controls and the try-it field.
+ */
 function renderStrip() {
-  $('#ptt-chips').replaceChildren(...bindingChips(firstBinding('dictate', (b) => b.behaviour !== 'toggle')));
-  $('#hf-chips').replaceChildren(...bindingChips(firstBinding('dictate', (b) => b.behaviour === 'toggle')));
+  const talk = firstBinding('dictate', (b) => b.behaviour !== 'toggle');
+  const handsFree = firstBinding('dictate', (b) => b.behaviour === 'toggle');
+  const chips = (id, b, big = false) => el('span', { id, class: `chips${big ? ' big' : ''}` }, bindingChips(b));
+  const goShortcuts = (key) => el('button', { class: 'btn link', type: 'button', onclick: () => showPage('shortcuts') }, t(key));
+  $('#hero-line').replaceChildren(...(talk
+    ? I18n.nodes(talk.behaviour === 'both' ? 'home.hero.both' : 'home.hero.hold', { keys: chips('ptt-chips', talk, true) })
+    : I18n.nodes('home.hero.noKey', { link: goShortcuts('home.hero.setKey') })));
+
+  const parts = [];
+  const cancel = firstBinding('cancel');
+  if (cancel) parts.push(I18n.nodes('home.caption.cancel', { keys: chips('cancel-chips', cancel) }));
+  if (handsFree) parts.push(I18n.nodes('home.caption.handsFree', { keys: chips('hf-chips', handsFree) }));
+  else if (!talk || talk.behaviour !== 'both') parts.push(I18n.nodes('home.caption.handsFree', { keys: goShortcuts('home.caption.setKey') }));
   const tb = translateBinding();
-  $('#tr-chips').parentElement.hidden = !tb;
-  if (tb) {
-    $('#tr-chips').replaceChildren(...bindingChips(tb.b));
-    $('#tr-label').textContent = t('home.strip.translate', { language: LANG_NAME[tb.m.translateTo] || code(tb.m.translateTo) });
-  }
-  $('#cancel-chips').replaceChildren(...bindingChips(firstBinding('cancel')));
-  $('#side-engine').textContent = modelLabel();
-  $('#side-translate').textContent = translationLabel();
+  if (tb) parts.push(I18n.nodes('home.caption.translate', { keys: chips('tr-chips', tb.b), language: LANG_NAME[tb.m.translateTo] || code(tb.m.translateTo) }));
+  $('#hero-caption').replaceChildren(...parts.flatMap((p, i) => (i ? [' · ', ...p] : p)));
+
+  const tryBox = $('#try-box');
+  tryBox.placeholder = talk ? t('home.try.placeholder', { keys: keyText(talk.keys) }) : t('home.try.label');
+  renderQuick();
+  renderSideStatus();
   pressKeys();
 }
+
+/** The quick controls on Home: the language you speak, the talk shortcut's mode, the microphone. */
+function renderQuick() {
+  const chosen = settings.languages || [];
+  const lang = $('#quick-language');
+  lang.replaceChildren(
+    el('option', { value: 'auto' }, t('speech.languages.auto')),
+    ...(chosen.length > 1 ? [el('option', { value: 'mine' }, I18n.list(chosen.map((c) => LANG_NAME[c] || code(c))))] : []),
+    ...LANGUAGES.map(([c, n]) => el('option', { value: c }, n)));
+  lang.value = chosen.length === 0 ? 'auto' : chosen.length === 1 ? chosen[0] : 'mine';
+
+  const talk = firstBinding('dictate', (b) => b.behaviour !== 'toggle');
+  const mode = $('#quick-mode');
+  mode.replaceChildren(el('option', { value: '' }, t('shortcuts.modeAuto')),
+    ...(settings.modes || []).map((m) => el('option', { value: m.id }, Modes.label(m))));
+  mode.value = talk && talk.mode && Modes.find(talk.mode) ? talk.mode : '';
+  mode.disabled = !talk;
+}
+$('#quick-language').addEventListener('change', (e) => {
+  const v = e.target.value;
+  if (v === 'mine') return;
+  save({ languages: v === 'auto' ? [] : [v] });
+});
+$('#quick-mode').addEventListener('change', (e) => {
+  const talk = firstBinding('dictate', (b) => b.behaviour !== 'toggle');
+  if (!talk) return;
+  const pick = e.target.value;
+  save({ bindings: settings.bindings.map((x) => (x.id !== talk.id ? x : pick ? { ...x, mode: pick } : (({ mode, ...rest }) => rest)(x))) });
+});
+$('#quick-mic').addEventListener('change', (e) => save({ microphoneId: e.target.value }));
+// The try-it field grows with what you dictate into it.
+$('#try-box').addEventListener('input', (e) => {
+  e.target.style.height = 'auto';
+  e.target.style.height = `${e.target.scrollHeight + 2}px`;
+});
+
+let micDevices = []; // the microphones Windows lists (Settings and Home's quick control), from renderMics
+const micName = () => (settings.microphoneId === 'default' ? t('common.systemDefault')
+  : micDevices.find((d) => d.deviceId === settings.microphoneId)?.label || t('mic.unnamed'));
+
+/** The sidebar's status: is dictation ready (and with which engine), the microphone, translation. */
+function renderSideStatus() {
+  if (!settings) return;
+  const problem = modelProblem();
+  $('#side-dot').className = `side-dot ${problem ? problem[0] : 'ok'}`;
+  $('#side-state').textContent = `${problem ? problem[1] : t('live.ready')} · ${modelLabel()}`;
+  $('#side-mic').textContent = t('side.mic', { name: micName() });
+  $('#side-translate').textContent = translationLabel();
+  $('#side-download').hidden = !(problem && problem[2] === 'missing');
+  const status = $('#side-status');
+  status.setAttribute('aria-label', [$('#side-state').textContent, $('#side-mic').textContent, $('#side-translate').textContent].join('. '));
+  if (rail.matches) status.dataset.tooltip = status.getAttribute('aria-label');
+  // Home's hero offers the download too, or Retry when the model didn't load.
+  const hero = $('#hero-download');
+  const m = modelState?.models.find((x) => x.id === settings.localModel);
+  hero.hidden = !(problem && (problem[2] === 'missing' || problem[0] === 'error'));
+  if (!hero.hidden) hero.textContent = problem[0] === 'error' ? t('common.retry') : t('banner.model.download', { name: `Whisper ${m ? m.label : ''}`.trim(), size: m ? m.size : '' });
+}
+$('#side-status').addEventListener('click', () => showPage('settings#speech'));
+$('#side-download').addEventListener('click', () => api.loadModel());
+$('#hero-download').addEventListener('click', () => api.loadModel());
 
 /** Home's keycaps go down while you talk: Hold to talk while you hold it, Hands-free while it listens by itself. */
 function pressKeys() {
@@ -246,7 +369,10 @@ function pressKeys() {
   document.querySelectorAll('#hf-chips .key').forEach((k) => k.classList.toggle('pressed', listening && !!dictation.locked));
 }
 
-/** Why dictation can't work yet: the chosen speech model is missing, downloading, loading or broken. [class, text] or null. */
+/**
+ * Why dictation can't work yet: the chosen speech model is missing, downloading, loading or broken.
+ * [class, text, 'missing' when it can be downloaded now] or null.
+ */
 function modelProblem() {
   if (!settings || settings.engine !== 'local' || !modelState) return null;
   const ours = modelState.model === settings.localModel;
@@ -255,7 +381,7 @@ function modelProblem() {
   if (ours && modelState.status === 'loading') return ['warn', t('live.loadingModel')];
   if (ours && modelState.status === 'error') return ['error', t('live.modelError')];
   const m = modelState.models.find((x) => x.id === settings.localModel);
-  return m && !m.downloaded ? ['warn', t('live.needsModel')] : null;
+  return m && !m.downloaded ? ['warn', t('live.needsModel'), 'missing'] : null;
 }
 
 function renderLive() {
@@ -279,26 +405,33 @@ function renderLive() {
   $('#live-text').textContent = text;
 }
 
+/** "This week": four tiles and the 7-day chart, or one line until the first dictation. */
 async function renderStats() {
   const st = await api.getStats();
+  const none = !st.dictations;
+  $('#stats').hidden = none;
+  $('#stats-empty').hidden = !none;
   $('#st-words').textContent = fmtNum(st.words);
   $('#st-wpm').textContent = I18n.num(st.wpm);
   $('#st-saved').textContent = fmtNum(st.minutesSaved);
-  $('#st-count').textContent = fmtNum(st.dictations);
   $('#st-streak').textContent = I18n.num(st.streak || 0);
-  const max = Math.max(1, ...(st.daily || []).map((d) => d.words));
-  const todayKey = (st.daily || []).at(-1)?.date;
-  $('#week-bars').replaceChildren(...(st.daily || []).map((d) => {
-    const date = new Date(`${d.date}T12:00:00`);
-    const label = t('home.week.bar', { date: I18n.date(date, { weekday: 'short', day: 'numeric' }), count: d.words });
+  const daily = st.daily || [];
+  const max = Math.max(1, ...daily.map((d) => d.words));
+  const todayKey = daily.at(-1)?.date;
+  const dateOf = (d) => new Date(`${d.date}T12:00:00`);
+  // A day without words has no bar, only the baseline.
+  $('#week-bars').replaceChildren(...daily.map((d) => {
+    const label = t('home.week.bar', { date: I18n.date(dateOf(d), { weekday: 'short', day: 'numeric' }), count: d.words });
     return el('div', { class: `wbar${d.date === todayKey ? ' today' : ''}`, 'data-tip': label, 'aria-label': label, role: 'img' },
-      el('i', { style: `height:${Math.max(2, Math.round((d.words / max) * 100))}%` }));
+      d.words ? el('i', { style: `height:${Math.max(8, Math.round((d.words / max) * 100))}%` }) : null);
   }));
+  $('#week-days').replaceChildren(...daily.map((d) => el('span', {}, I18n.date(dateOf(d), { weekday: 'narrow' }))));
 }
 
 async function loadHistory() {
   historyItems = await api.listHistory();
   recentApps = [...new Set(historyItems.map((i) => i.app).filter(Boolean))].slice(0, 20);
+  if (settings) renderHistoryFilters();
   renderHistory();
   renderRecent();
   if (settings) Modes.render();
@@ -308,14 +441,16 @@ function historyItem(item) {
   if (item.status === 'failed') return FailedHistory.item(item); // history-failed.js
   const d = new Date(item.createdAt);
   const secs = Math.max(1, Math.round((item.durationMs || 0) / 1000));
+  // "Word · 9 words · English": the app, the length, and the language when you speak more than one; how long it
+  // took and the engine are in the tooltip.
+  const several = (settings?.languages || []).length !== 1;
+  const line = [item.app ? AppNames.appName(item.app) : null, t('history.words', { count: item.words }),
+    several && item.language && !item.translatedTo ? LANG_NAME[item.language] || code(item.language) : null].filter(Boolean).join(' · ');
   const meta = el('div', { class: 'meta' },
     item.kind === 'command' ? el('span', { class: 'tag ai' }, '✦ AI') : null,
     item.polished ? el('span', { class: 'tag ai' }, t(item.text === item.polished ? 'history.polished' : 'history.polishUndone')) : null,
-    item.translatedTo
-      ? el('span', { class: 'tag tr' }, `${code(item.language)} → ${code(item.translatedTo)}`)
-      : item.language ? el('span', { class: 'tag' }, code(item.language)) : null,
-    item.app ? el('span', { class: 'tag app', title: item.app }, AppNames.appName(item.app)) : null,
-    t('history.meta', { count: item.words, secs, engine: item.engine }));
+    item.translatedTo ? el('span', { class: 'tag tr' }, `${code(item.language)} → ${code(item.translatedTo)}`) : null,
+    el('span', { title: t('history.meta', { count: item.words, secs, engine: item.engine }) }, line));
   const body = el('div', {},
     item.instruction ? el('div', { class: 'instr' }, `“${item.instruction}”`) : null,
     el('p', {}, item.text), meta);
@@ -339,15 +474,30 @@ function historyItem(item) {
       el('button', { class: 'icon-btn danger', title: t('common.delete'), 'aria-label': t('history.deleteLabel'), html: ICONS.trash, onclick: () => api.deleteHistory(item.id) })));
 }
 
+/** History's filters (app, language, mode): the values that are in History, each once, keeping the choice. */
+function renderHistoryFilters() {
+  const fill = (select, all, values, name) => {
+    const was = select.value;
+    select.replaceChildren(el('option', { value: '' }, t(all)), ...values.map((v) => el('option', { value: v }, name(v))));
+    select.value = values.includes(was) ? was : '';
+    select.hidden = values.length < 2 && !select.value; // nothing to choose between
+  };
+  const uniq = (key) => [...new Set(historyItems.map((i) => i[key]).filter(Boolean))];
+  fill($('#history-app'), 'history.filter.app', uniq('app'), (a) => AppNames.appName(a));
+  fill($('#history-language'), 'history.filter.language', uniq('language'), (c) => LANG_NAME[c] || code(c));
+  fill($('#history-mode'), 'history.filter.mode', uniq('mode'), (id) => (Modes.find(id) ? Modes.label(Modes.find(id)) : id));
+}
+
 function renderHistory() {
   const box = $('#history');
   $('#clear-history').disabled = !historyItems.length; // nothing to clear
   const q = $('#history-search').value.trim().toLowerCase();
-  const items = q
-    ? historyItems.filter((i) => (i.text || '').toLowerCase().includes(q) || (i.original || '').toLowerCase().includes(q))
-    : historyItems;
+  const [app, language, mode] = ['#history-app', '#history-language', '#history-mode'].map((s) => $(s).value);
+  const filtered = Boolean(q || app || language || mode);
+  const items = historyItems.filter((i) => (!q || (i.text || '').toLowerCase().includes(q) || (i.original || '').toLowerCase().includes(q))
+    && (!app || i.app === app) && (!language || i.language === language) && (!mode || i.mode === mode));
   if (!items.length) {
-    box.replaceChildren(el('div', { class: 'empty' }, t(q ? 'history.noMatch' : 'history.empty')));
+    box.replaceChildren(el('div', { class: 'empty' }, t(filtered ? 'history.noMatch' : 'history.empty')));
     return;
   }
   const out = [];
@@ -374,6 +524,7 @@ function renderRecent() {
 }
 
 $('#history-search').addEventListener('input', renderHistory);
+['#history-app', '#history-language', '#history-mode'].forEach((s) => $(s).addEventListener('change', renderHistory));
 $('#clear-history').addEventListener('click', async () => {
   const yes = await Dialog.confirmDialog({
     title: t('history.clearDialog.title'), body: t('history.clearDialog.body', { count: historyItems.length }),
@@ -519,6 +670,13 @@ async function decodeToMono16k(file) {
   }
 }
 
+/** 12:04, or 1:02:03 for an hour or more. */
+const clock = (secs) => {
+  const s = Math.max(0, Math.round(secs));
+  const hms = [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60];
+  return hms[0] ? `${hms[0]}:${String(hms[1]).padStart(2, '0')}:${String(hms[2]).padStart(2, '0')}` : `${hms[1]}:${String(hms[2]).padStart(2, '0')}`;
+};
+
 async function transcribeFile(file) {
   if (fileJob) return;
   const job = $('#file-job');
@@ -535,12 +693,14 @@ async function transcribeFile(file) {
   try {
     status.textContent = t('files.decoding');
     const audio = await decodeToMono16k(file);
-    const minutes = audio.length / 16000 / 60;
-    const duration = minutes < 1 ? t('files.seconds', { n: Math.round(minutes * 60) }) : t('files.minutes', { n: Number(minutes.toFixed(1)) });
+    const seconds = audio.length / 16000;
+    fileJob.seconds = seconds;
+    const minutes = seconds / 60;
+    const duration = minutes < 1 ? t('files.seconds', { n: Math.round(seconds) }) : t('files.minutes', { n: Number(minutes.toFixed(1)) });
     status.textContent = t('files.transcribing', { duration });
     const t0 = performance.now();
     const result = await api.transcribeFile(audio, $('#file-translate').checked);
-    fileJob = { name: file.name, ...result };
+    fileJob = { name: file.name, seconds, ...result };
     $('#file-text').value = result.text || t('files.noSpeech');
     status.textContent = `${t('files.done', { secs: Math.round((performance.now() - t0) / 1000), count: result.segments.length })}${result.language ? ` · ${code(result.language)}` : ''}${result.translatedTo ? ` → ${code(result.translatedTo)}` : ''}`;
     ['#file-copy', '#file-txt', '#file-srt'].forEach((s) => ($(s).disabled = !result.text));
@@ -553,14 +713,62 @@ async function transcribeFile(file) {
     if (fileJob && !fileJob.text) fileJob = null;
     const done = fileJob;
     fileJob = null;
-    if (done) lastFile = done;
+    if (done) {
+      lastFile = done;
+      recentFiles.unshift({ ...done, at: new Date() });
+      recentFiles.splice(8);
+      renderRecentFiles();
+    }
   }
 }
 
 let lastFile = null;
 api.onFileProgress(({ done, total }) => {
-  $('#file-meter').firstElementChild.style.width = `${Math.round((done / Math.max(1, total)) * 100)}%`;
+  const share = done / Math.max(1, total);
+  $('#file-meter').firstElementChild.style.width = `${Math.round(share * 100)}%`;
+  // "12:04 of 42:10": how far into the file it is
+  if (fileJob && fileJob.seconds) $('#file-status').textContent = t('files.progress', { done: clock(share * fileJob.seconds), total: clock(fileJob.seconds) });
 });
+
+// Files transcribed in this session, newest first; kept in memory only (nothing about them is saved).
+const recentFiles = [];
+function renderRecentFiles() {
+  $('#files-recent').hidden = !recentFiles.length;
+  $('#files-recent-list').replaceChildren(...recentFiles.map((f) => el('div', { class: 'row' },
+    el('div', {}, el('div', { class: 'title' }, f.name),
+      el('div', { class: 'desc' }, [clock(f.seconds || 0), timeOf(f.at), f.translatedTo ? `${code(f.language)} → ${code(f.translatedTo)}` : null].filter(Boolean).join(' · '))),
+    el('div', { class: 'inline' },
+      el('button', {
+        class: 'btn', type: 'button',
+        onclick: () => {
+          lastFile = f;
+          $('#file-job').hidden = false;
+          $('#file-name').textContent = f.name;
+          $('#file-text').value = f.text;
+          $('#file-status').textContent = '';
+          ['#file-copy', '#file-txt', '#file-srt'].forEach((s) => ($(s).disabled = false));
+          $('#file-job').scrollIntoView({ block: 'nearest' });
+        },
+      }, t('common.open')),
+      el('button', { class: 'icon-btn', type: 'button', title: t('common.copy'), 'aria-label': t('common.copyItem', { name: f.name }), html: ICONS.copy, onclick: async () => { await api.copy(f.text); toast(t('common.copied')); } })))));
+}
+
+/** Files can't transcribe without the speech model: say so above the drop zone, with the download. */
+function renderFilesNotice() {
+  const box = $('#files-notice');
+  const problem = modelProblem();
+  if (!problem || typeof HomeNotices === 'undefined') return box.replaceChildren();
+  const m = modelState.models.find((x) => x.id === settings.localModel);
+  box.replaceChildren(HomeNotices.bar({
+    severity: problem[0] === 'error' ? 'error' : 'warning',
+    title: problem[2] === 'missing' ? t('banner.model.notDownloaded') : problem[1],
+    message: problem[2] === 'missing' ? t('banner.model.oneTime') : '',
+    actions: problem[2] === 'missing' || problem[0] === 'error'
+      ? [el('button', { class: 'btn primary', type: 'button', onclick: () => api.loadModel() },
+        problem[0] === 'error' ? t('common.retry') : t('banner.model.download', { name: `Whisper ${m ? m.label : ''}`.trim(), size: m ? m.size : '' }))]
+      : [],
+  }));
+}
 // A button inside the drop zone's label doesn't open the picker by itself; this is the way in from the keyboard.
 $('#file-choose').addEventListener('click', () => $('#file-input').click());
 $('#file-input').addEventListener('change', (e) => {
@@ -633,6 +841,8 @@ function bindRow(info, b, count) {
   };
   const mouse = b.keys.find((k) => MOUSE_NOTE.has(k));
   const note = b.trigger === 'doubleTap' ? t('shortcuts.doubleTap') : mouse ? t(`shortcuts.mouseNote.${mouse}`) : /^F(1[3-9]|2[0-4])$/.test(b.keys[0]) && b.keys.length === 1 ? t('shortcuts.pedal') : null;
+  // Hold / Toggle / Both: one caption under the row says what the chosen one does.
+  const behaviour = b.trigger === 'doubleTap' ? 'toggle' : b.behaviour;
   return el('li', { class: 'bind' },
     el('span', { class: 'chips' }, bindingChips(b)),
     note ? el('span', { class: 'note' }, note) : null,
@@ -640,7 +850,8 @@ function bindRow(info, b, count) {
     info.action === 'dictate' ? Modes.bindingSelect(b, label) : null,
     info.talk ? behaviourControl(b) : null,
     info.max === 1 ? el('button', { class: 'btn quiet', onclick: () => startRec(info.action, b.id) }, t('shortcuts.change')) : null,
-    el('button', { class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('common.removeItem', { name: label }), html: ICONS.x, onclick: remove }));
+    el('button', { class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('common.removeItem', { name: label }), html: ICONS.x, onclick: remove }),
+    info.talk && behaviour ? el('div', { class: 'bind-caption' }, `${behaviourName(behaviour)}: ${t(`behaviour.${behaviour}.legend`)}`) : null);
 }
 
 function recRow(info) {
@@ -667,28 +878,26 @@ function actionBlock(info) {
   const items = list.map((b) => (recording && rec.replaceId === b.id ? recRow(info) : bindRow(info, b, list.length)));
   if (recording && !rec.replaceId) items.push(recRow(info));
   const single = max === 1 && list.length > 0;
-  return el('div', { class: 'action' },
+  // An action without a shortcut is just its title, what it does and "Add shortcut": the empty slot speaks for itself.
+  return el('div', { class: `action${items.length ? '' : ' unset'}` },
     el('div', { class: 'action-head' },
       el('div', { class: 'grow' },
-        el('div', { class: 'title' }, actionTitle(info.action), info.badge ? el('span', { class: 'badge' }, t(`badge.${info.badge}`)) : null),
-        el('div', { class: 'desc' }, t(`action.${info.action}.desc`))),
+        el('div', { class: 'title' }, actionTitle(info.action)),
+        el('div', { class: 'desc' }, t(`action.${info.action}.desc`)),
+        list.length && max > 1 ? el('div', { class: 'desc muted' }, t('shortcuts.countCaption', { n: list.length, max })) : null),
       single ? null : el('button', {
         class: 'btn',
         disabled: list.length >= max || recording,
         'aria-label': t('shortcuts.addFor', { action: actionTitle(info.action) }),
         onclick: () => startRec(info.action),
-      }, list.length ? t('shortcuts.addCount', { n: list.length, max }) : t('shortcuts.add'))),
-    items.length ? el('ul', { class: 'binds' }, items) : el('div', { class: 'desc muted' }, t('shortcuts.notSetDesc')));
+      }, t('shortcuts.add'))),
+    items.length ? el('ul', { class: 'binds' }, items) : null);
 }
 
 function renderShortcuts() {
   if (!settings) return;
   for (const group of ['start', 'during', 'after']) {
-    const blocks = ACTION_INFO.filter((a) => a.group === group).map(actionBlock);
-    if (group === 'start') {
-      blocks.push(el('div', { class: 'legend' }, ...BEHAVIOURS.map((value) => el('span', {}, el('b', {}, behaviourName(value)), ` ${t(`behaviour.${value}.legend`)}`))));
-    }
-    $(`#g-${group}`).replaceChildren(...blocks);
+    $(`#g-${group}`).replaceChildren(...ACTION_INFO.filter((a) => a.group === group).map(actionBlock));
   }
   if (rec) $('#rec-row')?.focus({ preventScroll: true });
 }
@@ -731,6 +940,13 @@ $('#sc-reset').addEventListener('click', async () => {
 // ----- "Test a key, pedal or mouse button": the main-process hook reports what it sees
 
 const tester = $('#tester');
+// "Test a key" opens the tester under the page header and puts the focus in it; pressing the button again closes it.
+$('#tester-toggle').addEventListener('click', (e) => {
+  const flyout = $('#tester-flyout');
+  flyout.hidden = !flyout.hidden;
+  e.currentTarget.setAttribute('aria-expanded', String(!flyout.hidden));
+  if (!flyout.hidden) tester.focus();
+});
 tester.addEventListener('focus', () => api.setKeyTest(true));
 tester.addEventListener('blur', () => api.setKeyTest(false));
 window.addEventListener('blur', () => document.activeElement === tester && tester.blur());
@@ -776,7 +992,7 @@ function renderVoiceCommands() {
     save({ voiceCommands: next }, t('voice.removed', { phrase: p }));
   };
   $('#vc-list').replaceChildren(...(list.length ? list.map((c, i) => el('div', { class: 'vc-row' },
-    el('div', { class: 'phrases' }, ...c.phrases.map((p) => el('span', { class: 'phrase' }, `“${p}”`,
+    el('div', { class: 'phrases' }, ...c.phrases.map((p) => el('span', { class: 'phrase' }, p, // the chip says "phrase": no quotes (HR-02)
       el('button', { title: t('common.remove'), 'aria-label': t('voice.removeLabel', { phrase: p }), html: ICONS.x, onclick: () => removePhrase(i, p) })))),
     el('span', { class: 'arrow', 'aria-hidden': 'true' }, '→'),
     el('span', { class: 'does', title: t(c.action === 'key' || c.action === 'undo' ? 'voice.edgeOnly' : 'voice.anywhere') }, describeCommand(c)),
@@ -886,6 +1102,18 @@ function renderEngine() {
   $('#cloud-url').value = settings.cloud.baseUrl;
   $('#cloud-model').value = settings.cloud.model;
   $('#cloud-key').placeholder = settings.cloud.hasApiKey ? t('cloud.keySaved') : 'gsk_…';
+  $('#speech-key-state').textContent = t(settings.cloud.hasApiKey ? 'cloud.status.key' : 'cloud.status.noKey');
+  renderCloudUse();
+}
+
+/** Cloud services: what uses the one Groq key now (cloud speech, Command mode, AI polish in the cloud). */
+function renderCloudUse() {
+  const users = [
+    settings.engine === 'cloud' ? t('cloud.usedBy.speech') : null,
+    (settings.bindings || []).some((b) => b.action === 'command') ? t('action.command.title') : null,
+    settings.polish && settings.polish.provider === 'cloud' ? t('polish.title') : null,
+  ].filter(Boolean);
+  $('#cloud-used').replaceChildren(...(users.length ? users.map((u) => el('span', { class: 'tag' }, u)) : [el('span', { class: 'desc' }, t('cloud.usedBy.none'))]));
 }
 document.querySelectorAll('#engine button').forEach((b) => b.addEventListener('click', () => save({ engine: b.dataset.engine })));
 $('#cloud-url').addEventListener('change', (e) => save({ cloud: { baseUrl: e.target.value.trim() || 'https://api.groq.com/openai/v1' } }));
@@ -903,23 +1131,39 @@ $('#cloud-test').addEventListener('click', async () => {
   out.style.color = r.ok ? 'var(--ok)' : 'var(--danger)';
 });
 
+/**
+ * One list of speech models: each with what it is good for, a status chip (In use, Downloaded · 148 MB, Not
+ * downloaded · 500 MB, a download's percent) and its action: Download, or Delete for one on disk (privacy.js knows
+ * the sizes and asks before it deletes).
+ */
 function renderModels() {
-  if (!modelState) return;
+  if (!modelState || typeof Privacy === 'undefined') return; // privacy.js draws it again once it has loaded
   $('#models').replaceChildren(...modelState.models.map((m) => {
     const active = m.id === settings.localModel;
-    let state = m.downloaded ? t('models.downloaded') : m.size;
+    const disk = Privacy.disk(m.id); // { bytes, lastUsed } when it is on disk
+    // What is on disk (privacy.js looks) wins over the model state, which can be older.
+    let state = disk || m.downloaded ? t('models.status.downloaded', { size: disk ? Privacy.size(disk.bytes) : m.size }) : t('models.status.notDownloaded', { size: m.size });
     let cls = '';
+    const busy = active && modelState.model === m.id && (modelState.status === 'downloading' || modelState.status === 'loading');
     if (active && modelState.model === m.id) {
       if (modelState.status === 'downloading') [state, cls] = [`${modelState.percent}%`, 'busy'];
       else if (modelState.status === 'loading') [state, cls] = [t('common.loading'), 'busy'];
       else if (modelState.status === 'ready') [state, cls] = [t('models.inUse'), 'ok'];
-      else if (modelState.status === 'error') state = t('models.error');
+      else if (modelState.status === 'error') [state, cls] = [t('models.error'), 'error'];
     }
+    const action = busy ? null
+      : disk ? el('button', { class: 'icon-btn danger', type: 'button', title: t('common.delete'), 'aria-label': t('models.disk.delete', { name: `Whisper ${m.label}` }), html: ICONS.trash,
+        onclick: (e) => { e.preventDefault(); Privacy.deleteModel(disk); } })
+        : !m.downloaded ? el('button', { class: 'btn', type: 'button', onclick: (e) => { e.preventDefault(); save({ localModel: m.id }).then(() => api.loadModel()); } }, t('common.download'))
+          : null;
     return el('label', { class: 'model' },
       el('input', { type: 'radio', name: 'model', checked: active, onchange: () => save({ localModel: m.id }, t('models.switched', { name: `Whisper ${m.label}` })) }),
       el('div', {}, el('div', { class: 'title' }, `Whisper ${m.label}`), el('div', { class: 'desc' }, modelNoteText(m))),
-      el('span', { class: `state ${cls}` }, state));
+      el('span', { class: `state chip ${cls}`, title: disk ? t('models.disk.lastUsed', { date: I18n.date(disk.lastUsed, { day: 'numeric', month: 'short', year: 'numeric' }) }) : null }, state),
+      el('span', { class: 'model-action' }, action));
   }));
+  const total = Privacy.total();
+  $('#models-total').textContent = total ? t('models.disk.title', { size: Privacy.size(total) }) : '';
 }
 
 function renderLanguages() {
@@ -960,7 +1204,8 @@ let recentApps = [];
 function renderCommand() {
   $('#cmd-chips').replaceChildren(...bindingChips(firstBinding('command')));
   if (document.activeElement !== $('#cmd-model')) $('#cmd-model').value = settings.command.model;
-  $('#cmd-key-state').textContent = t(settings.cloud.hasApiKey ? 'command.keySaved' : 'command.noKey');
+  $('#cmd-key-state').textContent = t(settings.cloud.hasApiKey ? 'cloud.status.key' : 'cloud.status.noKey');
+  $('#cmd-add-key').hidden = !!settings.cloud.hasApiKey;
 }
 $('#cmd-model').addEventListener('change', (e) => save({ command: { model: e.target.value.trim() || 'llama-3.3-70b-versatile' } }));
 $('#cmd-test').addEventListener('click', async () => {
@@ -1009,13 +1254,16 @@ async function renderMics() {
   } catch {
     // no permission yet
   }
-  const opts = [el('option', { value: 'default' }, t('common.systemDefault'))];
-  for (const d of devices) {
-    if (d.deviceId === 'default' || d.deviceId === 'communications') continue;
-    opts.push(el('option', { value: d.deviceId }, d.label || t('mic.unnamed')));
+  micDevices = devices.filter((d) => d.deviceId !== 'default' && d.deviceId !== 'communications');
+  const options = () => [el('option', { value: 'default' }, t('common.systemDefault')),
+    ...micDevices.map((d) => el('option', { value: d.deviceId }, d.label || t('mic.unnamed')))];
+  const value = devices.some((d) => d.deviceId === settings.microphoneId) ? settings.microphoneId : 'default';
+  // Settings › Microphone and Home's quick control list the same microphones.
+  for (const s of [select, $('#quick-mic')]) {
+    s.replaceChildren(...options());
+    s.value = value;
   }
-  select.replaceChildren(...opts);
-  select.value = devices.some((d) => d.deviceId === settings.microphoneId) ? settings.microphoneId : 'default';
+  renderSideStatus();
 }
 $('#mic').addEventListener('change', (e) => save({ microphoneId: e.target.value }));
 navigator.mediaDevices.addEventListener('devicechange', renderMics);
@@ -1097,6 +1345,8 @@ function renderAll() {
   renderCommand();
   renderReadAloud();
   renderBanner();
+  renderFilesNotice();
+  renderHistoryFilters();
   $('#auto-stop').value = String(settings.autoStopSilence || 0);
   $('#file-target').textContent = LANG_NAME[settings.translation.target] || code(settings.translation.target);
 }
@@ -1135,9 +1385,12 @@ document.querySelectorAll('[data-update-install]').forEach((b) => b.addEventList
 api.onUpdateState(renderUpdate);
 api.getUpdateState().then(renderUpdate);
 
-/** "settings", or "settings#microphone" for one section of it (the pill's Choose mic). */
+/**
+ * "settings", or "settings#microphone" for one part of it (the pill's Choose mic). About is inside Settings now:
+ * "about" (the tray, a page open before a language switch) opens that section.
+ */
 function showPage(page) {
-  const [id, section] = String(page).split('#');
+  const [id, section] = String(page) === 'about' ? ['settings', 'settings-about'] : String(page).split('#');
   document.querySelector(`.nav[data-page="${id}"]`)?.click();
   if (section && id === 'settings') window.SettingsSearch?.jump(section); // settings-search.js (not there yet at the very start)
 }
@@ -1170,6 +1423,8 @@ async function init() {
   }
   syncVoiceForm();
   renderAll();
+  renderMics(); // the microphone names for Home's quick control and the sidebar
+  nameRail();
   renderStats();
   loadHistory();
   const back = pageBeforeReload();
@@ -1192,6 +1447,7 @@ api.onModelState((m) => {
   renderBanner();
   renderStrip();
   renderLive();
+  renderFilesNotice();
 });
 api.onHistory(() => {
   loadHistory();

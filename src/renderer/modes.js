@@ -1,7 +1,8 @@
 'use strict';
-// The Modes page (docs/design/redesign-concept.html): the modes on the left, the chosen one's editor on the right -
-// name, colour, language, translation, style, voice commands, AI polish (level and own instructions), the apps that
-// switch it on (with recent apps from History to pick from) and the shortcuts and link that open it. The main process checks every change (modes.js).
+// The Modes page (docs/design/redesign-concept.html): the modes on the left, the chosen one's editor on the right,
+// in groups: who it is (name, colour), when it's used (the shortcuts that open it, the apps that switch it on, with
+// recent apps from History to pick from), what it does (language, translation, style, voice commands) and AI polish
+// (level and own instructions); the link that starts it is folded away. The main process checks every change (modes.js).
 // Loaded after app.js; uses these app.js globals: api, $, el, save, settings, toast, ICONS, LANGUAGES, LANG_NAME,
 // STYLES, bindingChips, recentApps, modelState, showPage; and AppNames (app-names.js).
 
@@ -23,14 +24,14 @@ const Modes = (() => {
   const find = (id) => (settings.modes || []).find((m) => m.id === id) || null;
   const appName = (exe) => AppNames.appName(exe); // app-names.js: "Word", not WINWORD.EXE
 
-  /** "Translate → English · Formal · outlook, olk" */
+  /** "Outlook · Translate → English · Formal": where it switches on first, then what it does. */
   function summary(m) {
     const language = m.translateTo
       ? t('modes.summary.translate', { language: LANG_NAME[m.translateTo] || m.translateTo.toUpperCase() })
       : m.language ? LANG_NAME[m.language] || m.language.toUpperCase() : t('modes.language.yours');
     const apps = m.id === 'default' ? t('modes.summary.fallback')
       : m.apps.length ? m.apps.slice(0, 2).map(appName).join(', ') + (m.apps.length > 2 ? ' …' : '') : t('modes.summary.manual');
-    return [language, t(`modes.style.${m.style}`), apps].join(' · ');
+    return [apps, language, t(`modes.style.${m.style}`)].join(' · ');
   }
 
   /** Dictate shortcuts that open a mode. */
@@ -69,7 +70,9 @@ const Modes = (() => {
     el('div', { class: 'lbl' }, title, hint ? el('small', {}, hint) : null), el('div', { class: 'ctl' }, ...control));
 
   function nameField(m) {
-    const input = el('input', { id: 'mode-name', type: 'text', maxlength: '40', value: m.name, placeholder: label({ ...m, name: '' }), 'aria-label': t('modes.name') });
+    // Default can't be renamed: its name is text, not a field that looks disabled.
+    if (m.id === 'default') return field(t('modes.name'), t('modes.defaultName'), el('span', { class: 'value' }, label(m)));
+    const input = el('input', { id: 'mode-name', type: 'text', maxlength: '40', value: m.name || label(m), 'aria-label': t('modes.name') });
     input.addEventListener('change', () => rename(m, input.value.trim()));
     return field(t('modes.name'), null, input);
   }
@@ -103,7 +106,7 @@ const Modes = (() => {
     const select = el('select', { id: 'mode-style', 'aria-label': t('modes.styleLabel') },
       ...STYLES.map((k) => el('option', { value: k, selected: m.style === k }, t(`styles.option.${k}`))));
     select.addEventListener('change', () => update({ style: select.value }));
-    return field(t('modes.styleLabel'), t('modes.style.hint'), select);
+    return field(t('modes.styleLabel'), t(`modes.style.hint.${STYLES.includes(m.style) ? m.style : 'normal'}`), select); // what the chosen style does
   }
 
   function voiceField(m) {
@@ -121,8 +124,8 @@ const Modes = (() => {
     select.addEventListener('change', () => update({ aiPolish: select.value }));
     const off = !settings.polish || settings.polish.provider === 'off';
     const hint = off && m.aiPolish !== 'off' ? t('modes.polish.noProvider') : t(`modes.polish.hint.${m.aiPolish}`);
-    return field(t('modes.polish'), hint, select,
-      off ? el('button', { class: 'btn quiet', type: 'button', onclick: () => showPage('settings#polish') }, t('modes.polish.setUp')) : null);
+    return field(t('modes.polish'), hint, el('div', { class: 'inline' }, select,
+      off ? el('button', { class: 'btn link', type: 'button', onclick: () => showPage('settings#polish') }, t('modes.polish.setUp')) : null));
   }
 
   function instructionsField(m) {
@@ -157,15 +160,22 @@ const Modes = (() => {
 
   function startField(m) {
     const binds = bindingsFor(m.id);
+    return field(t('modes.start'), t('modes.start.hint'), el('div', { class: 'app-chips' },
+      ...(binds.length ? binds.map((b) => el('span', { class: 'chips' }, bindingChips(b))) : [el('span', { class: 'desc' }, t('modes.start.none'))]),
+      el('button', { class: 'btn link', type: 'button', onclick: () => showPage('shortcuts') }, t(binds.length ? 'modes.start.change' : 'modes.start.add'))));
+  }
+
+  /** The link that starts this mode (Stream Deck, scripts), folded away: most people never need it. */
+  function linkExpander(m) {
     const link = `${protocol}://dictate/toggle?mode=${m.id}`;
-    return field(t('modes.start'), t('modes.start.hint'), el('div', { class: 'start-with' },
-      el('div', { class: 'app-chips' },
-        ...(binds.length ? binds.map((b) => el('span', { class: 'chips' }, bindingChips(b))) : [el('span', { class: 'desc' }, t('modes.start.none'))]),
-        el('button', { class: 'btn quiet', type: 'button', onclick: () => showPage('shortcuts') }, t(binds.length ? 'modes.start.change' : 'modes.start.add'))),
+    return el('details', { class: 'expander mode-link' },
+      el('summary', {}, t('modes.link.summary')),
       el('div', { class: 'link' }, el('code', {}, link),
         el('button', { class: 'icon-btn', type: 'button', title: t('common.copy'), 'aria-label': t('common.copyItem', { name: link }), html: ICONS.copy,
-          onclick: async () => { await api.copy(link); toast(t('common.copied')); } }))));
+          onclick: async () => { await api.copy(link); toast(t('common.copied')); } })));
   }
+
+  const group = (key) => el('h3', { class: 'mode-group' }, t(key));
 
   // ---------------------------------------------------------------- the page
 
@@ -182,11 +192,16 @@ const Modes = (() => {
     const m = find(selected);
     const focused = document.activeElement && document.activeElement.id;
     // A field that doesn't apply (instructions with AI polish off) is null; replaceChildren would show it as "null".
+    // Grouped: who it is, when it's used, what it does, AI polish; the link folded away; Delete at the bottom.
     $('#mode-detail').replaceChildren(...[
-      el('div', { class: 'mode-head' }, el('span', { class: 'dot big', style: `background:${m.color}` }), el('h2', {}, label(m)),
-        m.id === 'default' ? null : el('button', { class: 'btn danger quiet', type: 'button', onclick: () => remove(m) }, t('modes.delete'))),
-      nameField(m), colourField(m), startField(m), appsField(m), languageField(m), translateField(m), styleField(m), voiceField(m),
-      polishField(m), instructionsField(m)].filter(Boolean));
+      el('div', { class: 'mode-head' }, el('span', { class: 'dot big', style: `background:${m.color}` }), el('h2', {}, label(m))),
+      group('modes.group.identity'), nameField(m), colourField(m),
+      group('modes.group.when'), startField(m), appsField(m),
+      group('modes.group.what'), languageField(m), translateField(m), styleField(m), voiceField(m),
+      group('polish.title'), polishField(m), instructionsField(m),
+      linkExpander(m),
+      m.id === 'default' ? null : el('div', { class: 'mode-foot' },
+        el('button', { class: 'btn danger', type: 'button', onclick: () => remove(m) }, t('modes.delete')))].filter(Boolean));
     if (focused && focused.startsWith('mode-') && $(`#${focused}`)) $(`#${focused}`).focus();
   }
 

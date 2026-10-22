@@ -55,7 +55,7 @@ test('no page shows a raw translation key, in English or in Croatian', async (t)
   for (const uiLanguage of ['en', 'hr']) {
     const run = await launch({ settings: setUpSettings({ uiLanguage }) });
     try {
-      for (const nav of ['home', 'shortcuts', 'files', 'dictionary', 'settings', 'about']) {
+      for (const nav of ['home', 'history', 'shortcuts', 'modes', 'files', 'dictionary', 'settings']) { // About is in Settings
         await run.page.locator(`button.nav[data-page="${nav}"]`).click();
         assert.deepEqual(await rawKeys(run.page), [], `${uiLanguage}: ${nav}`);
       }

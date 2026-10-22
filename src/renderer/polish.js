@@ -195,7 +195,7 @@ const Polish = (() => {
     const result = testResult ? el('span', { class: 'desc', role: 'status', style: `color:${testResult.ok ? 'var(--ok)' : 'var(--danger)'}` }, testResult.text) : null;
     return el('div', { class: 'row' },
       el('div', {}, el('div', { class: 'desc' }, t('polish.levels')),
-        el('button', { class: 'btn quiet', type: 'button', onclick: () => showPage('modes') }, t('polish.openModes'))),
+        el('button', { class: 'btn link', type: 'button', onclick: () => showPage('modes') }, t('polish.openModes'))),
       el('div', { class: 'inline' }, result, el('button', { id: 'polish-test', class: 'btn', type: 'button', onclick: test }, t('common.test'))));
   }
 

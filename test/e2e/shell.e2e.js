@@ -5,51 +5,63 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { launch, setUpSettings, waitFor } = require('./helpers');
 
-const visiblePanels = (page) => page.evaluate(() => [...document.querySelectorAll('#page-settings > section.panel')]
-  .filter((p) => getComputedStyle(p).display !== 'none').map((p) => p.querySelector('h2').textContent));
+/** The Settings cards on screen, by their titles. */
+const visiblePanels = (page) => page.evaluate(() => [...document.querySelectorAll('#page-settings .settings-section > .panel')]
+  .filter((p) => p.getClientRects().length).map((p) => p.querySelector('h3').textContent));
 
-test('Settings search keeps the sections and rows that match, and Esc brings everything back', async (t) => {
+test('Settings search looks through every section and the other pages, and Esc brings the section back', async (t) => {
   const run = await launch();
   t.after(run.close);
   const { page } = run;
   await page.click('.nav[data-page="settings"]');
-  const all = await visiblePanels(page);
-  assert.ok(all.length >= 8, `${all.length} sections`);
-  assert.equal(await page.locator('.settings-sections a').count(), all.length, 'one link per section');
+  assert.equal(await page.locator('.settings-nav a[data-section]').count(), 8, 'eight sections');
+  const general = await visiblePanels(page);
+  assert.deepEqual(general, ['Language', 'Behavior'], 'one section at a time: General first');
 
   await page.fill('#settings-search', 'filler');
-  assert.deepEqual(await visiblePanels(page), ['Text']);
-  assert.equal(await page.evaluate(() => [...document.querySelectorAll('#page-settings section.panel .row')].filter((r) => r.offsetParent !== null).length), 1);
+  assert.deepEqual(await visiblePanels(page), ['Text clean-up'], 'found in Speech & microphone, and unfolded');
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll('#page-settings .settings-section .row')].filter((r) => r.offsetParent !== null).length), 1);
+
+  await page.fill('#settings-search', 'read aloud');
+  await waitFor(() => page.evaluate(() => !document.getElementById('settings-other').hidden), { what: 'results on other pages' });
+  assert.match(await page.textContent('#settings-other-list'), /Shortcuts › Read aloud/);
 
   await page.fill('#settings-search', 'nothing like this');
-  await waitFor(() => page.evaluate(() => !document.querySelector('#page-settings > .empty').hidden), { what: 'the no-match note' });
+  await waitFor(() => page.evaluate(() => !document.getElementById('settings-none').hidden), { what: 'the no-match note' });
 
-  const ownHidden = () => page.evaluate(() => [document.getElementById('model-disk-row').hidden, document.getElementById('tr-model-row').hidden]);
+  const ownHidden = () => page.evaluate(() => [document.getElementById('cloud-settings').hidden, document.getElementById('tr-model-row').hidden]);
   const before = await ownHidden();
   await page.press('#settings-search', 'Escape');
-  assert.deepEqual(await visiblePanels(page), all);
+  assert.deepEqual(await visiblePanels(page), general);
   assert.deepEqual(await ownHidden(), before, 'rows hidden by their own code stay hidden after a search');
 });
 
-test('each Settings section link brings its section to the top, heading first, and focuses the heading', async (t) => {
+test('each Settings section opens on its own and takes the focus; a jump to a card brings it to the top', async (t) => {
   const run = await launch();
   t.after(run.close);
   const { page } = run;
   await page.emulateMedia({ reducedMotion: 'reduce' }); // a jump without the smooth scroll, so it can be measured at once
   await page.click('.nav[data-page="settings"]');
-  const links = await page.$$eval('.settings-sections a', (as) => as.map((a) => a.getAttribute('href')));
-  assert.ok(links.length >= 8, `${links.length} links`);
-  const off = [];
-  for (const href of links) {
-    await page.click(`.settings-sections a[href="${href}"]`);
-    const where = await waitFor(() => page.evaluate((sel) => {
-      const heading = document.querySelector(`${sel} h2`);
-      const top = heading.getBoundingClientRect().top - document.querySelector('main').getBoundingClientRect().top;
-      return document.activeElement === heading ? { top: Math.round(top) } : null;
-    }, href), { what: `the heading of ${href} focused` });
-    if (where.top < 0 || where.top > 24) off.push(`${href}: heading at ${where.top} px`);
+  const sections = await page.$$eval('.settings-nav a[data-section]', (as) => as.map((a) => a.dataset.section));
+  const wrong = [];
+  for (const name of sections) {
+    await page.click(`.settings-nav a[data-section="${name}"]`);
+    const seen = await page.evaluate(() => ({
+      shown: [...document.querySelectorAll('.settings-section')].filter((s) => s.getClientRects().length).map((s) => s.dataset.section),
+      focused: document.activeElement.classList.contains('section-title') ? document.activeElement.closest('.settings-section').dataset.section : null,
+    }));
+    if (seen.shown.join() !== name || seen.focused !== name) wrong.push(`${name}: shows ${seen.shown.join()}, focus on ${seen.focused}`);
   }
-  assert.deepEqual(off, []);
+  assert.deepEqual(wrong, []);
+
+  // The pill's "Choose mic" and the sidebar's status jump to one card: its heading at the top, and focused.
+  await page.evaluate(() => window.SettingsSearch.jump('microphone'));
+  const where = await waitFor(() => page.evaluate(() => {
+    const heading = document.querySelector('#microphone h3');
+    const top = heading.getBoundingClientRect().top - document.querySelector('main').getBoundingClientRect().top;
+    return document.activeElement === heading ? { top: Math.round(top) } : null;
+  }), { what: 'the Microphone heading focused' });
+  assert.ok(where.top >= 0 && where.top <= 24, `heading at ${where.top} px`);
 
   // A segmented control says which choice is on, to a screen reader too (a radio group, aria-checked).
   await page.click('#accel button[data-accel="cpu"]');

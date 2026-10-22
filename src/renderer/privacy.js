@@ -1,8 +1,9 @@
 'use strict';
 // Settings → Privacy: the transcript-history choice, the recordings switch, and the two delete buttons, which ask
 // first in a dialog (dialog.js). The crash-recovery switch is an ordinary data-setting toggle in app.js.
-// It also keeps Settings → Speech's list of downloaded models (size, last use, Delete), from the same data.
-// Loaded after app.js and home-notices.js; uses these app.js globals: api, $, el, save, settings, toast, ICONS.
+// It also knows the downloaded models (size, last use) for Settings → Speech's model list and deletes one at a time.
+// Loaded after app.js and home-notices.js; uses these app.js globals: api, $, el, save, settings, toast, ICONS,
+// renderModels.
 
 const Privacy = (() => {
   const RETENTION_DESC = {
@@ -71,17 +72,17 @@ const Privacy = (() => {
     renderDisk();
   }
 
-  /** Settings → Speech: each downloaded model with its size, when it was last used, and Delete. */
+  /**
+   * Settings → Speech lists the models once (app.js renderModels, with the size and Delete from here); the offline
+   * translator's Delete sits in Settings → Translation.
+   */
   function renderDisk() {
-    $('#model-disk-row').hidden = !models.models.length;
-    $('#model-disk-title').textContent = t('models.disk.title', { size: size(models.bytes) });
-    $('#model-disk').replaceChildren(...models.models.map((m) => el('div', { class: 'disk-item' },
-      el('span', { class: 'name' }, modelName(m)),
-      el('span', { class: 'desc' }, `${size(m.bytes)} · ${t('models.disk.lastUsed', { date: I18n.date(m.lastUsed, { day: 'numeric', month: 'short', year: 'numeric' }) })}`),
-      el('button', {
-        class: 'icon-btn danger', title: t('common.remove'), 'aria-label': t('models.disk.delete', { name: modelName(m) }), html: ICONS.trash,
-        onclick: () => deleteOne(m),
-      }))));
+    if (typeof renderModels === 'function') renderModels();
+    const tr = models.models.find((m) => m.kind === 'translator');
+    $('#tr-delete-slot').replaceChildren(...(tr ? [el('button', {
+      class: 'icon-btn danger', type: 'button', title: t('common.delete'), 'aria-label': t('models.disk.delete', { name: modelName(tr) }), html: ICONS.trash,
+      onclick: () => deleteOne(tr),
+    })] : []));
   }
 
   async function deleteOne(m) {
@@ -176,5 +177,14 @@ const Privacy = (() => {
   });
   document.querySelector('.nav[data-page="settings"]').addEventListener('click', refreshModels);
 
-  return { start };
+  return {
+    start,
+    /** A model on disk ({ id, bytes, lastUsed, … }) by its id, or null. */
+    disk: (id) => models.models.find((m) => m.id === id) || null,
+    /** How much all downloaded models take, in bytes. */
+    total: () => models.bytes || 0,
+    size,
+    /** Deletes one downloaded model, after asking. */
+    deleteModel: deleteOne,
+  };
 })();

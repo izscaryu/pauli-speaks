@@ -40,8 +40,16 @@ test('every page fits at 900 and 1280 px wide, in light and dark', async (t) => 
   t.after(run.close);
   const { app, page } = run;
   const pages = await page.$$eval('.nav[data-page]', (navs) => navs.map((n) => n.dataset.page));
-  assert.ok(pages.length >= 8, `${pages.length} pages`);
+  assert.ok(pages.length >= 7, `${pages.length} pages`); // About is a section of Settings
+  const sections = await page.$$eval('.settings-nav a[data-section]', (as) => as.map((a) => a.dataset.section));
   const problems = [];
+  const check = async (where) => {
+    await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; })); // folded parts too
+    await page.waitForTimeout(250); // the page's entrance and the window's new size settle
+    const o = await overflow(page);
+    if (o.scrollWidth > o.clientWidth) problems.push(`${where}: main scrolls sideways (${o.scrollWidth} > ${o.clientWidth})`);
+    for (const line of o.out) problems.push(`${where}: ${line}`);
+  };
   for (const width of [900, 1280]) {
     await resize(app, width, 800);
     for (const scheme of ['light', 'dark']) {
@@ -50,10 +58,16 @@ test('every page fits at 900 and 1280 px wide, in light and dark', async (t) => 
         await page.click(`.nav[data-page="${id}"]`);
         await waitFor(() => page.evaluate((pid) => !document.getElementById(`page-${pid}`).hidden, id), { what: `the ${id} page` });
         if (id === 'modes') await page.click('.mode-item:has-text("Email in English")'); // the fullest editor
-        await page.waitForTimeout(250); // the page's entrance and the window's new size settle
-        const o = await overflow(page);
-        if (o.scrollWidth > o.clientWidth) problems.push(`${width} ${scheme} ${id}: main scrolls sideways (${o.scrollWidth} > ${o.clientWidth})`);
-        for (const line of o.out) problems.push(`${width} ${scheme} ${id}: ${line}`);
+        if (id !== 'settings') {
+          await check(`${width} ${scheme} ${id}`);
+          continue;
+        }
+        // Settings shows one section at a time; on a narrow window "‹ Settings" goes back to the list.
+        for (const section of sections) {
+          if (await page.isVisible('#settings-back')) await page.click('#settings-back');
+          await page.click(`.settings-nav a[data-section="${section}"]`);
+          await check(`${width} ${scheme} settings › ${section}`);
+        }
       }
     }
   }

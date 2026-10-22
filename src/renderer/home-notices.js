@@ -280,5 +280,9 @@ const HomeNotices = (() => {
   // Notices app.js set before this script loaded (an IPC answer can come between script tags).
   for (const [id, n] of Object.entries(earlyNotices)) set(id, n);
 
-  return { start, set, redownload, canRedownload, refreshRecovery: drawRecovery, TROUBLESHOOTING_URL };
+  return {
+    start, set, redownload, canRedownload, refreshRecovery: drawRecovery, TROUBLESHOOTING_URL,
+    /** One InfoBar on its own, for another page (Files): { severity, title, message?, actions? }. */
+    bar: (n) => infoBar('page', n, ['page']),
+  };
 })();

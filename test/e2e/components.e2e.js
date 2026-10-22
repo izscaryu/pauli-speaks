@@ -5,35 +5,56 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { launch, waitFor } = require('./helpers');
 
-const PAGES = ['home', 'shortcuts', 'modes', 'dictionary', 'history', 'files', 'settings', 'about'];
+const PAGES = ['home', 'shortcuts', 'modes', 'dictionary', 'history', 'files', 'settings'];
+
+/**
+ * Opens each page, and each section of Settings (one shows at a time), with everything folded away opened, and
+ * collects what `check(pageId)` finds on each.
+ */
+async function eachView(page, check) {
+  const out = [];
+  const unfold = () => page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+  for (const id of PAGES) {
+    await page.click(`.nav[data-page="${id}"]`);
+    await unfold();
+    if (id !== 'settings') {
+      out.push(...await check(id));
+      continue;
+    }
+    for (const section of await page.$$eval('.settings-nav a[data-section]', (as) => as.map((a) => a.dataset.section))) {
+      await page.click(`.settings-nav a[data-section="${section}"]`);
+      out.push(...await check(id));
+    }
+  }
+  return out;
+}
+
+/** Opens the Settings section that holds the element with this id (settings-search.js), unfolding it. */
+const openSetting = (page, id) => page.evaluate((x) => window.SettingsSearch.jump(x), id);
 
 test('a Windows contrast theme: every switch, button, field and segment keeps an edge on every page', async (t) => {
   const run = await launch();
   t.after(run.close);
   const { page } = run;
   await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
-  const invisible = [];
-  for (const id of PAGES) {
-    await page.click(`.nav[data-page="${id}"]`);
-    invisible.push(...await page.evaluate((pageId) => {
-      const out = [];
-      const sel = '.switch span, .btn, input:not([type=checkbox], [type=radio], [type=range], [type=file]), select, textarea, .segmented, .key';
-      for (const node of document.querySelectorAll(`#page-${pageId} :is(${sel})`)) {
-        if (!node.getClientRects().length) continue; // not on screen (hidden rows, closed sections)
-        const s = getComputedStyle(node);
-        const edges = ['Top', 'Right', 'Bottom', 'Left'].filter((side) => s[`border${side}Style`] !== 'none' && parseFloat(s[`border${side}Width`]) > 0);
-        if (edges.length < 4) out.push(`${pageId}: ${node.tagName.toLowerCase()}.${node.className || ''} has edges ${edges.join(',') || 'none'}`);
-      }
-      // the chosen segment says so without colour: its line is drawn in the system highlight
-      for (const b of document.querySelectorAll(`#page-${pageId} .segmented [aria-checked="true"]`)) {
-        if (!b.getClientRects().length) continue;
-        const line = getComputedStyle(b, '::after');
-        if (line.content === 'none' || line.backgroundColor === 'rgba(0, 0, 0, 0)') out.push(`${pageId}: the chosen segment "${b.textContent}" has no line`);
-      }
-      return out;
-    }, id));
-  }
-  assert.deepEqual(invisible, []);
+  const invisible = await eachView(page, (id) => page.evaluate((pageId) => {
+    const out = [];
+    const sel = '.switch span, .btn, input:not([type=checkbox], [type=radio], [type=range], [type=file]), select, textarea, .segmented, .key';
+    for (const node of document.querySelectorAll(`#page-${pageId} :is(${sel})`)) {
+      if (!node.getClientRects().length) continue; // not on screen (hidden rows, closed sections)
+      const s = getComputedStyle(node);
+      const edges = ['Top', 'Right', 'Bottom', 'Left'].filter((side) => s[`border${side}Style`] !== 'none' && parseFloat(s[`border${side}Width`]) > 0);
+      if (edges.length < 4) out.push(`${pageId}: ${node.tagName.toLowerCase()}.${node.className || ''} has edges ${edges.join(',') || 'none'}`);
+    }
+    // the chosen segment says so without colour: its line is drawn in the system highlight
+    for (const b of document.querySelectorAll(`#page-${pageId} .segmented [aria-checked="true"]`)) {
+      if (!b.getClientRects().length) continue;
+      const line = getComputedStyle(b, '::after');
+      if (line.content === 'none' || line.backgroundColor === 'rgba(0, 0, 0, 0)') out.push(`${pageId}: the chosen segment "${b.textContent}" has no line`);
+    }
+    return out;
+  }, id));
+  assert.deepEqual([...new Set(invisible)], []);
 });
 
 test('the switch: 40 × 20, an outline when off, a filled track with a white knob when on', async (t) => {
@@ -42,6 +63,7 @@ test('the switch: 40 × 20, an outline when off, a filled track with a white kno
   const { page } = run;
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.click('.nav[data-page="settings"]');
+  await openSetting(page, 'text'); // Speech & microphone › Text clean-up
   const sw = '.switch:has(input[data-setting="removeFillers"])';
   const look = () => page.evaluate((s) => {
     const box = document.querySelector(s).getBoundingClientRect();
@@ -68,6 +90,7 @@ test('the segmented control is a radio group: arrow keys move the choice, and it
   t.after(run.close);
   const { page } = run;
   await page.click('.nav[data-page="settings"]');
+  await openSetting(page, 'speech');
   const state = () => page.$$eval('#accel button', (bs) => bs.map((b) => `${b.dataset.accel}:${b.getAttribute('role')}:${b.getAttribute('aria-checked')}:${b.tabIndex}`));
   assert.equal(await page.getAttribute('#accel', 'role'), 'radiogroup');
   assert.deepEqual(await state(), ['auto:radio:true:0', 'cpu:radio:false:-1'], 'only the chosen one is in the Tab order');
@@ -85,6 +108,7 @@ test('a tooltip names an icon button after a moment on hover, at once on keyboar
   t.after(run.close);
   const { page } = run;
   await page.click('.nav[data-page="shortcuts"]');
+  await page.evaluate(() => { document.getElementById('remote-links').closest('details').open = true; }); // folded away
   const button = page.locator('#remote-links .icon-btn').first();
   const tip = () => page.evaluate(() => {
     const node = document.querySelector('[role="tooltip"]');
@@ -120,20 +144,16 @@ test('hit areas: icon buttons are 32 px or more on every page, a chip\'s ✕ 24 
   const run = await launch();
   t.after(run.close);
   const { page } = run;
-  const small = [];
-  for (const id of PAGES) {
-    await page.click(`.nav[data-page="${id}"]`);
-    small.push(...await page.evaluate((pageId) => {
-      const out = [];
-      for (const [sel, min] of [['.icon-btn', 32], ['.phrase button, .app-chip button', 24]]) {
-        for (const b of document.querySelectorAll(`#page-${pageId} :is(${sel})`)) {
-          const r = b.getBoundingClientRect();
-          if (r.width && (r.width < min || r.height < min)) out.push(`${pageId}: ${b.className || b.tagName} ${r.width}×${r.height}`);
-        }
+  const small = await eachView(page, (id) => page.evaluate((pageId) => {
+    const out = [];
+    for (const [sel, min] of [['.icon-btn', 32], ['.phrase button, .app-chip button', 24]]) {
+      for (const b of document.querySelectorAll(`#page-${pageId} :is(${sel})`)) {
+        const r = b.getBoundingClientRect();
+        if (r.width && (r.width < min || r.height < min)) out.push(`${pageId}: ${b.className || b.tagName} ${r.width}×${r.height}`);
       }
-      return out;
-    }, id));
-  }
+    }
+    return out;
+  }, id));
   assert.deepEqual(small, []);
   await page.click('.nav[data-page="settings"]');
   const accent = await page.evaluate(() => {

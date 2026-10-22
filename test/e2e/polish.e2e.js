@@ -97,6 +97,7 @@ test('set up in the window: another server on this PC, a test, and a mode that p
   t.after(run.close);
   const { page } = run;
   await page.click('.nav[data-page="settings"]');
+  await page.click('.settings-nav a[data-section="ai"]'); // AI polish is in Settings › AI
   await page.selectOption('#polish-provider', 'custom');
   await page.fill('#polish-url', server.url);
   await page.press('#polish-url', 'Tab');

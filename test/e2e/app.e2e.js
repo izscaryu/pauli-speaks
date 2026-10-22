@@ -34,7 +34,8 @@ test('an older settings file is migrated in place, and the old one is kept as a 
 test('About → Copy diagnostic info copies the block, without the Windows account name', async (t) => {
   const run = await launch();
   t.after(run.close);
-  await run.page.locator('button.nav[data-page="about"]').click();
+  await run.page.locator('button.nav[data-page="settings"]').click(); // About & updates is a section of Settings
+  await run.page.locator('.settings-nav a[data-section="about"]').click();
   await run.page.locator('#diagnostics-copy').click();
   const { clipboard } = await waitFor(async () => { const s = await run.state(); return s.clipboard.length ? s : null; }, { what: 'the copy' });
   const text = clipboard[0];
@@ -70,10 +71,17 @@ test('Settings → Speech lists the downloaded models and deletes one of them', 
     fs.writeFileSync(path.join(dir, 'model.onnx'), Buffer.alloc(4096));
   }
   await run.page.click('.nav[data-page="settings"]');
-  await waitFor(async () => (await run.page.$$('#model-disk .disk-item')).length === 2, { what: 'the two models' });
-  await run.page.click('#model-disk .icon-btn >> nth=0');
+  await run.page.evaluate(() => window.SettingsSearch.jump('speech'));
+  // One list of models: Whisper Base says it is downloaded, with its size and Delete in its own row; the offline
+  // translator's Delete is in Settings → Translation.
+  const deletes = () => run.page.$$eval('#models .model-action .icon-btn', (bs) => bs.map((b) => b.getAttribute('aria-label')));
+  await waitFor(async () => (await deletes()).length === 1, { what: 'Delete on the downloaded model' });
+  assert.match((await deletes())[0], /Whisper Base/);
+  assert.equal(await run.page.locator('#tr-delete-slot .icon-btn').count(), 1, 'the translator can be deleted too');
+  await run.page.click('#models .model-action .icon-btn');
   await run.page.click('dialog[open] [data-dialog="confirm"]'); // the app's own dialog (dialogs.e2e.js)
-  await waitFor(async () => (await run.page.$$eval('#model-disk .name', (e) => e.map((x) => x.textContent))).join() === 'Offline translator', { what: 'one model left' });
+  await waitFor(async () => (await deletes()).length === 0, { what: 'Whisper Base deleted' });
   assert.equal(fs.existsSync(path.join(run.dir, 'models', 'onnx-community', 'whisper-base')), false);
   assert.ok(fs.existsSync(path.join(run.dir, 'models', 'Xenova', 'nllb-200-distilled-600M')));
+  assert.equal(await run.page.locator('#tr-delete-slot .icon-btn').count(), 1, 'the translator is still there');
 });

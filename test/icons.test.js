@@ -28,7 +28,7 @@ test('svg(): a decorative icon (hidden from screen readers), filled with the tex
 test('the navigation has a regular and a filled icon for each page (filled = the current page)', () => {
   const html = fs.readFileSync(path.join(DIR, 'app.html'), 'utf8');
   const pages = [...html.matchAll(/class="nav[^"]*" data-page="(\w+)"[^>]*><span class="nav-icon" data-icon="([\w-]+)"/g)];
-  assert.equal(pages.length, 8, 'every page');
+  assert.equal(pages.length, 7, 'every page (About is a section of Settings)');
   for (const [, page, name] of pages) {
     assert.ok(ICONS[name], `${page}: ${name}`);
     assert.ok(ICONS[`${name}-filled`], `${page}: ${name}-filled`);
