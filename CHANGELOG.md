@@ -18,6 +18,14 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 - Anything that deletes or resets asks first in the app's own window, which says what goes ("Deletes all 213 transcripts"), starts on Cancel and closes with Esc. The plain OK/Cancel boxes and the pink box in Settings → Privacy are gone.
 - Home shows one notice at a time, the most important first, with ‹ › for the others and ✕ for those you can dismiss. What's new is one line that opens the notes.
 - Buttons with only an icon say what they do when you point at them or reach them with Tab; option groups such as GPU / CPU only can be changed with the arrow keys; the keys on Home press down while you talk; and in a Windows contrast theme every switch, button and field keeps an edge.
+- A tidier sidebar: Home, History and Files first, then Shortcuts, Modes and Dictionary & snippets under "Customize", and Settings at the bottom with a status line that says whether dictation is ready, which microphone it uses and whether it translates. In a window under 1,000 px wide the sidebar shrinks to icons.
+- Home starts with your key: "Hold F13 to talk anywhere", with a large key that presses down while you talk, the Download button when the speech model is missing, quick choices for the language, the mode and the microphone, and a one-line field to try it. Below it: Recent, and This week as four numbers and a small chart (or one line until your first dictation).
+- Settings is in sections (General, Speech & microphone, Translation, AI, Cloud services, Read aloud, Privacy & data, About & updates): pick one on the left and only that one shows. The search looks through all of them, and finds things on other pages too ("Shortcuts › Read aloud"). About is one of these sections now, and the Groq key has its own place, Cloud services, which says what uses it.
+- One list of speech models in Settings, each saying whether it is downloaded and how big it is, with Download or Delete beside it.
+- History has filters for the app, the language and the mode, and a ⋯ menu with Clear history. Under each transcript: "Word · 9 words", with the time it took in the tooltip.
+- Shortcuts: "Test a key" opens a small tester under the title, an action without a shortcut is one short line with "Add shortcut", each Hold / Toggle / Both says what it does under it, the voice commands are a "You say / It does" table, and the pedal and link help is folded away.
+- Modes: the editor is in groups (Identity, When it's used, What it does, AI polish), the style says what the chosen style does, the link is folded away, and Delete is at the bottom.
+- Files says when the speech model is missing, shows how far a file has got ("12:04 of 42:10"), translating is a switch, and the files from this session are listed to open again.
 
 ## 1.6.0
 
