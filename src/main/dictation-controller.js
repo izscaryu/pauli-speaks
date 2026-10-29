@@ -3,7 +3,8 @@
 // 20 minutes maximum per dictation.
 //
 //   PTT down  idle                       -> start (hold mode)
-//   PTT down  listening, < 500ms, !lock  -> lock (double-tap = hands-free)
+//   PTT down  listening, !lock, < 500ms after start or after a tap's release -> lock (double-tap = hands-free;
+//             a two-key shortcut like Ctrl+Win takes longer than 500 ms to tap twice)
 //   PTT down  listening, locked          -> stop + transcribe
 //   PTT up    listening, !lock, >= 500ms -> stop + transcribe
 //   PTT up    listening, !lock, < 500ms  -> wait 500ms for a 2nd tap, else dismiss
@@ -139,7 +140,7 @@ class DictationController extends EventEmitter {
       if (this.locked) return this.stop('hold');
       return;
     }
-    if (!this.locked && elapsed < DEBOUNCE_MS) return this.#lock();
+    if (!this.locked && (this.tapTimer || elapsed < DEBOUNCE_MS)) return this.#lock();
     if (this.locked) return this.stop('ptt');
   }
 

@@ -1027,7 +1027,7 @@ function init() {
       stopRecording(true);
       if (reason === 'tap') {
         const keys = lastTalkBinding && lastTalkBinding.keys ? lastTalkBinding.keys : holdKeys();
-        flash(t('flash.holdToTalk', { keys: formatShortcut(keys) }), 'info', 2200);
+        flash(t(lastTalkBinding?.behaviour === 'both' ? 'flash.holdOrDoubleTap' : 'flash.holdToTalk', { keys: formatShortcut(keys) }), 'info', 2600);
       }
       else sendOverlayState({ state: 'idle' });
     },

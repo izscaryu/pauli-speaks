@@ -692,6 +692,7 @@
   "tray.updateBalloon.text": "Restart from the tray menu or the app to update. Otherwise it installs when you quit.",
   "flash.readAloudSelect": "Select some text, then press the read-aloud shortcut",
   "flash.holdToTalk": "Hold {keys} while you speak",
+  "flash.holdOrDoubleTap": "Hold {keys} to talk, or double-tap it to keep listening",
   "overlay.downloadingModel": "Downloading speech model…",
   "overlay.loadingModel": "Loading speech model…",
   "overlay.downloadingModelPercent": "Downloading speech model… {percent}%",

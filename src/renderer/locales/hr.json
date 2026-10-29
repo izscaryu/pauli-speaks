@@ -703,6 +703,7 @@
   "tray.updateBalloon.text": "Za ažuriranje ponovno pokreni iz izbornika ikone ili iz aplikacije. Inače će se instalirati kad je zatvoriš.",
   "flash.readAloudSelect": "Označi tekst pa pritisni prečac za čitanje naglas",
   "flash.holdToTalk": "Drži {keys} dok govoriš",
+  "flash.holdOrDoubleTap": "Drži {keys} i govori, ili ga dvaput kucni da nastavi slušati",
   "overlay.downloadingModel": "Preuzimam model za govor…",
   "overlay.loadingModel": "Učitavam model za govor…",
   "overlay.downloadingModelPercent": "Preuzimam model za govor… {percent} %",

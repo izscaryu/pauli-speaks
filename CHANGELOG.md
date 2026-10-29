@@ -2,6 +2,10 @@
 
 What changed in each version of Pauli Speaks. The app shows the newest section once after an update.
 
+## 1.8.0
+
+- Fixed: with a shortcut set to Both, double-tapping a combination like Ctrl+Win didn't keep listening: the bar said "Hold Ctrl+Win while you speak" instead. Tapping two keys twice takes a moment longer, and the second tap now counts from when you let go of the first. When a tap is too quick or too slow, the bar reminds you that you can hold the shortcut or double-tap it.
+
 ## 1.7.0
 
 - A new look, closer to Windows 11: calmer colours with more contrast (in the dark theme above all), one set of text sizes, Windows-style buttons, fields, switches and option groups, Windows' own icons and a thin scrollbar.

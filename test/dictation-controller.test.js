@@ -241,6 +241,35 @@ test('both = push-to-talk with double-tap lock', () => {
   assert.equal(controller.locked, true);
 });
 
+// Tester report (1.6.0): with Both on Ctrl+Win, a double-tap never locked and the pill said "Hold Ctrl+Win while
+// you speak". Two keys take longer to tap twice: the second press came 550 ms after the first, past a window that
+// was counted from the first press instead of from the release.
+test('both: a two-key double-tap locks when the second press comes within the window after the release', () => {
+  const { controller, calls, advance } = setup();
+  controller.talkDown({ behaviour: 'both' });
+  advance(250); // Ctrl+Win down together, held a moment
+  controller.talkUp({ behaviour: 'both' });
+  advance(300); // both keys up, then down again
+  controller.talkDown({ behaviour: 'both' });
+  assert.equal(controller.locked, true, 'the second press locks hands-free');
+  controller.talkUp({ behaviour: 'both' });
+  advance(5000);
+  assert.equal(controller.status, 'listening', 'still listening hands-free');
+  assert.deepEqual(calls, ['start']);
+});
+
+test('both: a second press after the window starts a new dictation instead of locking', () => {
+  const { controller, calls, advance } = setup();
+  controller.talkDown({ behaviour: 'both' });
+  advance(100);
+  controller.talkUp({ behaviour: 'both' });
+  advance(DEBOUNCE_MS + 50);
+  assert.deepEqual(calls, ['start', 'dismiss:tap']);
+  controller.talkDown({ behaviour: 'both' });
+  assert.equal(controller.locked, false, 'a hold, not a lock');
+  assert.equal(controller.status, 'listening');
+});
+
 test('any talk shortcut finishes a locked session', async () => {
   const { controller, calls, advance, settle } = setup();
   controller.talkDown({ behaviour: 'toggle' });
