@@ -172,7 +172,7 @@ test('Press Enter after pasting, switched on for a chat mode on the Modes page: 
   assert.equal(await page.isChecked('#mode-auto-enter'), false, 'off until you switch it on');
   await page.check('#mode-auto-enter', { force: true }); // the switch's box is drawn over the input
   await waitFor(async () => (await page.evaluate(() => window.pauli.getSettings())).modes.find((m) => m.id === 'chat').autoEnter, { what: 'autoEnter saved' });
-  assert.match(await page.textContent('.mode-item:has-text("Chat")'), /sends with Enter/);
+  await waitFor(async () => /sends with Enter/.test(await page.textContent('.mode-item:has-text("Chat")')), { what: 'the list saying "sends with Enter"' });
 
   await run.set('transcript', 'see you soon');
   await run.set('foreground', 'slack.exe');
