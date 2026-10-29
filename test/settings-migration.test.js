@@ -129,7 +129,7 @@ const backupOf = (file, v) => path.join(path.dirname(file), `settings.v${v}.json
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 test('migrations form an unbroken chain up to the current version', () => {
-  assert.equal(SETTINGS_VERSION, 9);
+  assert.equal(SETTINGS_VERSION, 10);
   MIGRATIONS.forEach((m, i) => {
     assert.equal(m.from, i + 1);
     assert.equal(m.to, m.from + 1);

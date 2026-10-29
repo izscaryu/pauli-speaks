@@ -352,3 +352,85 @@ test('a language picked on the pill does not carry into Command mode', async () 
   await run.runCommand(audio(), 1);
   assert.deepEqual(calls.languages[0], ['hr', 'en']);
 });
+
+// ---------------------------------------------------------------- auto-Enter (a mode's "Press Enter after pasting")
+
+test('auto-Enter: a mode with autoEnter presses Enter once after the paste, with no trailing space before it', async () => {
+  const { run, controller, calls } = rig();
+  controller.mode = mode({ id: 'chat', autoEnter: true });
+  await run.runDictation(audio(), 1, Date.now());
+  assert.deepEqual(calls.pasted, ['Hello there']);
+  assert.equal(calls.enters, 1);
+});
+
+test('auto-Enter: off (the default), no Enter after the paste', async () => {
+  const { run, calls } = rig();
+  await run.runDictation(audio(), 1, Date.now());
+  assert.deepEqual(calls.pasted, ['Hello there ']);
+  assert.equal(calls.enters, 0);
+});
+
+test('auto-Enter: nothing pasted, no Enter (nothing said, only a command, "scratch that", cancelled)', async () => {
+  for (const text of ['', 'scratch that', 'hello there scratch that', 'new line']) {
+    const { run, controller, calls } = rig({ heard: { text, language: 'en' } });
+    controller.mode = mode({ autoEnter: true });
+    await run.runDictation(audio(), 1, Date.now());
+    assert.deepEqual(calls.pasted, [], text);
+    assert.equal(calls.enters, 0, text);
+  }
+  const cancelled = rig();
+  cancelled.controller.mode = mode({ autoEnter: true });
+  cancelled.controller.cancelled = true;
+  await cancelled.run.runDictation(audio(), 1, Date.now());
+  assert.equal(cancelled.calls.enters, 0);
+});
+
+test('auto-Enter: not when the paste failed (an administrator window got a copy, or the keys were blocked)', async () => {
+  const copied = rig({ pasteMode: 'copy-only' });
+  copied.controller.mode = mode({ autoEnter: true });
+  await copied.run.runDictation(audio(), 1, Date.now());
+  assert.equal(copied.calls.enters, 0);
+
+  const blocked = rig();
+  blocked.typing.paste = async (text) => { blocked.calls.pasted.push(text); return { pasted: false, mode: 'paste' }; };
+  blocked.controller.mode = mode({ autoEnter: true });
+  await blocked.run.runDictation(audio(), 1, Date.now());
+  assert.equal(blocked.calls.enters, 0);
+});
+
+test('auto-Enter: a key said at the end ("press enter", "press tab") is the last key; no second Enter', async () => {
+  for (const text of ['hello there press enter', 'hello there press tab']) {
+    const { run, controller, calls, s } = rig({ heard: { text, language: 'en' } });
+    s.voiceCommands = [...s.voiceCommands, { phrases: ['press tab'], action: 'key', arg: 'Tab' }]; // one of your own
+    controller.mode = mode({ autoEnter: true });
+    await run.runDictation(audio(), 1, Date.now());
+    assert.equal(calls.actions.length, 1, text);
+    assert.equal(calls.enters, 0, text);
+  }
+  const shortcut = rig(); // the Press Enter shortcut during the dictation, and the mode's own: one Enter
+  shortcut.controller.mode = mode({ autoEnter: true });
+  shortcut.typing.enterAfterPaste = true;
+  await shortcut.run.runDictation(audio(), 1, Date.now());
+  assert.equal(shortcut.calls.enters, 1);
+});
+
+test('auto-Enter with AI polish: the polished text is sent, the pill says so and offers no Undo (a sent message cannot be taken back)', async () => {
+  const { run, controller, calls, history } = rig({ heard: SAID, polish: polishedTo('We meet on Wednesday at the office.') });
+  controller.mode = mode({ id: 'chat', aiPolish: 'medium', autoEnter: true });
+  await run.runDictation(audio(), 1, Date.now());
+  assert.equal(calls.polished[0].text, 'So we meet on tuesday no wait wednesday at the office', 'no trailing space to send');
+  assert.deepEqual(calls.pasted, ['We meet on Wednesday at the office.']);
+  assert.equal(calls.enters, 1);
+  assert.equal(calls.offers.length, 0);
+  assert.deepEqual(calls.flashed.at(-1), ['Polished and sent.', 'info']);
+  assert.equal(history.last().unpolished, 'So we meet on tuesday no wait wednesday at the office', 'History keeps what was said');
+});
+
+test('auto-Enter: Command mode never presses Enter on its own (it edits the selection)', async () => {
+  const { run, controller, calls } = rig();
+  controller.command = true;
+  controller.mode = mode({ autoEnter: true });
+  await run.runCommand(audio(), 1);
+  assert.equal(calls.pasted.length, 1);
+  assert.equal(calls.enters, 0);
+});

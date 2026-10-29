@@ -166,6 +166,12 @@ function v8to9(saved) {
   return { ...saved, pillPosition: POSITIONS.includes(saved.pillPosition) ? saved.pillPosition : 'center' };
 }
 
+/** Version 9 → 10 (tester feedback): a mode can press Enter after pasting; every mode starts with it off. */
+function v9to10(saved) {
+  if (!Array.isArray(saved.modes)) return { ...saved };
+  return { ...saved, modes: saved.modes.map((m) => (m && typeof m === 'object' && !Object.hasOwn(m, 'autoEnter') ? { ...m, autoEnter: false } : m)) };
+}
+
 /** Every change to the shape of settings.json is a step here, in order. v6 → v7 (modes) is in modes.js. */
 const MIGRATIONS = Object.freeze([
   { from: 1, to: 2, run: v1to2 },
@@ -176,6 +182,7 @@ const MIGRATIONS = Object.freeze([
   { from: 6, to: 7, run: v6to7 },
   { from: 7, to: 8, run: v7to8 },
   { from: 8, to: 9, run: v8to9 },
+  { from: 9, to: 10, run: v9to10 },
 ]);
 
 /** 'system' or something shaped like a locale code; strings.js falls back to English for a code without a file. */

@@ -2,11 +2,12 @@
 // Modes: one bundle of "how should this dictation come out" - language, translation, style, voice commands
 // (and, from M8, AI polish) - picked per shortcut, link, Switch mode or the app in front. Pure, unit tested.
 //
-// A mode: { id, name, color, language, translateTo, style, voiceCommands, aiPolish, prompt, apps }
+// A mode: { id, name, color, language, translateTo, style, voiceCommands, aiPolish, autoEnter, prompt, apps }
 //   id           a slug, fixed once made, so pauli-speaks://dictate/start?mode=<id> keeps working after a rename
 //   name         '' on a built-in mode means "its name in the UI language" (modes.builtin.<id>)
 //   language     null = your languages; or one code to force it
 //   translateTo  null = no translation; or a language code
+//   autoEnter    press Enter after the text is pasted (a chat mode sends the message); off unless switched on
 //   apps         exe names that switch it on (lower case); Default never has any, it is the fallback
 //
 // The mode for a dictation, in this order (resolveMode):
@@ -79,6 +80,7 @@ function cleanMode(raw, id, index) {
     style: STYLES.includes(raw.style) ? raw.style : 'normal',
     voiceCommands: typeof raw.voiceCommands === 'boolean' ? raw.voiceCommands : true,
     aiPolish: AI_POLISH.includes(raw.aiPolish) ? raw.aiPolish : 'off',
+    autoEnter: raw.autoEnter === true,
     prompt: typeof raw.prompt === 'string' ? raw.prompt.slice(0, 4000) : '',
     apps: id === DEFAULT_ID ? [] : cleanApps(raw.apps),
   };

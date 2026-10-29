@@ -87,14 +87,18 @@ function createDictationRun(d) {
     command: controller.command, mode: sessionMode().id, translate: translatingNow(), app: d.sessionApp(),
   });
 
+  /** The mode presses Enter after pasting (a chat mode sends the message); never in command mode, which edits a selection. */
+  const sendsWithEnter = (mode) => !controller.command && !!mode.autoEnter;
+
   /** Text plus the voice commands said at its start / end, in the mode's style. */
   function dictationText(result, mode = sessionMode()) {
     const s = settings.get();
-    if (!result.original) return cleanUtterance(result.text, cleanOpts(s, mode));
+    const space = s.addTrailingSpace && !sendsWithEnter(mode); // a message that is sent needs no space after it
+    if (!result.original) return cleanUtterance(result.text, cleanOpts(s, mode, { addTrailingSpace: space }));
     // NLLB output was already cleaned (and its commands found) before translation: only polish it now.
     const after = result.after || [];
     const keyAfter = after.some((c) => c.action === 'key');
-    const text = cleanTranscript(result.text, cleanOpts(s, mode, { removeFillers: false, voiceCommands: false, addTrailingSpace: s.addTrailingSpace && !keyAfter }));
+    const text = cleanTranscript(result.text, cleanOpts(s, mode, { removeFillers: false, voiceCommands: false, addTrailingSpace: space && !keyAfter }));
     return { text, before: result.before || [], after };
   }
 
@@ -169,12 +173,16 @@ function createDictationRun(d) {
     const item = record(entry, historyId, recording);
     d.feedLanguage({ chosen: s.languages, likely: result.likelyLanguage ?? result.language });
     const pasted = await typing.paste(typed);
-    if (polished && pasted.mode !== 'copy-only' && pasted.pasted !== false && d.offerUnpolish) { // only what was typed can be taken back
+    const typedIn = pasted.mode !== 'copy-only' && pasted.pasted !== false;
+    // The mode's Enter only follows text that really went in, and not a key said at the end ("press tab").
+    const autoEnter = typedIn && sendsWithEnter(mode) && !after.some((c) => c.action === 'key');
+    if (polished && typedIn && autoEnter) d.flash(t('flash.polishedSent'), 'info'); // sent: nothing left to take back
+    else if (polished && typedIn && d.offerUnpolish) { // only what was typed can be taken back
       d.flash(t('flash.polished'), 'info', UNDO_MS, d.offerUnpolish({ historyId: item.id, polished: typed, unpolished: text }));
     }
     if (!shouldRunFollowUps(pasted)) return; // enterAfterPaste is reset by the caller
     for (const c of after) await typing.runVoiceAction(c, false);
-    if (typing.enterAfterPaste && !after.some((c) => c.arg === 'Enter')) await typing.pressEnterNow();
+    if ((typing.enterAfterPaste || autoEnter) && !after.some((c) => c.arg === 'Enter')) await typing.pressEnterNow();
   }
 
   /** Command mode: the speech is an instruction for the selected text (or a request to write something). */

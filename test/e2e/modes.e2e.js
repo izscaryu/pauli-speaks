@@ -86,7 +86,7 @@ test('set up on the Modes and Shortcuts pages: F13 opens a Croatian chat mode, a
   }, { what: 'F13 pointing to the mode' });
   assert.deepEqual(settings.modes.at(-1), {
     id: 'croatian-chat', name: 'Croatian chat', color: settings.modes.at(-1).color, language: 'hr', translateTo: null,
-    style: 'casual', voiceCommands: true, aiPolish: 'off', prompt: '', apps: [],
+    style: 'casual', voiceCommands: true, aiPolish: 'off', autoEnter: false, prompt: '', apps: [],
   });
 
   await run.set('transcript', 'Bok, kako si.');
@@ -159,4 +159,43 @@ test('settings from 1.4 come in as modes: app styles, Always translate and the t
 
   await run.page.click('.nav[data-page="modes"]');
   assert.deepEqual(await run.page.$$eval('.mode-item b', (els) => els.map((e) => e.textContent)), ['Default', 'Chat', 'Formal', 'Translate to German']);
+});
+
+test('Press Enter after pasting, switched on for a chat mode on the Modes page: Enter follows the paste only there', async (t) => {
+  const run = await launch({ settings: setUpSettings({ modes: [{ id: 'default' }, { id: 'chat', style: 'casual', apps: ['slack.exe'] }] }) });
+  t.after(run.close);
+  const { page } = run;
+  await sleep(1500);
+
+  await page.click('.nav[data-page="modes"]');
+  await page.click('.mode-item:has-text("Chat")');
+  assert.equal(await page.isChecked('#mode-auto-enter'), false, 'off until you switch it on');
+  await page.check('#mode-auto-enter', { force: true }); // the switch's box is drawn over the input
+  await waitFor(async () => (await page.evaluate(() => window.pauli.getSettings())).modes.find((m) => m.id === 'chat').autoEnter, { what: 'autoEnter saved' });
+  assert.match(await page.textContent('.mode-item:has-text("Chat")'), /sends with Enter/);
+
+  await run.set('transcript', 'see you soon');
+  await run.set('foreground', 'slack.exe');
+  await dictate(run);
+  let state = await pastes(run, 1);
+  await waitFor(async () => (await run.state()).keys.length, { what: 'Enter' });
+  state = await run.state();
+  assert.equal(state.pasted[0], 'See you soon', 'no space left before the message is sent');
+  assert.deepEqual(state.keys, [{ vk: 0x0d, times: 1 }]);
+
+  await run.set('foreground', 'notepad.exe'); // Default: no Enter
+  await dictate(run);
+  state = await pastes(run, 2);
+  await sleep(500);
+  assert.equal(state.pasted[1], 'See you soon ', 'Default keeps its trailing space');
+  assert.equal((await run.state()).keys.length, 1);
+
+  await run.set('foreground', 'slack.exe'); // "scratch that": nothing typed, nothing sent
+  await run.set('transcript', 'never mind scratch that');
+  await dictate(run);
+  await waitFor(async () => (await run.state()).recognised.length >= 3, { what: 'the third transcription' });
+  await sleep(500);
+  state = await run.state();
+  assert.equal(state.pasted.length, 2);
+  assert.equal(state.keys.length, 1);
 });

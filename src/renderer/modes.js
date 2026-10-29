@@ -31,7 +31,7 @@ const Modes = (() => {
       : m.language ? LANG_NAME[m.language] || m.language.toUpperCase() : t('modes.language.yours');
     const apps = m.id === 'default' ? t('modes.summary.fallback')
       : m.apps.length ? m.apps.slice(0, 2).map(appName).join(', ') + (m.apps.length > 2 ? ' …' : '') : t('modes.summary.manual');
-    return [apps, language, t(`modes.style.${m.style}`)].join(' · ');
+    return [apps, language, t(`modes.style.${m.style}`), m.autoEnter ? t('modes.summary.autoEnter') : null].filter(Boolean).join(' · ');
   }
 
   /** Dictate shortcuts that open a mode. */
@@ -113,6 +113,13 @@ const Modes = (() => {
     const input = el('input', { id: 'mode-voice', type: 'checkbox', checked: m.voiceCommands, 'aria-label': t('voice.title') });
     input.addEventListener('change', () => update({ voiceCommands: input.checked }));
     return field(t('voice.title'), t(settings.voiceCommandsEnabled ? 'modes.voice.hint' : 'modes.voice.off'), el('label', { class: 'switch' }, input, el('span')));
+  }
+
+  /** Press Enter after pasting: a chat mode sends the message without a key press or "send it". */
+  function autoEnterField(m) {
+    const input = el('input', { id: 'mode-auto-enter', type: 'checkbox', checked: m.autoEnter, 'aria-label': t('modes.autoEnter') });
+    input.addEventListener('change', () => update({ autoEnter: input.checked }));
+    return field(t('modes.autoEnter'), t('modes.autoEnter.hint'), el('label', { class: 'switch' }, input, el('span')));
   }
 
   const POLISH = ['off', 'light', 'medium', 'high', 'prompt'];
@@ -197,7 +204,7 @@ const Modes = (() => {
       el('div', { class: 'mode-head' }, el('span', { class: 'dot big', style: `background:${m.color}` }), el('h2', {}, label(m))),
       group('modes.group.identity'), nameField(m), colourField(m),
       group('modes.group.when'), startField(m), appsField(m),
-      group('modes.group.what'), languageField(m), translateField(m), styleField(m), voiceField(m),
+      group('modes.group.what'), languageField(m), translateField(m), styleField(m), voiceField(m), autoEnterField(m),
       group('polish.title'), polishField(m), instructionsField(m),
       linkExpander(m),
       m.id === 'default' ? null : el('div', { class: 'mode-foot' },

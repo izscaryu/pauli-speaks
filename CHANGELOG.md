@@ -4,6 +4,8 @@ What changed in each version of Pauli Speaks. The app shows the newest section o
 
 ## 1.8.0
 
+- Press Enter after pasting: switch it on for a mode on the Modes page (under "What it does") and a dictation in that mode is sent straight away, without pressing Enter or saying "send it". Give your chat apps a mode with it on, or a shortcut of its own. It is off for every mode until you switch it on, and it never presses Enter when nothing was typed, after Esc or "scratch that", or in an app run as administrator. After AI polish the bar says "Polished and sent." (a sent message can't be taken back; History keeps what you said).
+- Your settings file is brought up to date (the old one is kept as settings.v9.json).
 - Fixed: with a shortcut set to Both, double-tapping a combination like Ctrl+Win didn't keep listening: the bar said "Hold Ctrl+Win while you speak" instead. Tapping two keys twice takes a moment longer, and the second tap now counts from when you let go of the first. When a tap is too quick or too slow, the bar reminds you that you can hold the shortcut or double-tap it.
 
 ## 1.7.0

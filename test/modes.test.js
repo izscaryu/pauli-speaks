@@ -15,7 +15,7 @@ test('the default modes: Default first, then Chat, Code, Formal (with the old ap
   const def = DEFAULT_MODES[0];
   assert.deepEqual(def, {
     id: 'default', name: '', color: '#8b867b', language: null, translateTo: null, style: 'normal',
-    voiceCommands: true, aiPolish: 'off', prompt: '', apps: [],
+    voiceCommands: true, aiPolish: 'off', autoEnter: false, prompt: '', apps: [],
   });
   assert.equal(byId(DEFAULT_MODES, 'chat').style, 'casual');
   assert.ok(byId(DEFAULT_MODES, 'chat').apps.includes('slack.exe'));
@@ -34,7 +34,7 @@ test('normalizeModes fills in missing fields and keeps Default first, with no ap
   assert.equal(out[0].color, '#123456');
   assert.deepEqual(out[1], {
     id: 'code', name: '', color: out[1].color, language: null, translateTo: null, style: 'code',
-    voiceCommands: true, aiPolish: 'off', prompt: '', apps: ['code.exe'],
+    voiceCommands: true, aiPolish: 'off', autoEnter: false, prompt: '', apps: ['code.exe'],
   });
   assert.match(out[1].color, /^#[0-9a-f]{6}$/);
 });
@@ -49,7 +49,7 @@ test('normalizeModes adds Default when it is missing, and returns the defaults f
 test('normalizeModes repairs bad values instead of dropping the mode', () => {
   const [, m] = normalizeModes([{
     id: 'x', name: '  Notes  ', color: 'red', language: 'Croatian', translateTo: 7, style: 'loud',
-    voiceCommands: 'yes', aiPolish: 'max', prompt: 42, apps: ['Obsidian.exe', 'obsidian.exe', '', 3, 'bad/name.exe', 'notepad'],
+    voiceCommands: 'yes', aiPolish: 'max', autoEnter: 'yes', prompt: 42, apps: ['Obsidian.exe', 'obsidian.exe', '', 3, 'bad/name.exe', 'notepad'],
   }]);
   assert.equal(m.name, 'Notes');
   assert.match(m.color, /^#[0-9a-f]{6}$/);
@@ -58,6 +58,7 @@ test('normalizeModes repairs bad values instead of dropping the mode', () => {
   assert.equal(m.style, 'normal');
   assert.equal(m.voiceCommands, true);
   assert.equal(m.aiPolish, 'off');
+  assert.equal(m.autoEnter, false);
   assert.equal(m.prompt, '');
   assert.deepEqual(m.apps, ['obsidian.exe', 'notepad.exe']);
 });

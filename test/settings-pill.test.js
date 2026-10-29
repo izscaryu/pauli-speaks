@@ -16,17 +16,17 @@ function tempFile(content) {
 }
 
 test('a new install has the pill in the centre; v8 → v9 puts it there and keeps everything else', () => {
-  assert.equal(SETTINGS_VERSION, 9);
+  assert.ok(SETTINGS_VERSION >= 9);
   assert.equal(DEFAULTS.pillPosition, 'center');
   const step = MIGRATIONS.find((m) => m.from === 8);
   assert.deepEqual(step.run({ settingsVersion: 8, sounds: false }), { settingsVersion: 8, sounds: false, pillPosition: 'center' });
   assert.equal(step.run({ pillPosition: 'left' }).pillPosition, 'left');
 });
 
-test('a v8 file is backed up as settings.v8.json and saved as v9', () => {
+test('a v8 file is backed up as settings.v8.json and saved as the current version', () => {
   const file = tempFile({ settingsVersion: 8, onboarded: true });
   assert.equal(new Settings(file, plain).get().pillPosition, 'center');
-  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).settingsVersion, 9);
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).settingsVersion, SETTINGS_VERSION);
   assert.equal(JSON.parse(fs.readFileSync(path.join(path.dirname(file), 'settings.v8.json'), 'utf8')).settingsVersion, 8);
 });
 
