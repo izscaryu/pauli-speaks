@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { nextLanguage, canSwitchLanguage, pillBounds, snapPosition, POSITIONS, micFlash, pillActionTarget } = require('../src/main/pill');
+const { nextLanguage, canSwitchLanguage, pillBounds, snapPosition, POSITIONS, micFlash, pillActionTarget, tapHint } = require('../src/main/pill');
 
 test('the language chip steps from "your languages" through each one and back', () => {
   const mine = ['hr', 'en', 'de'];
@@ -59,4 +59,12 @@ test('the microphone buttons open exactly two places: Windows\' microphone priva
   assert.equal(pillActionTarget('unpolish-1'), null);
   assert.equal(pillActionTarget('https://example.com'), null);
   assert.equal(pillActionTarget(undefined), null);
+});
+
+test('a tap too short to talk: a Both shortcut also says it can be double-tapped (tester: "it makes me hold it")', () => {
+  const t = (key, p) => `${key}(${p.keys})`;
+  const format = (keys) => keys.join('+');
+  assert.equal(tapHint({ behaviour: 'both', keys: ['Ctrl', 'Meta'] }, ['F13'], { t, format }), 'flash.holdOrDoubleTap(Ctrl+Meta)');
+  assert.equal(tapHint({ behaviour: 'hold', keys: ['F13'] }, ['Ctrl'], { t, format }), 'flash.holdToTalk(F13)');
+  assert.equal(tapHint(null, ['Ctrl', 'Meta'], { t, format }), 'flash.holdToTalk(Ctrl+Meta)', 'no shortcut known: the hold keys');
 });

@@ -173,6 +173,7 @@ function createDictationRun(d) {
     const item = record(entry, historyId, recording);
     d.feedLanguage({ chosen: s.languages, likely: result.likelyLanguage ?? result.language });
     const pasted = await typing.paste(typed);
+    d.log.info(`Pasted ${typed.length} chars ${now() - t0} ms after the shortcut was let go`);
     const typedIn = pasted.mode !== 'copy-only' && pasted.pasted !== false;
     // The mode's Enter only follows text that really went in, and not a key said at the end ("press tab").
     const autoEnter = typedIn && sendsWithEnter(mode) && !after.some((c) => c.action === 'key');

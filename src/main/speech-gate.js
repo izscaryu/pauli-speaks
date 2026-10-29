@@ -54,6 +54,24 @@ async function gateSpeech(audio, { enabled, detect, level, onError, timeoutMs = 
   return { audio, trimmed: false };
 }
 
+const WARM_SAMPLES = Float32Array.from({ length: 2048 }, (_, i) => 0.1 * Math.sin(i / 10)); // 128 ms, loud enough for the model to run
+
+/**
+ * At start: the detector's worker and model get ready now instead of on the first dictation, where loading them
+ * took the silence check over its time limit (a cold worker) or added its load to the wait (a warm one).
+ * @returns {Promise<boolean>} it ran
+ */
+async function warmDetector({ enabled, detect, onError }) {
+  if (!enabled || typeof detect !== 'function') return false;
+  try {
+    await detect(WARM_SAMPLES);
+    return true;
+  } catch (err) {
+    try { if (onError) onError(err); } catch { /* a failing reporter never fails start-up */ }
+    return false;
+  }
+}
+
 /** An onError that reports each distinct message once, so a broken detector does not fill the log. */
 function reportOncePerMessage(report) {
   const seen = new Set();
@@ -65,4 +83,4 @@ function reportOncePerMessage(report) {
   };
 }
 
-module.exports = { gateSpeech, reportOncePerMessage, detectTimeoutMs, SILENCE_LEVEL, NO_SOUND_LEVEL };
+module.exports = { gateSpeech, reportOncePerMessage, detectTimeoutMs, warmDetector, SILENCE_LEVEL, NO_SOUND_LEVEL };

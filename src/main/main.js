@@ -14,7 +14,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const { windowLook } = require('./window-look');
-const { nextLanguage, canSwitchLanguage, pillBounds, snapPosition, micFlash, pillActionTarget } = require('./pill');
+const { nextLanguage, canSwitchLanguage, pillBounds, snapPosition, micFlash, pillActionTarget, tapHint } = require('./pill');
 const path = require('node:path');
 const {
   app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell, session, clipboard, safeStorage, dialog, nativeTheme,
@@ -36,7 +36,7 @@ const { LastPaste } = require('./last-paste');
 const { formatShortcut, sortKeys, VK } = require('./keys');
 const { cleanTranscript, toSrt } = require('./text-cleanup');
 const { speechLevel, SAMPLE_RATE } = require('./audio-utils');
-const { gateSpeech, reportOncePerMessage, SILENCE_LEVEL } = require('./speech-gate');
+const { gateSpeech, reportOncePerMessage, warmDetector, SILENCE_LEVEL } = require('./speech-gate');
 const { createRecoveryFile } = require('./recovery-file');
 const { createListeningSession } = require('./listening-session');
 const { createPendingAudio } = require('./pending-audio');
@@ -475,7 +475,7 @@ function preloadModel() {
       if (modelState.model !== model || modelState.acceleration !== acceleration) return;
       modelState = { model, acceleration, status: 'ready', percent: 100, error: null, device: info.device, gpuError: info.gpuError };
       broadcast('model:state', publicModelState());
-      log.info(`Speech model ready: ${model} on ${info.device}${info.gpuError ? ` (GPU failed: ${info.gpuError})` : ''}`);
+      log.info(`Speech model ready: ${model} on ${info.device}${info.warmMs != null ? `, warmed up in ${info.warmMs} ms` : ''}${info.gpuError ? ` (GPU failed: ${info.gpuError})` : ''}`);
     })
     .catch((err) => {
       if (modelState.model !== model) return;
@@ -596,11 +596,12 @@ async function transcribeDictation(reason) {
   const t0 = Date.now();
   sendOverlayState({ state: 'processing', mode: controller.command ? 'command' : 'dictate' });
   const audio = await stopRecording(false);
-  log.info(`Dictation stopped (${reason}), ${(audio.length / SAMPLE_RATE).toFixed(1)}s of audio`);
+  log.info(`Dictation stopped (${reason}) in ${Date.now() - t0} ms, ${(audio.length / SAMPLE_RATE).toFixed(1)}s of audio`);
   await flow.processDictation(audio, t0);
 }
 
-const speechGate = (audio) => gateSpeech(audio, { enabled: settings.get().silenceDetection, detect: (a) => asr.detectSpeech(a), level: speechLevel, onError: reportDetectorError });
+const detector = () => ({ enabled: settings.get().silenceDetection, detect: (a) => asr.detectSpeech(a), level: speechLevel, onError: reportDetectorError });
+const speechGate = (audio) => gateSpeech(audio, detector());
 
 function engineLabel() {
   const s = settings.get();
@@ -959,6 +960,7 @@ function applySettings(data, patch) {
     else overlay.hide();
   }
   if ('engine' in patch || 'localModel' in patch || 'acceleration' in patch) preloadModel();
+  if (patch.silenceDetection === true) warmDetector(detector());
   if (['translation', 'engine', 'localModel', 'modes'].some((k) => k in patch) && defaultNeedsTranslator(data)) preloadTranslator();
   i18nIpc.settingsChanged(patch);
   updateTrayMenu();
@@ -1025,10 +1027,7 @@ function init() {
       log.info(`Dictation dismissed (${reason})`);
       if (reason === 'cancel') return flow.offerUndo().catch((err) => log.warn(`Undo: ${err.message}`));
       stopRecording(true);
-      if (reason === 'tap') {
-        const keys = lastTalkBinding && lastTalkBinding.keys ? lastTalkBinding.keys : holdKeys();
-        flash(t(lastTalkBinding?.behaviour === 'both' ? 'flash.holdOrDoubleTap' : 'flash.holdToTalk', { keys: formatShortcut(keys) }), 'info', 2600);
-      }
+      if (reason === 'tap') flash(tapHint(lastTalkBinding, holdKeys(), { t, format: formatShortcut }), 'info', 2600);
       else sendOverlayState({ state: 'idle' });
     },
   });
@@ -1130,6 +1129,7 @@ function init() {
   if (!hidden || !settings.get().onboarded) createMainWindow();
   if (shouldPreloadAtStartup(settings.get(), (id) => isModelDownloaded(modelsDir(), id))) preloadModel();
   if (defaultNeedsTranslator(settings.get())) preloadTranslator();
+  warmDetector(detector()); // the first dictation's silence check must not wait for the worker to start
 
   screen.on('display-metrics-changed', positionOverlay);
   if (process.env.PAULI_SELFTEST) runSelfTest(process.env.PAULI_SELFTEST);

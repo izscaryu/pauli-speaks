@@ -19,7 +19,7 @@ const audio = (s = 1) => new Float32Array(Math.round(RATE * s)).fill(0.1);
  * The run with real History and text clean-up; engines, windows and keys are scripted.
  * `heard` is what the speech engine returns, `chat` what the AI answers in command mode.
  */
-function rig({ heard = { text: 'hello there', language: 'en' }, chat = async () => 'Edited.', selection = 'old text', pasteMode = 'paste', nllb = false, polish } = {}) {
+function rig({ heard = { text: 'hello there', language: 'en' }, chat = async () => 'Edited.', selection = 'old text', pasteMode = 'paste', nllb = false, polish, logged = [] } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pauli-run-'));
   test.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const history = new History(path.join(dir, 'history.json'));
@@ -47,7 +47,7 @@ function rig({ heard = { text: 'hello there', language: 'en' }, chat = async () 
     chatComplete: async (opts, messages) => { calls.chats.push({ opts, messages }); return chat(); },
     sendOverlayState: (state) => calls.states.push(state),
     flash: (...a) => calls.flashed.push(a),
-    log: { info() {}, warn() {}, error() {} },
+    log: { info: (m) => logged.push(m), warn() {}, error() {} },
     ...(polish && {
       polish: async (o) => { calls.polished.push(o); return polish(o); },
       offerUnpolish: (o) => { calls.offers.push(o); return { id: 'unpolish-1', label: 'Undo' }; },
@@ -433,4 +433,13 @@ test('auto-Enter: Command mode never presses Enter on its own (it edits the sele
   await run.runCommand(audio(), 1);
   assert.equal(calls.pasted.length, 1);
   assert.equal(calls.enters, 0);
+});
+
+test('the log says how long after the shortcut went up the text was pasted, with lengths and times only', async () => {
+  const logged = [];
+  const { run } = rig({ logged, heard: { text: 'my secret words', language: 'en' } });
+  await run.runDictation(audio(), 1, Date.now() - 50);
+  const line = logged.find((m) => m.startsWith('Pasted'));
+  assert.match(line, /^Pasted 16 chars \d+ ms after the shortcut was let go$/);
+  assert.ok(!logged.some((m) => /secret/i.test(m)), 'never what was said');
 });

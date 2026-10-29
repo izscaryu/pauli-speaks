@@ -46,6 +46,16 @@ outside the repository; the script only reads it. It prints each engine's word e
 cold and warm start times (`--details` adds every clip). Whisper models go to a folder in your temp directory
 unless you pass `--models <folder>`. `cloud` sends the recordings to the service and needs `PAULI_BENCH_API_KEY`.
 
+How long a dictation waits for the speech engine on your PC, stage by stage (the silence check, loading, the first
+dictation after loading, and later ones with no, two or one language chosen):
+
+```powershell
+npm run latency -- C:\path\to\clip.wav   # --model onnx-community/whisper-small, --cpu, --models <folder>
+```
+
+The app's log has the same stages for real dictations: "Dictation stopped (release) in … ms", "Transcribed in … ms" and
+"Pasted … chars … ms after the shortcut was let go".
+
 ## Where things live
 
 | Path | What |

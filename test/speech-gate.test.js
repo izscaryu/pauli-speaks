@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { gateSpeech, reportOncePerMessage, detectTimeoutMs, SILENCE_LEVEL, NO_SOUND_LEVEL } = require('../src/main/speech-gate');
+const { gateSpeech, reportOncePerMessage, detectTimeoutMs, warmDetector, SILENCE_LEVEL, NO_SOUND_LEVEL } = require('../src/main/speech-gate');
 const { speechLevel, SAMPLE_RATE } = require('../src/main/audio-utils');
 
 const tone = (seconds, amp = 0.1) => Float32Array.from({ length: Math.round(seconds * SAMPLE_RATE) }, (_, i) => amp * Math.sin(i / 10));
@@ -144,4 +144,24 @@ test('a detector that answers late is ignored, and one that answers in time is u
   assert.equal(r.audio, audio);
   const quick = await gateSpeech(audio, { enabled: true, detect: async () => [], level, timeoutMs: 20 });
   assert.deepEqual(quick, { skip: 'no-speech' });
+});
+
+// Measured (tester feedback, "faster"): the detector's worker and model load on first use, so the first dictation of a
+// session waited for them - 120 ms warm, or the whole 1.5 s limit when the worker had not started (the cloud engine).
+test('warmDetector: with Silence detection on, the detector runs once at start on a short loud sample', async () => {
+  const seen = [];
+  assert.equal(await warmDetector({ enabled: true, detect: async (a) => { seen.push(a); return []; } }), true);
+  assert.equal(seen.length, 1);
+  assert.ok(seen[0].length >= 512 && seen[0].length <= SAMPLE_RATE, 'at least one detector frame, at most a second');
+  assert.ok(level(seen[0]) > SILENCE_LEVEL, 'loud enough that the model runs (quiet frames skip it)');
+});
+
+test('warmDetector: nothing to do when Silence detection is off or there is no detector; a failure is reported, never thrown', async () => {
+  let calls = 0;
+  assert.equal(await warmDetector({ enabled: false, detect: async () => { calls++; return []; } }), false);
+  assert.equal(await warmDetector({ enabled: true, detect: null }), false);
+  assert.equal(calls, 0);
+  const errors = [];
+  assert.equal(await warmDetector({ enabled: true, detect: async () => { throw new Error('no model'); }, onError: (e) => errors.push(e.message) }), false);
+  assert.deepEqual(errors, ['no model']);
 });

@@ -61,4 +61,13 @@ function pillActionTarget(id) {
   return null;
 }
 
-module.exports = { nextLanguage, canSwitchLanguage, pillBounds, snapPosition, POSITIONS, micFlash, pillActionTarget };
+/**
+ * What the pill says after a tap too short to talk (the shortcut went up before it counted as held): hold it, and for a
+ * Both shortcut, double-tap it to keep listening. `binding` is the shortcut that was tapped; without one, `holdKeys`.
+ */
+function tapHint(binding, holdKeys, { t, format }) {
+  const keys = binding && binding.keys ? binding.keys : holdKeys;
+  return t(binding?.behaviour === 'both' ? 'flash.holdOrDoubleTap' : 'flash.holdToTalk', { keys: format(keys) });
+}
+
+module.exports = { nextLanguage, canSwitchLanguage, pillBounds, snapPosition, POSITIONS, micFlash, pillActionTarget, tapHint };

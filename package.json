@@ -19,6 +19,7 @@
     "test:packaged": "electron-builder --win dir --publish never && node scripts/smoke-packaged.js",
     "i18n:check": "node scripts/i18n-check.js",
     "bench": "node scripts/bench.js",
+    "latency": "node scripts/latency.js",
     "icon": "node scripts/make-icon.js",
     "dist": "electron-builder --win nsis --publish never",
     "dist:portable": "electron-builder --win portable --publish never",
