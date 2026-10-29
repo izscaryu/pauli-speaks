@@ -29,6 +29,14 @@
   <p class="lead">What changed in each version. The app shows the newest section once after an update.</p>
   <p class="meta">The full list is <a href="https://github.com/izscaryu/pauli-speaks/blob/main/CHANGELOG.md">CHANGELOG.md</a>, and every version can be downloaded from <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub Releases</a>.</p>
 
+  <h2 id="v1.8.0">Version 1.8.0</h2>
+  <ul>
+    <li>Press Enter after pasting: switch it on for a mode on the Modes page (under &quot;What it does&quot;) and a dictation in that mode is sent straight away, without pressing Enter or saying &quot;send it&quot;. Give your chat apps a mode with it on, or a shortcut of its own. It is off for every mode until you switch it on, and it never presses Enter when nothing was typed, after Esc or &quot;scratch that&quot;, or in an app run as administrator. After AI polish the bar says &quot;Polished and sent.&quot; (a sent message can't be taken back; History keeps what you said).</li>
+    <li>Faster: your words appear sooner after you let go. The speech model gets ready for work as soon as it loads, so the first dictation after starting is no longer the slow one, and with more than one language (or none chosen) Whisper listens once instead of twice to tell the language and write the words. The silence check is ready when Pauli Speaks starts, also with the cloud engine. What you get is word for word the same.</li>
+    <li>Fixed: with a shortcut set to Both, double-tapping a combination like Ctrl+Win didn't keep listening: the bar said &quot;Hold Ctrl+Win while you speak&quot; instead. The second tap now counts from when you let go of the first. When a tap is too quick or too slow, the bar reminds you that you can hold the shortcut or double-tap it.</li>
+    <li>Your settings file is brought up to date (the old one is kept as settings.v9.json).</li>
+  </ul>
+
   <h2 id="v1.7.0">Version 1.7.0</h2>
   <ul>
     <li>A new look, closer to Windows 11: calmer colours with more contrast (in the dark theme above all), one set of text sizes, Windows-style buttons, fields, switches and option groups, Windows' own icons and a thin scrollbar.</li>

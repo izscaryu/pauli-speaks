@@ -29,6 +29,14 @@
   <p class="lead">Što se promijenilo u svakoj verziji. Aplikacija nakon ažuriranja jednom prikaže najnoviji odjeljak.</p>
   <p class="meta">Cijeli popis, na engleskom: <a href="https://github.com/izscaryu/pauli-speaks/blob/main/CHANGELOG.md" hreflang="en">CHANGELOG.md</a>. Preuzimanja svih verzija su na <a href="https://github.com/izscaryu/pauli-speaks/releases">GitHub Releases</a>.</p>
 
+  <h2 id="v1.8.0">Verzija 1.8.0</h2>
+  <ul>
+    <li>Pritisni Enter nakon lijepljenja: uključi to za način na stranici Načini (pod „Što radi”) i diktat u tom načinu odmah se šalje, bez pritiskanja Entera i bez „pošalji”. Daj aplikacijama za chat način s tim uključenim ili vlastiti prečac. Isključeno je za svaki način dok ga ne uključiš i nikad ne pritišće Enter kad ništa nije upisano, nakon Esc ili „obriši to” ni u aplikaciji pokrenutoj kao administrator. Nakon AI dotjerivanja traka kaže „Dotjerano i poslano.” (poslana poruka ne može se vratiti; Povijest čuva izgovoreno).</li>
+    <li>Brže: riječi se pojave prije nakon što pustiš prečac. Model za govor spremi se za rad čim se učita, pa prvo diktiranje nakon pokretanja više nije sporo, a s više jezika (ili bez odabranog) Whisper sluša jednom umjesto dvaput da prepozna jezik i napiše riječi. Provjera tišine spremna je čim se Pauli Speaks pokrene, i s oblačnim prepoznavanjem. Rezultat je od riječi do riječi isti.</li>
+    <li>Ispravljeno: s prečacem postavljenim na Oboje dvostruki dodir kombinacije poput Ctrl+Win nije nastavio slušati, nego je traka rekla „Drži Ctrl+Win dok govoriš”. Drugi dodir sada se računa od trenutka kad pustiš prvi. Kad je dodir prebrz ili prespor, traka te podsjeti da prečac možeš držati ili ga dvaput kucnuti.</li>
+    <li>Datoteka s postavkama ažurira se (stara se čuva kao settings.v9.json).</li>
+  </ul>
+
   <h2 id="v1.7.0">Verzija 1.7.0</h2>
   <ul>
     <li>Novi izgled, bliži Windowsima 11: mirnije boje s više kontrasta (prije svega u tamnoj temi), jedan niz veličina teksta, gumbi, polja, prekidači i skupine izbora kao u Windowsima, ikone samih Windowsa i tanka traka za pomicanje.</li>
